@@ -5613,3 +5613,15 @@ button:disabled {
     padding: 13px;
   }
 }
+
+.university-comparison-chip.is-discovered {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--accent-color, #6366f1) 42%, var(--border-color, #dce1e8));
+}
+
+.university-comparison-chip-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

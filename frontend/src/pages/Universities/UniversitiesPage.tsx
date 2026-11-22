@@ -29,7 +29,14 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { UniversityDiscoveryPanel } from '@/components/universities/UniversityDiscoveryPanel'
 import { useAsyncData } from '@/hooks/useAsyncData'
 import { universityService } from '@/services/university.service'
-import { readComparisonUniversityIds, writeComparisonUniversityIds } from '@/services/university-comparison.store'
+import {
+  clearComparisonSelections,
+  readComparisonUniversityIds,
+  readDiscoveredComparisonUniversities,
+  removeComparisonSelection,
+  subscribeToComparisonChanges,
+  writeComparisonUniversityIds
+} from '@/services/university-comparison.store'
 import {
   getBenefitVerificationClass,
   getBenefitVerificationLabel,
@@ -395,11 +402,18 @@ export function UniversitiesPage() {
 
   const navigate = useNavigate()
   const [comparisonIds, setComparisonIds] = useState<string[]>(readComparisonUniversityIds)
+  const [discoveredComparison, setDiscoveredComparison] = useState(readDiscoveredComparisonUniversities)
   const [comparisonNotice, setComparisonNotice] = useState('')
+  const comparisonCount = comparisonIds.length + discoveredComparison.length
 
   useEffect(() => {
     writeComparisonUniversityIds(comparisonIds)
   }, [comparisonIds])
+
+  useEffect(() => subscribeToComparisonChanges(() => {
+    setComparisonIds(readComparisonUniversityIds())
+    setDiscoveredComparison(readDiscoveredComparisonUniversities())
+  }), [])
 
   const loadUniversities = useCallback(
     () => universityService.getAll(),
@@ -503,7 +517,7 @@ export function UniversitiesPage() {
       return
     }
 
-    if (comparisonIds.length >= 5) {
+    if (comparisonCount >= 5) {
       setComparisonNotice('Можно сравнить не более 5 вузов.')
       return
     }
@@ -522,7 +536,9 @@ export function UniversitiesPage() {
   }
 
   const clearComparison = () => {
+    clearComparisonSelections()
     setComparisonIds([])
+    setDiscoveredComparison([])
     setComparisonNotice('')
   }
 
@@ -851,14 +867,14 @@ export function UniversitiesPage() {
         </p>
       </div>
 
-      {comparisonIds.length > 0 && (
+      {comparisonCount > 0 && (
         <aside className="university-comparison-bar">
           <div className="university-comparison-bar-content">
             <div className="university-comparison-bar-heading">
               <GitCompareArrows size={19} />
 
               <strong>
-                Выбрано вузов: {comparisonIds.length}/5
+                Выбрано вузов: {comparisonCount}/5
               </strong>
             </div>
 
@@ -872,10 +888,20 @@ export function UniversitiesPage() {
 
                   <button
                     type="button"
-                    onClick={() =>
-                      removeFromComparison(university.id)
-                    }
+                    onClick={() => removeFromComparison(university.id)}
                     aria-label={`Удалить ${university.shortName} из сравнения`}
+                  >
+                    <X size={13} />
+                  </button>
+                </span>
+              ))}
+              {discoveredComparison.map((university) => (
+                <span className="university-comparison-chip is-discovered" key={university.id}>
+                  <span className="university-comparison-chip-label">{university.title}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeComparisonSelection(university.id)}
+                    aria-label={`Удалить ${university.title} из сравнения`}
                   >
                     <X size={13} />
                   </button>
@@ -896,7 +922,7 @@ export function UniversitiesPage() {
             <button
               type="button"
               className="primary-button"
-              disabled={comparisonIds.length < 2}
+              disabled={comparisonCount < 2}
               onClick={() => navigate('/universities/compare')}
             >
               Открыть сравнение

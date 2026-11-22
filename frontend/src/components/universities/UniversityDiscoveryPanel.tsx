@@ -3,7 +3,9 @@ import {
   AlertCircle,
   ArrowLeft,
   BookOpen,
+  Check,
   ExternalLink,
+  GitCompareArrows,
   Globe2,
   LoaderCircle,
   Search
@@ -15,6 +17,12 @@ import type {
 } from '@trajectory/shared'
 
 import { universityService } from '@/services/university.service'
+import {
+  addDiscoveredUniversityToComparison,
+  getDiscoveredComparisonId,
+  readDiscoveredComparisonUniversities,
+  subscribeToComparisonChanges
+} from '@/services/university-comparison.store'
 import './university-discovery.css'
 
 function getErrorMessage(error: unknown): string {
@@ -33,6 +41,14 @@ export function UniversityDiscoveryPanel() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [note, setNote] = useState('')
+  const [comparisonIds, setComparisonIds] = useState<string[]>(() =>
+    readDiscoveredComparisonUniversities().map((item) => item.id)
+  )
+  const [comparisonNotice, setComparisonNotice] = useState('')
+
+  useEffect(() => subscribeToComparisonChanges(() => {
+    setComparisonIds(readDiscoveredComparisonUniversities().map((item) => item.id))
+  }), [])
 
   useEffect(() => {
     let active = true
@@ -104,6 +120,18 @@ export function UniversityDiscoveryPanel() {
   }
 
   const unavailable = status !== null && (!status.enabled || !status.configured)
+
+  const addToComparison = (result: UniversityDiscoveryResult) => {
+    const response = addDiscoveredUniversityToComparison(result)
+    if (response.status === 'limit-reached') {
+      setComparisonNotice('Можно сравнивать не более пяти университетов. Удали один из выбранных вузов, чтобы добавить новый.')
+      return
+    }
+    setComparisonNotice(response.status === 'already-added'
+      ? 'Этот университет уже добавлен в сравнение.'
+      : 'Университет добавлен. Открой панель сравнения внизу страницы.')
+    setComparisonIds((current) => current.includes(response.id) ? current : [...current, response.id])
+  }
 
   return (
     <section className="panel university-discovery-panel" aria-labelledby="university-discovery-title">
@@ -202,9 +230,21 @@ export function UniversityDiscoveryPanel() {
                       Открыть источник <ExternalLink size={14} />
                     </a>
                     {mode === 'universities' && (
-                      <button type="button" onClick={() => findPrograms(result)}>
-                        Найти программы на этом сайте <Search size={14} />
-                      </button>
+                      <>
+                        <button type="button" onClick={() => findPrograms(result)}>
+                          Найти программы на этом сайте <Search size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          className={`university-discovery-add-compare${comparisonIds.includes(getDiscoveredComparisonId(result)) ? ' is-added' : ''}`}
+                          onClick={() => addToComparison(result)}
+                          disabled={comparisonIds.includes(getDiscoveredComparisonId(result))}
+                        >
+                          {comparisonIds.includes(getDiscoveredComparisonId(result))
+                            ? <><Check size={14} /> В сравнении</>
+                            : <><GitCompareArrows size={14} /> Добавить в сравнение</>}
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -214,6 +254,7 @@ export function UniversityDiscoveryPanel() {
         </div>
       )}
 
+      {comparisonNotice && <p className="university-discovery-comparison-notice" role="status">{comparisonNotice}</p>}
       {note && <p className="university-discovery-note">{note}</p>}
 
       <p className="university-discovery-disclaimer">

@@ -462,3 +462,151 @@
   .university-compare-card { padding: 14px; border-radius: 14px; }
   .university-compare-card-title h2 { font-size: 14px; }
 }
+
+.university-compare-accordion {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  transition: border-color .18s ease, background .18s ease;
+}
+
+.university-compare-accordion.is-open {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+  background: color-mix(in srgb, var(--accent) 3%, var(--card));
+}
+
+.university-compare-accordion-trigger {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.university-compare-accordion-trigger:hover {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.university-compare-accordion-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -3px;
+}
+
+.university-compare-accordion-copy {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.university-compare-accordion-copy strong {
+  color: var(--text-heading);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.university-compare-accordion-copy small {
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.university-compare-accordion-count {
+  display: inline-grid;
+  flex: 0 0 auto;
+  min-width: 25px;
+  height: 25px;
+  place-items: center;
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.university-compare-accordion-chevron {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  transition: transform .18s ease;
+}
+
+.university-compare-accordion.is-open .university-compare-accordion-chevron {
+  transform: rotate(180deg);
+  color: var(--accent);
+}
+
+.university-compare-accordion-panel {
+  padding: 0 12px 12px;
+}
+
+.university-compare-accordion-panel > .university-compare-no-data {
+  background: color-mix(in srgb, var(--card) 72%, transparent);
+}
+
+.university-compare-accordion-panel .university-compare-benefits {
+  padding-top: 1px;
+}
+
+.university-compare-discovered-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  margin-top: 6px;
+  color: var(--success);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.university-compare-discovery-excerpt {
+  padding: 10px 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.university-compare-discovery-excerpt > span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.university-compare-discovery-excerpt p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.university-compare-card {
+  gap: 12px;
+}
+
+@media (max-width: 700px) {
+  .university-compare-accordion-trigger { gap: 8px; padding: 12px; }
+  .university-compare-accordion-copy strong { font-size: 12px; }
+  .university-compare-accordion-panel { padding: 0 9px 9px; }
+}
