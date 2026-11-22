@@ -16,3 +16,13 @@ services:
         sync: false
       - key: SUPABASE_PUBLISHABLE_KEY
         sync: false
+      - key: CLOUDFLARE_ACCOUNT_ID
+        sync: false
+      - key: CLOUDFLARE_API_TOKEN
+        sync: false
+      - key: CLOUDFLARE_AI_MODEL
+        value: '@cf/zai-org/glm-4.7-flash'
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: TAVILY_SEARCH_ENABLED
+        value: "true"

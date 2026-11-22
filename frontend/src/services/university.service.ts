@@ -1,7 +1,10 @@
 import type {
   BenefitVerificationFilter,
   University,
-  UniversityBenefit
+  UniversityBenefit,
+  UniversityDiscoveryInput,
+  UniversityDiscoveryResponse,
+  UniversityDiscoveryStatus
 } from '@trajectory/shared'
 
 import { api } from '@/services/api'
@@ -50,6 +53,19 @@ export const universityService = {
     return api.get<University>(
       `/api/universities/${encodeURIComponent(id)}`
     )
+  },
+
+  discover(
+    input: UniversityDiscoveryInput
+  ): Promise<UniversityDiscoveryResponse> {
+    return api.get<UniversityDiscoveryResponse>(
+      `/api/universities/discover${createQuery(input)}`,
+      { timeoutMs: 25_000 }
+    )
+  },
+
+  getDiscoveryStatus(): Promise<UniversityDiscoveryStatus> {
+    return api.get<UniversityDiscoveryStatus>('/api/universities/discover/status')
   },
 
   compareBenefits(

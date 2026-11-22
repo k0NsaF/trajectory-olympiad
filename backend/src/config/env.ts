@@ -1,9 +1,13 @@
-
 const portValue = Number(process.env.PORT ?? 3000)
 
 if (!Number.isInteger(portValue) || portValue < 1 || portValue > 65535) {
   throw new Error('Некорректное значение PORT')
 }
+
+const cloudflareAccountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim() ?? ''
+const cloudflareApiToken = process.env.CLOUDFLARE_API_TOKEN?.trim() ?? ''
+const cloudflareAiModel =
+  process.env.CLOUDFLARE_AI_MODEL?.trim() || '@cf/zai-org/glm-4.7-flash'
 
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
@@ -14,16 +18,23 @@ export const env = {
     .map((origin) => origin.trim())
     .filter(Boolean),
 
-  supabaseUrl: process.env.SUPABASE_URL ?? '',
-  supabasePublishableKey: process.env.SUPABASE_PUBLISHABLE_KEY ?? '',
+  supabaseUrl: process.env.SUPABASE_URL?.trim() ?? '',
+  supabasePublishableKey: process.env.SUPABASE_PUBLISHABLE_KEY?.trim() ?? '',
 
-  yandexGptApiKey: process.env.YANDEXGPT_API_KEY ?? '',
-  yandexGptFolderId: process.env.YANDEXGPT_FOLDER_ID ?? '',
-  yandexGptModel: process.env.YANDEXGPT_MODEL ?? 'yandexgpt-5.1'
+  cloudflareAccountId,
+  cloudflareApiToken,
+  cloudflareAiModel,
+
+  tavilyApiKey: process.env.TAVILY_API_KEY?.trim() ?? '',
+  tavilySearchEnabled: process.env.TAVILY_SEARCH_ENABLED === 'true'
 } as const
 
 export const isProduction = env.nodeEnv === 'production'
 
 export const hasSupabaseConfig = Boolean(
   env.supabaseUrl && env.supabasePublishableKey
+)
+
+export const hasCloudflareAIConfig = Boolean(
+  env.cloudflareAccountId && env.cloudflareApiToken
 )

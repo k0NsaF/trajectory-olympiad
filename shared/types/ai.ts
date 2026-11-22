@@ -15,7 +15,7 @@ export type AIPageType =
 export interface AISource {
   title: string
   url: string
-  kind?: 'olympiad' | 'university' | 'benefit' | 'calendar'
+  kind?: 'olympiad' | 'university' | 'benefit' | 'calendar' | 'web'
   validYear?: number
   verificationStatus?: 'draft' | 'official' | 'archived'
 }
@@ -55,4 +55,12 @@ export interface AIAskResponse {
   sources: AISource[]
   knowledgeStatus: 'retrieved' | 'general'
   notice?: string
+}
+
+
+export interface AIServiceStatus {
+  modelConfigured: boolean
+  webSearchEnabled: boolean
+  webSearchConfigured: boolean
+  model: string
 }

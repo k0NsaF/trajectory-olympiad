@@ -168,3 +168,19 @@
   font-size: 12px;
   line-height: 1.45;
 }
+
+.ai-service-status-line {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.ai-online-dot.is-disabled {
+  background: var(--warning);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--warning) 14%, transparent);
+}
+
+.ai-source-external-label {
+  color: var(--warning) !important;
+}

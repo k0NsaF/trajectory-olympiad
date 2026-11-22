@@ -28,6 +28,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { LoadingState } from '@/components/common/LoadingState'
 import { PageHeader } from '@/components/common/PageHeader'
+import { UniversityDiscoveryPanel } from '@/components/universities/UniversityDiscoveryPanel'
 import { useAsyncData } from '@/hooks/useAsyncData'
 import { universityService } from '@/services/university.service'
 import {
@@ -886,6 +887,8 @@ export function UniversitiesPage() {
         title="Университеты"
         description="Изучай университеты, программы подготовки и подтверждённые условия поступления по олимпиадам."
       />
+
+      <UniversityDiscoveryPanel />
 
       <section className="panel universities-catalog-panel">
         <div className="panel-heading">

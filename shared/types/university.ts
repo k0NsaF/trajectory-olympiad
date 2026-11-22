@@ -56,3 +56,30 @@ export interface UniversityBenefit {
   lastCheckedAt?: string
   verificationStatus: BenefitVerificationStatus
 }
+
+export type UniversityDiscoveryMode = 'universities' | 'programs'
+
+export interface UniversityDiscoveryInput {
+  query: string
+  mode?: UniversityDiscoveryMode
+  domain?: string
+}
+
+export interface UniversityDiscoveryResult {
+  title: string
+  url: string
+  domain: string
+  snippet: string
+}
+
+export interface UniversityDiscoveryResponse {
+  query: string
+  mode: UniversityDiscoveryMode
+  results: UniversityDiscoveryResult[]
+  note: string
+}
+
+export interface UniversityDiscoveryStatus {
+  enabled: boolean
+  configured: boolean
+}

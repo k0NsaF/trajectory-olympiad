@@ -4,9 +4,13 @@ import { createSupabaseClient } from '../../config/supabase.js'
 import { validateBody } from '../../middleware/validate.js'
 import { aiRateLimit } from './ai.rate-limit.js'
 import { aiAskSchema } from './ai.schema.js'
-import { askAI } from './ai.service.js'
+import { askAI, getAIServiceStatus } from './ai.service.js'
 
 const router = Router()
+
+router.get('/status', (_req, res) => {
+  res.status(200).json(getAIServiceStatus())
+})
 
 router.post(
   '/ask',

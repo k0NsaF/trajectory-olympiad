@@ -6,6 +6,10 @@ import { test } from 'node:test'
 import { app } from '../src/app.js'
 import { createAchievementSchema } from '../src/modules/achievements/achievements.schema.js'
 import { aiAskSchema } from '../src/modules/ai/ai.schema.js'
+import { shouldUseExternalUniversitySearch } from '../src/modules/ai/ai.service.js'
+import { universityDiscoverySchema } from '../src/modules/universities/universities.schema.js'
+import { buildUniversitySearchQuery, parseTavilySearchResponse } from '../src/services/tavily-search.service.js'
+import { buildCloudflareMessages, extractCloudflareText } from '../src/services/cloudflare-ai.service.js'
 import { benefitCompareSchema } from '../src/modules/benefits/benefits.schema.js'
 import { olympiadFiltersSchema } from '../src/modules/olympiads/olympiads.schema.js'
 import {
@@ -158,6 +162,95 @@ test('схемы данных: корректные сценарии и огра
     }).success, false)
   })
 
+  await t.test('поиск вузов принимает запрос и требует домен для поиска программ', () => {
+    assert.equal(universityDiscoverySchema.safeParse({
+      query: 'университеты Москвы',
+      mode: 'universities'
+    }).success, true)
+
+    assert.equal(universityDiscoverySchema.safeParse({
+      query: 'программы искусственного интеллекта',
+      mode: 'programs'
+    }).success, false)
+
+    assert.equal(universityDiscoverySchema.safeParse({
+      query: 'программы искусственного интеллекта',
+      mode: 'programs',
+      domain: 'mipt.ru'
+    }).success, true)
+  })
+
+  await t.test('поиск программ ограничивается доменом выбранного вуза', () => {
+    const query = buildUniversitySearchQuery({
+      query: 'искусственный интеллект',
+      mode: 'programs',
+      domain: 'mipt.ru'
+    })
+    assert.match(query, /site:mipt\.ru/u)
+    assert.match(query, /искусственный интеллект/u)
+  })
+
+  await t.test('парсер Tavily Search API извлекает ссылки и отбрасывает локальные адреса', () => {
+    const payload = {
+      results: [
+        {
+          title: 'МФТИ — официальный сайт',
+          url: 'https://www.mipt.ru/',
+          content: 'Официальный сайт Московского физико-технического института.'
+        },
+        {
+          title: 'Локальный адрес',
+          url: 'http://127.0.0.1/admin',
+          content: 'Не должен отображаться'
+        },
+        {
+          title: 'Внутренний адрес',
+          url: 'https://localhost/admin',
+          content: 'Не должен отображаться'
+        }
+      ]
+    }
+    const results = parseTavilySearchResponse(payload)
+    assert.equal(results.length, 1)
+    assert.equal(results[0]?.domain, 'mipt.ru')
+    assert.equal(results[0]?.title, 'МФТИ — официальный сайт')
+    assert.match(results[0]?.snippet ?? '', /физико-технического/u)
+  })
+
+  await t.test('парсер Cloudflare Workers AI извлекает текст из REST API response', () => {
+    const response = {
+      success: true,
+      result: { response: 'МФТИ предлагает образовательные программы.' },
+      errors: [],
+      messages: []
+    }
+
+    assert.equal(extractCloudflareText(response), 'МФТИ предлагает образовательные программы.')
+    assert.equal(extractCloudflareText({ success: true, result: {} }), null)
+  })
+
+  await t.test('Cloudflare получает system prompt, историю и текущий вопрос в правильном порядке', () => {
+    const messages = buildCloudflareMessages({
+      systemInstruction: 'Ты — образовательный консультант.',
+      history: [
+        { role: 'assistant', content: 'Старое сообщение до истории пользователя' },
+        { role: 'user', content: 'Я учусь в 9 классе.' },
+        { role: 'assistant', content: 'Понял.' }
+      ],
+      userPrompt: 'Подбери олимпиады.'
+    })
+
+    assert.deepEqual(messages.map((message) => message.role), ['system', 'user', 'assistant', 'user'])
+    assert.equal(messages[0]?.content, 'Ты — образовательный консультант.')
+    assert.equal(messages.at(-1)?.content, 'Подбери олимпиады.')
+  })
+
+  await t.test('ИИ запускает внешний поиск только для запросов о поиске вузов и программ', () => {
+    assert.equal(shouldUseExternalUniversitySearch('Найди вузы Москвы с программой биоинформатика'), true)
+    assert.equal(shouldUseExternalUniversitySearch('Подбери образовательные программы по искусственному интеллекту'), true)
+    assert.equal(shouldUseExternalUniversitySearch('Как подготовиться к олимпиаде по математике?'), false)
+  })
+
   await t.test('ИИ ограничивает размер вопроса и истории и валидирует контекст', () => {
     const parsed = aiAskSchema.safeParse({
       question: 'Какие олимпиады подходят мне?',
@@ -195,6 +288,21 @@ test('HTTP smoke-тесты Express API', async () => {
     assert.equal(healthBody.success, true)
     assert.equal(healthResponse.headers.get('x-powered-by'), null)
 
+    const aiStatusResponse = await fetch(`${baseUrl}/api/ai/status`)
+    assert.equal(aiStatusResponse.status, 200)
+    const aiStatus = await aiStatusResponse.json() as Record<string, unknown>
+    assert.equal(typeof aiStatus.modelConfigured, 'boolean')
+    assert.equal(typeof aiStatus.webSearchEnabled, 'boolean')
+    assert.equal(typeof aiStatus.webSearchConfigured, 'boolean')
+    assert.equal(typeof aiStatus.model, 'string')
+    assert.equal('apiKey' in aiStatus, false)
+
+    const universitySearchStatus = await fetch(`${baseUrl}/api/universities/discover/status`)
+    assert.equal(universitySearchStatus.status, 200)
+    const universitySearchStatusBody = await universitySearchStatus.json() as Record<string, unknown>
+    assert.equal(typeof universitySearchStatusBody.enabled, 'boolean')
+    assert.equal(typeof universitySearchStatusBody.configured, 'boolean')
+
     const profileResponse = await fetch(`${baseUrl}/api/profile`)
     assert.equal(profileResponse.status, 401)
     const profileBody = await profileResponse.json() as { code?: string }
@@ -209,6 +317,11 @@ test('HTTP smoke-тесты Express API', async () => {
     assert.equal(invalidCatalogResponse.status, 400)
     const invalidCatalogBody = await invalidCatalogResponse.json() as { code?: string }
     assert.equal(invalidCatalogBody.code, 'VALIDATION_ERROR')
+
+    const invalidUniversitySearchResponse = await fetch(`${baseUrl}/api/universities/discover?query=ab`)
+    assert.equal(invalidUniversitySearchResponse.status, 400)
+    const invalidUniversitySearchBody = await invalidUniversitySearchResponse.json() as { code?: string }
+    assert.equal(invalidUniversitySearchBody.code, 'VALIDATION_ERROR')
 
     const invalidAiResponse = await fetch(`${baseUrl}/api/ai/ask`, {
       method: 'POST',

@@ -1,6 +1,4 @@
-/* Исправление мобильных кнопок навигации на широких экранах.
-   .icon-button имеет такой же уровень специфичности и ранее переопределял
-   display: none у этих кнопок. Более точный селектор фиксирует поведение. */
+
 .app-shell .sidebar-close,
 .app-shell .mobile-menu-button {
   display: none;
@@ -13,7 +11,6 @@
   }
 }
 
-/* Карточки образовательных программ: только переменные активной темы. */
 .universities-page .university-programs-heading {
   color: var(--text-muted);
 }
@@ -41,7 +38,6 @@
   color: var(--accent);
 }
 
-/* Направления и карточки программ на странице отдельного университета. */
 .university-detail-program-direction {
   border-color: var(--border);
   background: var(--accent-soft);
@@ -58,8 +54,6 @@
   color: var(--accent);
 }
 
-/* Панель сравнения: прежние переменные surface-primary/text-primary
-   не объявлены в теме, из-за чего фон оставался белым в dark mode. */
 .university-comparison-panel {
   border-color: var(--border);
   background: var(--card);
@@ -144,7 +138,6 @@
   color: var(--accent);
 }
 
-/* Счётчики статусов льгот получают видимые поверхности и контраст в обеих темах. */
 .benefit-status-summary-item {
   padding: 7px 10px;
   border: 1px solid var(--border);
@@ -170,7 +163,6 @@
   background: var(--text-muted);
 }
 
-/* Уведомление и элементы пустого результата сохраняют единый контраст темы. */
 .university-comparison-notice {
   border-color: var(--border);
   background: var(--surface);

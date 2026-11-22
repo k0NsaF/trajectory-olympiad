@@ -6,6 +6,7 @@ import type {
   AIMessage,
   AIPageType,
   AIUserContext,
+  AIServiceStatus,
   CreateProfileInput
 } from '@trajectory/shared'
 
@@ -95,6 +96,20 @@ export function AIPage() {
   const [question, setQuestion] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [serviceStatus, setServiceStatus] = useState<AIServiceStatus | null>(null)
+
+  useEffect(() => {
+    let active = true
+    void aiService.getStatus()
+      .then((status) => {
+        if (active) setServiceStatus(status)
+      })
+      .catch(() => {
+        if (active) setServiceStatus(null)
+      })
+
+    return () => { active = false }
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -189,9 +204,11 @@ export function AIPage() {
           </div>
           <div>
             <strong>Траектория AI</strong>
-            <span>
-              <span className="ai-online-dot" />
-              Помощник по олимпиадам и поступлению
+            <span className="ai-service-status-line">
+              <span className={`ai-online-dot${serviceStatus?.modelConfigured ? '' : ' is-disabled'}`} />
+              {serviceStatus?.modelConfigured
+                ? `Cloudflare Workers AI подключён${serviceStatus.webSearchEnabled && serviceStatus.webSearchConfigured ? ' · поиск Tavily включён' : ' · поиск Tavily выключен'}`
+                : 'Ожидает настройки Cloudflare Workers AI'}
             </span>
           </div>
           <div className="ai-context-pill">Контекст: {getPageContextLabel(pageContext)}</div>
@@ -243,6 +260,7 @@ export function AIPage() {
                         {getSourceStatusLabel(source.verificationStatus) ? (
                           <small>{getSourceStatusLabel(source.verificationStatus)}</small>
                         ) : null}
+                        {source.kind === 'web' ? <small className="ai-source-external-label">Внешний поиск · проверь источник</small> : null}
                         <ExternalLink size={13} />
                       </a>
                     ))}
