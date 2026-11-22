@@ -23,6 +23,7 @@ import {
   buildGroqUniversitySearchPayload,
   parseGroqUniversitySearchResponse
 } from '../src/services/groq-university-search.service.js'
+import { isSpecificUniversityQuery } from '../src/services/university-search-quality.service.js'
 import { benefitCompareSchema } from '../src/modules/benefits/benefits.schema.js'
 import { olympiadFiltersSchema } from '../src/modules/olympiads/olympiads.schema.js'
 import {
@@ -330,6 +331,88 @@ test('схемы данных: корректные сценарии и огра
     assert.deepEqual(payload.tools, [{ type: 'browser_search' }])
     assert.match(payload.messages[0]?.content ?? '', /официальные сайты/u)
     assert.match(payload.messages[1]?.content ?? '', /вузы Москвы с биоинформатикой/u)
+  })
+
+  await t.test('поиск отличает конкретный вуз от общего запроса по региону', () => {
+    assert.equal(isSpecificUniversityQuery('СурГУ'), true)
+    assert.equal(isSpecificUniversityQuery('Сургутский государственный университет'), true)
+    assert.equal(isSpecificUniversityQuery('вузы Москвы с программой биоинформатика'), false)
+    assert.equal(isSpecificUniversityQuery('университет в Сургуте'), false)
+  })
+
+  await t.test('Tavily оставляет только официальный сайт запрошенного СурГУ', () => {
+    const response = parseTavilySearchResponse({
+      results: [
+        {
+          title: 'Бакалавриат/Специалитет',
+          url: 'https://abiturient.surgu.ru/navigator-postupleniya/bakalavriat-spetsialitet1/spetsialitet1',
+          content: 'Информация о месте приема документов в Сургутский государственный университет. Приемная комиссия, правила поступления и документы для абитуриентов.'
+        },
+        {
+          title: 'Приемная комиссия СурГУ — Сургутский государственный университет',
+          url: 'https://go.surgu.ru/',
+          content: 'Официальная приемная комиссия СурГУ. Контакты и консультации для абитуриентов.'
+        },
+        {
+          title: 'Приемная комиссия СурГУ (@abiturient_surgu)',
+          url: 'https://www.instagram.com/abiturient_surgu?hl=en',
+          content: 'Выбрать магистерскую программу можно на сайтах СурГУ для поступающих.'
+        },
+        {
+          title: 'СурГУ — описание в каталоге вузов',
+          url: 'https://vuzopedia.ru/vuz/123',
+          content: 'СурГУ, образовательные программы, бакалавриат и правила поступления.'
+        },
+        {
+          title: 'Официальный сайт вакансий ПАО Мосэнерго',
+          url: 'https://rabota.mosenergo.ru/',
+          content: 'Вакансии, профессиональное и карьерное развитие. Оставьте контактные данные.'
+        },
+        {
+          title: 'ООО СИЭНСИ ОДИН — реквизиты и выписка из ЕГРЮЛ',
+          url: 'https://spark-interfax.ru/example',
+          content: 'Реквизиты организации, ИНН, ОГРН и финансовые показатели.'
+        },
+        {
+          title: 'Официальный сайт ASUS',
+          url: 'https://www.asus.com/us/news/example',
+          content: 'События, акции и программы для пользователей.'
+        },
+        {
+          title: 'ООО СИЭНСИ ОДИН — Контур Фокус',
+          url: 'https://focus.kontur.ru/entity?query=123',
+          content: 'Реквизиты компании и сведения из ЕГРЮЛ.'
+        },
+        {
+          title: 'CNC1 — официальный сайт компании',
+          url: 'https://firmalyze.ru/site/cnc1.ru',
+          content: 'Промышленный инструмент, коммерческая организация.'
+        }
+      ]
+    }, { query: 'СурГУ', mode: 'universities' })
+
+    assert.equal(response.length, 2)
+    assert.ok(response.every((item) => item.domain.endsWith('surgu.ru')))
+  })
+
+  await t.test('поиск программ не пропускает страницы за пределами домена университета', () => {
+    const response = parseTavilySearchResponse({
+      results: [
+        {
+          title: 'Образовательные программы бакалавриата',
+          url: 'https://abiturient.surgu.ru/programs/',
+          content: 'Направления подготовки и образовательные программы СурГУ для поступающих.'
+        },
+        {
+          title: 'Программы поступления другого университета',
+          url: 'https://www.hse.ru/education/',
+          content: 'Образовательные программы бакалавриата и поступление.'
+        }
+      ]
+    }, { query: 'информатика', mode: 'programs', domain: 'surgu.ru' })
+
+    assert.equal(response.length, 1)
+    assert.equal(response[0]?.domain, 'abiturient.surgu.ru')
   })
 
   await t.test('Groq Browser Search извлекает только безопасные уникальные HTTPS-страницы', () => {

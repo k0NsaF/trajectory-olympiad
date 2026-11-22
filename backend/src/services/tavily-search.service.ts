@@ -1,5 +1,10 @@
 import { env } from '../config/env.js'
 import { AppError } from '../utils/AppError.js'
+import {
+  filterAndRankUniversityResults,
+  isSpecificUniversityQuery,
+  type UniversitySearchQualityInput
+} from './university-search-quality.service.js'
 
 export interface TavilySearchResult {
   title: string
@@ -61,7 +66,10 @@ function normalizePublicUrl(value: string): URL | null {
   }
 }
 
-export function parseTavilySearchResponse(payload: unknown): TavilySearchResult[] {
+export function parseTavilySearchResponse(
+  payload: unknown,
+  input?: UniversitySearchQualityInput
+): TavilySearchResult[] {
   if (!payload || typeof payload !== 'object') return []
   const rawResults = (payload as { results?: unknown }).results
   if (!Array.isArray(rawResults)) return []
@@ -89,10 +97,10 @@ export function parseTavilySearchResponse(payload: unknown): TavilySearchResult[
       snippet: snippet.slice(0, 900)
     })
 
-    if (results.length >= 10) break
+    if (results.length >= 20) break
   }
 
-  return results
+  return input ? filterAndRankUniversityResults(results, input) : results
 }
 
 function ensureSearchIsConfigured(): void {
@@ -142,7 +150,11 @@ export function buildUniversitySearchQuery(input: TavilySearchInput): string {
     return `site:${input.domain} ${query} образовательные программы бакалавриат направления подготовки`
   }
 
-  return `${query} университет официальный сайт приёмная комиссия образовательные программы бакалавриат`
+  if (isSpecificUniversityQuery(query)) {
+    return `\"${query}\" официальный сайт приёмная комиссия абитуриент образовательные программы`
+  }
+
+  return `${query} официальный сайт университета приёмная комиссия абитуриент образовательные программы бакалавриат`
 }
 
 export async function searchTavilyWeb(input: TavilySearchInput): Promise<TavilySearchResult[]> {
@@ -167,7 +179,7 @@ export async function searchTavilyWeb(input: TavilySearchInput): Promise<TavilyS
         query,
         search_depth: 'basic',
         topic: 'general',
-        max_results: 8,
+        max_results: 12,
         include_answer: false,
         include_raw_content: false,
         ...(input.mode === 'programs' && input.domain
@@ -194,7 +206,7 @@ export async function searchTavilyWeb(input: TavilySearchInput): Promise<TavilyS
   }
 
   const payload: unknown = await response.json().catch(() => null)
-  const results = parseTavilySearchResponse(payload)
+  const results = parseTavilySearchResponse(payload, input)
   if (!payload || typeof payload !== 'object' || !Array.isArray((payload as { results?: unknown }).results)) {
     throw new AppError('Tavily вернул ответ в неизвестном формате.', 502, 'UNIVERSITY_SEARCH_INVALID_RESPONSE')
   }

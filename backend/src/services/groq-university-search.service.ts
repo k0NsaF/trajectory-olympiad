@@ -1,6 +1,7 @@
 import { env, hasGroqAIConfig } from '../config/env.js'
 import { AppError } from '../utils/AppError.js'
 import { extractGroqText } from './groq-ai.service.js'
+import { filterAndRankUniversityResults, isSpecificUniversityQuery } from './university-search-quality.service.js'
 import {
   searchTavilyWeb,
   type TavilySearchInput,
@@ -184,7 +185,9 @@ export function buildGroqUniversitySearchPayload(input: UniversityWebSearchInput
   const query = input.query.replace(/[\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim()
   const searchQuery = input.mode === 'programs' && input.domain
     ? `site:${input.domain} ${query} образовательные программы бакалавриата направления подготовки`
-    : `${query} российские университеты официальные сайты приёмные комиссии образовательные программы`
+    : isSpecificUniversityQuery(query)
+      ? `\"${query}\" официальный сайт приёмная комиссия абитуриент образовательные программы`
+      : `${query} российские университеты официальные сайты приёмные комиссии образовательные программы`
 
   const systemPrompt = [
     'Ты — поисковый агент образовательной платформы для поиска университетов и образовательных программ.',
@@ -193,12 +196,16 @@ export function buildGroqUniversitySearchPayload(input: UniversityWebSearchInput
     'Не выдумывай названия организаций, адреса страниц, направления подготовки или содержание страниц.',
     'В поле url указывай полный HTTPS-адрес конкретной страницы, который действительно встретился в результатах поиска. Не конструируй адреса по шаблону.',
     'Для каждого результата дай краткий фактический фрагмент: что это за университет или страница и почему она подходит запросу.',
+    'Исключай коммерческие компании, ООО/АО, вакансии, сайты трудоустройства, каталоги юридических лиц, рекламные страницы, социальные сети и агрегаторы.',
+    'Для университета отдавай предпочтение его основному официальному домену и официальному домену приёмной комиссии. Не включай сторонние организации только из-за совпадения слов в сниппете.',
     'Не выдавай поисковое совпадение за подтверждение аккредитации, бюджетных мест или льгот при поступлении.',
     'Верни только валидный JSON без Markdown и комментариев в формате: {"results":[{"title":"...","url":"https://...","snippet":"..."}]}.',
     'Верни не более 8 результатов. Если надёжных страниц меньше — верни только найденные. Если ничего не найдено — верни {"results":[]}.',
     input.mode === 'programs' && input.domain
       ? `Ограничь поиск доменом ${input.domain}. Не включай страницы других доменов.`
-      : 'Ищи прежде всего первоисточники университетов, избегай каталогов-агрегаторов и рекламных подборок.'
+      : isSpecificUniversityQuery(query)
+        ? `Ищи только университет, указанный пользователем в запросе: ${query}. Все результаты должны относиться к одному этому университету и его официальным поддоменам. Не добавляй другие вузы, компании или похожие названия.`
+        : 'Ищи прежде всего первоисточники университетов, избегай каталогов-агрегаторов и рекламных подборок.'
   ].join('\n')
 
   return {
@@ -287,7 +294,8 @@ async function searchWithGroq(input: UniversityWebSearchInput): Promise<TavilySe
   }
 
   const payload: unknown = await response.json().catch(() => null)
-  const results = parseGroqUniversitySearchResponse(payload, input.mode === 'programs' ? input.domain : undefined)
+  const parsedResults = parseGroqUniversitySearchResponse(payload, input.mode === 'programs' ? input.domain : undefined)
+  const results = filterAndRankUniversityResults(parsedResults, input)
 
   if (results.length === 0) {
     throw new AppError('Groq выполнил поиск, но не вернул проверяемые ссылки. Попробуй уточнить запрос.', 502, 'UNIVERSITY_SEARCH_EMPTY')
