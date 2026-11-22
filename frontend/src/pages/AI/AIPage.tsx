@@ -14,6 +14,7 @@ import { useAuth } from '@/app/providers'
 import { PageHeader } from '@/components/common/PageHeader'
 import { getAuthenticatedProfile, getGuestProfile } from '@/services/profile.service'
 import { aiService } from '@/services/ai.service'
+import { AIMessageContent } from './AIMessageContent'
 import './ai-enhancements.css'
 
 interface NavigationState {
@@ -240,7 +241,7 @@ export function AIPage() {
               </div>
               <div className="ai-message-body">
                 <strong>{message.role === 'assistant' ? 'Консультант' : 'Ты'}</strong>
-                <p>{message.content}</p>
+                <AIMessageContent content={message.content} />
                 {message.role === 'assistant' && message.notice && (
                   <div className="ai-knowledge-notice">{message.notice}</div>
                 )}
