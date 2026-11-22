@@ -14,6 +14,11 @@ import {
   buildCloudflareRequestPayload,
   extractCloudflareText
 } from '../src/services/cloudflare-ai.service.js'
+import {
+  buildGroqMessages,
+  buildGroqRequestPayload,
+  extractGroqText
+} from '../src/services/groq-ai.service.js'
 import { benefitCompareSchema } from '../src/modules/benefits/benefits.schema.js'
 import { olympiadFiltersSchema } from '../src/modules/olympiads/olympiads.schema.js'
 import {
@@ -264,6 +269,49 @@ test('схемы данных: корректные сценарии и огра
     assert.deepEqual(messages.map((message) => message.role), ['system', 'user', 'assistant', 'user'])
     assert.equal(messages[0]?.content, 'Ты — образовательный консультант.')
     assert.equal(messages.at(-1)?.content, 'Подбери олимпиады.')
+  })
+
+  await t.test('Groq API извлекает текст из Chat Completions response', () => {
+    assert.equal(extractGroqText({
+      choices: [{ message: { content: 'План подготовки на 12 недель.' } }]
+    }), 'План подготовки на 12 недель.')
+    assert.equal(extractGroqText({
+      choices: [{ message: { content: [
+        { type: 'text', text: 'Сначала изучи теорию.' },
+        { type: 'text', text: 'Затем решай задачи.' }
+      ] } }]
+    }), 'Сначала изучи теорию.\nЗатем решай задачи.')
+    assert.equal(extractGroqText({ choices: [{ message: { content: '' } }] }), null)
+  })
+
+  await t.test('Groq формирует совместимый запрос для GPT-OSS-120B', () => {
+    const payload = buildGroqRequestPayload({
+      systemInstruction: 'Ты — образовательный консультант.',
+      history: [{ role: 'user', content: 'Я учусь в 9 классе.' }],
+      userPrompt: 'Составь план подготовки.'
+    })
+
+    assert.equal(payload.model, 'openai/gpt-oss-120b')
+    assert.equal(payload.reasoning_effort, 'low')
+    assert.equal(payload.max_completion_tokens, 2_600)
+    assert.deepEqual(payload.messages.map((message) => message.role), ['system', 'user'])
+    assert.match(payload.messages.at(-1)?.content ?? '', /Составь план подготовки/u)
+    assert.match(payload.messages.at(-1)?.content ?? '', /Я учусь в 9 классе/u)
+  })
+
+  await t.test('Groq сохраняет историю диалога и пропускает раннее сообщение ассистента', () => {
+    const messages = buildGroqMessages({
+      systemInstruction: 'Системная инструкция.',
+      history: [
+        { role: 'assistant', content: 'Сообщение без вопроса' },
+        { role: 'user', content: 'Мне нужна математика.' },
+        { role: 'assistant', content: 'Хорошо.' }
+      ],
+      userPrompt: 'Подбери олимпиаду.'
+    })
+
+    assert.deepEqual(messages.map((message) => message.role), ['system', 'user', 'assistant', 'user'])
+    assert.equal(messages.at(-1)?.content, 'Подбери олимпиаду.')
   })
 
   await t.test('ИИ запускает внешний поиск только для запросов о поиске вузов и программ', () => {

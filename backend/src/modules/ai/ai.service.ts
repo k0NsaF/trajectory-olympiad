@@ -1,8 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-import { env, hasCloudflareAIConfig } from '../../config/env.js'
 import { AppError } from '../../utils/AppError.js'
-import { generateCloudflareAnswer } from '../../services/cloudflare-ai.service.js'
+import { generateAIAnswer, getAIProviderStatus } from '../../services/ai-provider.service.js'
 import { getTavilySearchStatus, searchTavilyWeb } from '../../services/tavily-search.service.js'
 import type { AIAskInput } from './ai.schema.js'
 
@@ -513,16 +512,18 @@ export function shouldUseExternalUniversitySearch(question: string): boolean {
 
 export function getAIServiceStatus(): {
   modelConfigured: boolean
+  provider: 'groq' | 'cloudflare' | 'none'
+  model: string
+  fallbackConfigured: boolean
   webSearchEnabled: boolean
   webSearchConfigured: boolean
-  model: string
 } {
   const searchStatus = getTavilySearchStatus()
+  const providerStatus = getAIProviderStatus()
   return {
-    modelConfigured: hasCloudflareAIConfig,
+    ...providerStatus,
     webSearchEnabled: searchStatus.enabled,
-    webSearchConfigured: searchStatus.configured,
-    model: env.cloudflareAiModel
+    webSearchConfigured: searchStatus.configured
   }
 }
 
@@ -531,18 +532,11 @@ export async function askAI(
   input: AIAskInput
 ): Promise<{
   answer: string
+  provider: 'groq' | 'cloudflare'
   sources: KnowledgeSource[]
   knowledgeStatus: 'retrieved' | 'general'
   notice?: string
 }> {
-  if (!hasCloudflareAIConfig) {
-    throw new AppError(
-      'ИИ-консультант пока не подключён. Добавь CLOUDFLARE_ACCOUNT_ID и CLOUDFLARE_API_TOKEN в переменные окружения backend на Render и перезапусти сервис.',
-      503,
-      'AI_PROVIDER_NOT_CONFIGURED'
-    )
-  }
-
   const knowledge = await retrieveKnowledge(supabase, input)
   let externalSearchNotice = ''
 
@@ -597,14 +591,18 @@ export async function askAI(
     knowledge.text || 'Подходящих записей в базе не найдено.'
   ].join('\n')
 
-  const answer = await generateCloudflareAnswer({
+  const generation = await generateAIAnswer({
     systemInstruction: buildSystemPrompt(knowledge),
     history: input.history,
     userPrompt
   })
+  const answer = generation.answer
   const knowledgeStatus = knowledge.documentCount > 0 ? 'retrieved' : 'general'
   const noticeParts = [
     externalSearchNotice,
+    generation.fallbackUsed
+      ? 'Основной ИИ-провайдер Groq временно недоступен. Ответ подготовлен резервной моделью Cloudflare.'
+      : '',
     knowledgeStatus === 'general'
       ? 'В справочной базе не найдено подходящих записей. Ответ содержит общие рекомендации, а не подтверждение официальных условий.'
       : ''
@@ -612,6 +610,7 @@ export async function askAI(
 
   return {
     answer,
+    provider: generation.provider,
     sources: knowledge.sources,
     knowledgeStatus,
     ...(noticeParts.length > 0 ? { notice: noticeParts.join(' ') } : {})

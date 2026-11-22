@@ -52,6 +52,7 @@ export interface AIAskInput {
 
 export interface AIAskResponse {
   answer: string
+  provider?: 'groq' | 'cloudflare'
   sources: AISource[]
   knowledgeStatus: 'retrieved' | 'general'
   notice?: string
@@ -60,6 +61,8 @@ export interface AIAskResponse {
 
 export interface AIServiceStatus {
   modelConfigured: boolean
+  provider: 'groq' | 'cloudflare' | 'none'
+  fallbackConfigured: boolean
   webSearchEnabled: boolean
   webSearchConfigured: boolean
   model: string

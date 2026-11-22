@@ -207,8 +207,8 @@ export function AIPage() {
             <span className="ai-service-status-line">
               <span className={`ai-online-dot${serviceStatus?.modelConfigured ? '' : ' is-disabled'}`} />
               {serviceStatus?.modelConfigured
-                ? `Cloudflare Workers AI подключён${serviceStatus.webSearchEnabled && serviceStatus.webSearchConfigured ? ' · поиск Tavily включён' : ' · поиск Tavily выключен'}`
-                : 'Ожидает настройки Cloudflare Workers AI'}
+                ? `${serviceStatus.provider === 'groq' ? 'Groq подключён' : 'Cloudflare Workers AI подключён'}${serviceStatus.fallbackConfigured ? ' · Cloudflare — резерв' : ''}${serviceStatus.webSearchEnabled && serviceStatus.webSearchConfigured ? ' · поиск Tavily включён' : ' · поиск Tavily выключен'}`
+                : 'Ожидает настройки Groq или Cloudflare Workers AI'}
             </span>
           </div>
           <div className="ai-context-pill">Контекст: {getPageContextLabel(pageContext)}</div>

@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "skipLibCheck": true,
+    "types": [],
+    "lib": ["ES2022", "DOM"],
+    "noEmit": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "files": [
+    "typecheck-stubs.d.ts",
+    "backend/src/config/env.ts",
+    "backend/src/utils/AppError.ts",
+    "backend/src/services/cloudflare-ai.service.ts",
+    "backend/src/services/groq-ai.service.ts",
+    "backend/src/services/ai-provider.service.ts"
+  ]
+}

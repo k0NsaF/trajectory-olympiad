@@ -16,7 +16,7 @@ export const aiService = {
     return api.post<AIAskResponse, AIAskInput>(
       '/api/ai/ask',
       input,
-      { timeoutMs: 45_000 }
+      { timeoutMs: 150_000 }
     )
   }
 }

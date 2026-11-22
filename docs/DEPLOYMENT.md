@@ -5,7 +5,8 @@
 - Frontend: Vercel Static Deployment, результат сборки `frontend/dist`.
 - Backend: Render Web Service, Express API из `backend/dist`.
 - Database/Auth: существующий проект Supabase.
-- Cloudflare Workers AI: необязательная интеграция; без Account ID и API Token сервер запускается, но AI-запросы вернут `AI_PROVIDER_NOT_CONFIGURED`.
+- Groq: основной AI-провайдер (`GROQ_API_KEY`, модель по умолчанию `openai/gpt-oss-120b`).
+- Cloudflare Workers AI: резервный AI-провайдер; если Groq не отвечает, backend переключается на Cloudflare.
 
 Не создавай новую базу данных в Render. Проект уже использует Supabase.
 
@@ -49,6 +50,8 @@ git push -u origin main
 4. Заполни переменные, которые Render запросит:
    - `SUPABASE_URL` — Project URL из Supabase → Project Settings → API.
    - `SUPABASE_PUBLISHABLE_KEY` — Publishable key из Supabase. Не используй `service_role` или secret key.
+   - `GROQ_API_KEY` — API-ключ Groq; хранить только в Render.
+   - `GROQ_AI_MODEL` — `openai/gpt-oss-120b` (значение по умолчанию).
    - `CLOUDFLARE_ACCOUNT_ID` — Account ID из Cloudflare.
    - `CLOUDFLARE_API_TOKEN` — токен Workers AI; только в Render.
    - `CLOUDFLARE_AI_MODEL` — `@cf/zai-org/glm-4.7-flash` (модель по умолчанию).
@@ -97,9 +100,11 @@ Render Free засыпает после 15 минут без входящего 
 - Проверь, что браузер не показывает CORS-ошибки.
 - Проверь, что в DevTools → Network клиент не отправляет никаких секретных ключей. Publishable key допустим в frontend; `service_role`, Cloudflare API Token, Tavily API key и другие секреты — нет.
 
-## 5. Cloudflare Workers AI
+## 5. Groq и резервный Cloudflare
 
-Добавь `CLOUDFLARE_ACCOUNT_ID` и `CLOUDFLARE_API_TOKEN` только в Render → Environment. Токен должен иметь разрешения Workers AI Read и Workers AI Edit. Установи `CLOUDFLARE_AI_MODEL=@cf/zai-org/glm-4.7-flash`, если значение модели не задано в Blueprint. Не добавляй Cloudflare Token в Vercel, frontend, `.env.example` или GitHub.
+Добавь `GROQ_API_KEY` только в Render → Environment. Основная модель — `openai/gpt-oss-120b`; при необходимости задай `GROQ_AI_MODEL`. Не добавляй ключ в Vercel, frontend, `.env.example` или GitHub.
+
+Cloudflare Workers AI остаётся резервным провайдером. Добавь `CLOUDFLARE_ACCOUNT_ID` и `CLOUDFLARE_API_TOKEN` только в Render → Environment. Токен должен иметь разрешения Workers AI Read и Workers AI Edit. Установи `CLOUDFLARE_AI_MODEL=@cf/zai-org/glm-4.7-flash`, если значение модели не задано в Blueprint. Не добавляй Cloudflare Token в Vercel, frontend, `.env.example` или GitHub.
 
 Внешний поиск работает отдельно через Tavily. Для него добавь `TAVILY_API_KEY` в Render. Переменная `TAVILY_SEARCH_ENABLED=true` включает поиск; без ключа Tavily поиск недоступен, но основной ИИ-консультант продолжит работать по справочнику Supabase.
 
@@ -112,6 +117,8 @@ Render Free засыпает после 15 минут без входящего 
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Vercel | Публичный Publishable key |
 | `VITE_API_URL` | Vercel | Нет |
 | `FRONTEND_URL` | Render | Нет |
+| `GROQ_API_KEY` | Только Render | Да |
+| `GROQ_AI_MODEL` | Render | Нет |
 | `CLOUDFLARE_API_TOKEN` | Только Render | Да |
 | `CLOUDFLARE_ACCOUNT_ID` | Только Render | Нет |
 | `CLOUDFLARE_AI_MODEL` | Render | Нет |

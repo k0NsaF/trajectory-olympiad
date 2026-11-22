@@ -177,7 +177,7 @@ export async function generateCloudflareAnswer(input: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(buildCloudflareRequestPayload(input)),
-      signal: AbortSignal.timeout(40_000)
+      signal: AbortSignal.timeout(80_000)
     })
   } catch (error) {
     if (error instanceof DOMException && error.name === 'TimeoutError') {
