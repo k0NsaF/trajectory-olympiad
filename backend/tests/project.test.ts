@@ -9,7 +9,11 @@ import { aiAskSchema } from '../src/modules/ai/ai.schema.js'
 import { shouldUseExternalUniversitySearch } from '../src/modules/ai/ai.service.js'
 import { universityDiscoverySchema } from '../src/modules/universities/universities.schema.js'
 import { buildUniversitySearchQuery, parseTavilySearchResponse } from '../src/services/tavily-search.service.js'
-import { buildCloudflareMessages, extractCloudflareText } from '../src/services/cloudflare-ai.service.js'
+import {
+  buildCloudflareMessages,
+  buildCloudflareRequestPayload,
+  extractCloudflareText
+} from '../src/services/cloudflare-ai.service.js'
 import { benefitCompareSchema } from '../src/modules/benefits/benefits.schema.js'
 import { olympiadFiltersSchema } from '../src/modules/olympiads/olympiads.schema.js'
 import {
@@ -226,7 +230,24 @@ test('схемы данных: корректные сценарии и огра
     }
 
     assert.equal(extractCloudflareText(response), 'МФТИ предлагает образовательные программы.')
+    assert.equal(extractCloudflareText({
+      success: true,
+      result: {
+        choices: [{ message: { content: 'План подготовки на три месяца.' } }]
+      }
+    }), 'План подготовки на три месяца.')
     assert.equal(extractCloudflareText({ success: true, result: {} }), null)
+  })
+
+  await t.test('Cloudflare отключает reasoning, чтобы модель возвращала итоговый ответ', () => {
+    const payload = buildCloudflareRequestPayload({
+      systemInstruction: 'Ты — образовательный консультант.',
+      userPrompt: 'Составь план подготовки.'
+    })
+
+    assert.deepEqual(payload.chat_template_kwargs, { enable_thinking: false })
+    assert.equal(payload.max_completion_tokens, 1_400)
+    assert.equal(payload.messages.at(-1)?.content, 'Составь план подготовки.')
   })
 
   await t.test('Cloudflare получает system prompt, историю и текущий вопрос в правильном порядке', () => {

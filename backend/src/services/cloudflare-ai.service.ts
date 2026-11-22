@@ -11,6 +11,15 @@ export interface CloudflareMessage {
   content: string
 }
 
+export interface CloudflareRequestPayload {
+  messages: CloudflareMessage[]
+  temperature: number
+  max_completion_tokens: number
+  chat_template_kwargs: {
+    enable_thinking: false
+  }
+}
+
 function appendMessage(
   messages: CloudflareMessage[],
   role: 'user' | 'assistant',
@@ -50,48 +59,94 @@ export function buildCloudflareMessages(input: {
   return messages
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null
+}
+
 function readText(value: unknown): string | null {
   if (typeof value === 'string') return value.trim() || null
+
   if (Array.isArray(value)) {
     const parts = value
       .map((item) => {
-        if (!item || typeof item !== 'object') return ''
-        const text = (item as { text?: unknown }).text
+        const record = asRecord(item)
+        if (!record) return ''
+
+        const text = record.text ?? record.content
         return typeof text === 'string' ? text.trim() : ''
       })
       .filter(Boolean)
+
     return parts.length > 0 ? parts.join('\n').trim() : null
   }
+
+  const record = asRecord(value)
+  if (record && typeof record.text === 'string') {
+    return record.text.trim() || null
+  }
+
   return null
 }
 
-export function extractCloudflareText(payload: unknown): string | null {
-  if (!payload || typeof payload !== 'object') return null
+function extractChoices(value: unknown): string | null {
+  if (!Array.isArray(value)) return null
 
-  const root = payload as {
-    result?: unknown
-    choices?: unknown
-  }
+  for (const item of value) {
+    const choice = asRecord(item)
+    if (!choice) continue
 
-  if (root.result && typeof root.result === 'object') {
-    const result = root.result as { response?: unknown; text?: unknown }
-    const responseText = readText(result.response)
-    if (responseText) return responseText
+    const message = asRecord(choice.message)
+    const delta = asRecord(choice.delta)
+    const content = readText(message?.content)
+      ?? readText(delta?.content)
+      ?? readText(choice.text)
 
-    const resultText = readText(result.text)
-    if (resultText) return resultText
-  }
-
-  if (Array.isArray(root.choices) && root.choices.length > 0) {
-    const first = root.choices[0] as {
-      message?: { content?: unknown }
-      text?: unknown
-    }
-    const content = readText(first?.message?.content) ?? readText(first?.text)
     if (content) return content
   }
 
   return null
+}
+
+export function extractCloudflareText(payload: unknown): string | null {
+  const root = asRecord(payload)
+  if (!root) return null
+
+  const result = asRecord(root.result)
+  const rootMessage = asRecord(root.message)
+  const resultMessage = asRecord(result?.message)
+
+  return (
+    readText(result?.response)
+    ?? readText(result?.text)
+    ?? readText(result?.output_text)
+    ?? extractChoices(result?.choices)
+    ?? readText(resultMessage?.content)
+    ?? readText(root.response)
+    ?? readText(root.text)
+    ?? readText(root.output_text)
+    ?? extractChoices(root.choices)
+    ?? readText(rootMessage?.content)
+    ?? null
+  )
+}
+
+export function buildCloudflareRequestPayload(input: {
+  systemInstruction: string
+  history?: CloudflareHistoryEntry[]
+  userPrompt: string
+}): CloudflareRequestPayload {
+  return {
+    messages: buildCloudflareMessages(input),
+    temperature: 0.2,
+    max_completion_tokens: 1_400,
+    // GLM-4.7-Flash enables reasoning by default. Disable it for a normal
+    // user-facing answer so reasoning tokens do not consume the output budget.
+    chat_template_kwargs: {
+      enable_thinking: false
+    }
+  }
 }
 
 function buildEndpoint(): string {
@@ -121,11 +176,7 @@ export async function generateCloudflareAnswer(input: {
         Authorization: `Bearer ${env.cloudflareApiToken}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        messages: buildCloudflareMessages(input),
-        temperature: 0.2,
-        max_completion_tokens: 1_400
-      }),
+      body: JSON.stringify(buildCloudflareRequestPayload(input)),
       signal: AbortSignal.timeout(40_000)
     })
   } catch (error) {
@@ -168,7 +219,7 @@ export async function generateCloudflareAnswer(input: {
 
   if (!answer) {
     throw new AppError(
-      'Cloudflare Workers AI вернул пустой ответ. Попробуй переформулировать вопрос.',
+      'Cloudflare Workers AI не вернул текст итогового ответа. Повтори запрос; если ошибка останется, проверь ответ модели в журнале Render.',
       502,
       'AI_EMPTY_RESPONSE'
     )
