@@ -27,6 +27,7 @@ export function UniversityDiscoveryPanel() {
   const [status, setStatus] = useState<UniversityDiscoveryStatus | null>(null)
   const [statusError, setStatusError] = useState(false)
   const [results, setResults] = useState<UniversityDiscoveryResult[]>([])
+  const [resultProvider, setResultProvider] = useState<'groq' | 'tavily' | null>(null)
   const [selectedUniversity, setSelectedUniversity] = useState<UniversityDiscoveryResult | null>(null)
   const [mode, setMode] = useState<'universities' | 'programs'>('universities')
   const [loading, setLoading] = useState(false)
@@ -57,6 +58,7 @@ export function UniversityDiscoveryPanel() {
     setLoading(true)
     setError(null)
     setResults([])
+    setResultProvider(null)
     setNote('')
 
     try {
@@ -68,6 +70,7 @@ export function UniversityDiscoveryPanel() {
           : {})
       })
       setResults(response.results)
+      setResultProvider(response.provider)
       setNote(response.note)
       setMode(searchMode)
     } catch (cause) {
@@ -95,6 +98,7 @@ export function UniversityDiscoveryPanel() {
     setSelectedUniversity(null)
     setQuery('')
     setResults([])
+    setResultProvider(null)
     setError(null)
     setNote('')
   }
@@ -118,8 +122,8 @@ export function UniversityDiscoveryPanel() {
           {statusError
             ? 'Статус недоступен'
             : status?.enabled && status.configured
-              ? 'Ключи указаны'
-              : 'Ожидает подключения'}
+              ? status.provider === 'groq' ? 'Поиск Groq готов' : status.provider === 'tavily' ? 'Tavily подключён' : 'Поиск недоступен'
+              : 'Поиск недоступен'}
         </span>
       </div>
 
@@ -158,7 +162,7 @@ export function UniversityDiscoveryPanel() {
         <div className="university-discovery-hint">
           <AlertCircle size={16} />
           <span>
-            Внешний поиск пока не включён на сервере. Добавь ключ Tavily и включи TAVILY_SEARCH_ENABLED=true в настройках backend. Встроенный справочник вузов продолжает работать.
+            Для автоматического поиска нужен GROQ_API_KEY и модель GPT-OSS-120B или GPT-OSS-20B. Встроенный поиск Groq не требует отдельного ключа Tavily.
           </span>
         </div>
       )}
@@ -181,7 +185,7 @@ export function UniversityDiscoveryPanel() {
         <div className="university-discovery-results" aria-live="polite">
           <div className="university-discovery-results-heading">
             <strong>{mode === 'programs' ? 'Найденные страницы программ' : 'Найденные университеты и сайты'}</strong>
-            <span>{results.length} результатов</span>
+            <span>{results.length} результатов · {resultProvider === 'groq' ? 'Groq Browser Search' : 'Tavily (резерв)'}</span>
           </div>
           <div className="university-discovery-list">
             {results.map((result) => (
@@ -213,7 +217,7 @@ export function UniversityDiscoveryPanel() {
       {note && <p className="university-discovery-note">{note}</p>}
 
       <p className="university-discovery-disclaimer">
-        Внешние результаты помогают обнаружить сайты и страницы программ, но не являются подтверждением аккредитации или действующих правил приёма. Результаты поиска не добавляются в справочник автоматически — перед импортом их нужно проверить. Поиск выполняется через Tavily и расходует поисковые кредиты согласно тарифу. Индикатор проверяет наличие ключа и настройку сервиса, но не доступный остаток кредитов.
+        Основной поиск выполняется через встроенный Groq Browser Search; при его недоступности может использоваться резервный Tavily. Найденные страницы — только кандидаты: они не подтверждают аккредитацию, действующие правила приёма или наличие олимпиадных льгот. Результаты не записываются в справочник автоматически. Перед использованием проверяй информацию на официальном сайте вуза.
       </p>
     </section>
   )

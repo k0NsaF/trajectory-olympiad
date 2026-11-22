@@ -75,6 +75,7 @@ export interface UniversityDiscoveryResult {
 export interface UniversityDiscoveryResponse {
   query: string
   mode: UniversityDiscoveryMode
+  provider: 'groq' | 'tavily'
   results: UniversityDiscoveryResult[]
   note: string
 }
@@ -82,4 +83,5 @@ export interface UniversityDiscoveryResponse {
 export interface UniversityDiscoveryStatus {
   enabled: boolean
   configured: boolean
+  provider: 'groq' | 'tavily' | 'none'
 }

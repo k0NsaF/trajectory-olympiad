@@ -55,7 +55,7 @@ git push -u origin main
    - `CLOUDFLARE_ACCOUNT_ID` — Account ID из Cloudflare.
    - `CLOUDFLARE_API_TOKEN` — токен Workers AI; только в Render.
    - `CLOUDFLARE_AI_MODEL` — `@cf/zai-org/glm-4.7-flash` (модель по умолчанию).
-   - `TAVILY_API_KEY` — необязательный ключ внешнего поиска; без него поиск отключён фактически, даже если флаг включён.
+   - `TAVILY_API_KEY` — необязательный резервный ключ поиска; основной поиск использует встроенный Groq Browser Search и не требует отдельного ключа.
    - `FRONTEND_URL` — на первом шаге временно можно указать `http://localhost:5173`. После публикации frontend замени на точный production URL Vercel, например `https://имя-проекта.vercel.app`, без завершающего `/`.
 5. Запусти deploy и дождись статуса Live.
 6. Скопируй адрес сервиса вида `https://имя-сервиса.onrender.com`.
@@ -106,7 +106,7 @@ Render Free засыпает после 15 минут без входящего 
 
 Cloudflare Workers AI остаётся резервным провайдером. Добавь `CLOUDFLARE_ACCOUNT_ID` и `CLOUDFLARE_API_TOKEN` только в Render → Environment. Токен должен иметь разрешения Workers AI Read и Workers AI Edit. Установи `CLOUDFLARE_AI_MODEL=@cf/zai-org/glm-4.7-flash`, если значение модели не задано в Blueprint. Не добавляй Cloudflare Token в Vercel, frontend, `.env.example` или GitHub.
 
-Внешний поиск работает отдельно через Tavily. Для него добавь `TAVILY_API_KEY` в Render. Переменная `TAVILY_SEARCH_ENABLED=true` включает поиск; без ключа Tavily поиск недоступен, но основной ИИ-консультант продолжит работать по справочнику Supabase.
+Автоматический поиск вузов и образовательных программ использует встроенный Groq Browser Search при модели `openai/gpt-oss-120b` или `openai/gpt-oss-20b`. Отдельный поисковый ключ не нужен: используется тот же `GROQ_API_KEY`. Если Groq Browser Search временно недоступен, backend может переключиться на Tavily при наличии `TAVILY_API_KEY` и `TAVILY_SEARCH_ENABLED=true`. Найденные страницы показываются как кандидаты и не записываются в справочник автоматически; правила приёма и льготы нужно сверять с первоисточниками.
 
 ## Обязательные секреты и публичные параметры
 
@@ -122,5 +122,5 @@ Cloudflare Workers AI остаётся резервным провайдером
 | `CLOUDFLARE_API_TOKEN` | Только Render | Да |
 | `CLOUDFLARE_ACCOUNT_ID` | Только Render | Нет |
 | `CLOUDFLARE_AI_MODEL` | Render | Нет |
-| `TAVILY_API_KEY` | Только Render | Да |
+| `TAVILY_API_KEY` | Только Render | Да, необязательный резервный поиск |
 | Supabase `service_role` key | Не использовать в этом приложении | Да |

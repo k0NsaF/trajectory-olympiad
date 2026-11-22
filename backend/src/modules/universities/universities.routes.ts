@@ -12,26 +12,27 @@ import {
 } from './universities.service.js'
 import { universityDiscoveryRateLimit } from './universities.discovery-rate-limit.js'
 import {
-  getTavilySearchStatus,
-  searchTavilyWeb
-} from '../../services/tavily-search.service.js'
+  getUniversitySearchStatus,
+  searchUniversitiesWeb
+} from '../../services/groq-university-search.service.js'
 
 const router = Router()
 
 router.get('/discover/status', (_req, res) => {
-  res.status(200).json(getTavilySearchStatus())
+  res.status(200).json(getUniversitySearchStatus())
 })
 
 router.get('/discover', universityDiscoveryRateLimit, async (req, res, next) => {
   try {
     const filters = universityDiscoverySchema.parse(req.query)
-    const results = await searchTavilyWeb(filters)
+    const search = await searchUniversitiesWeb(filters)
 
     res.status(200).json({
       query: filters.query,
       mode: filters.mode,
-      results,
-      note: 'Это результаты внешнего поиска. Они не добавлены в справочник проекта и не подтверждают официальность условий приёма. Проверяй сайт университета.'
+      provider: search.provider,
+      results: search.results,
+      note: `${search.provider === 'groq' ? 'Поиск выполнен через Groq Browser Search.' : 'Основной поиск Groq был недоступен, использован резервный Tavily.'} Найденные страницы — кандидаты для изучения: они не добавлены в справочник и сами по себе не подтверждают аккредитацию, действующие условия приёма или олимпиадные льготы. Проверяй первоисточник.`
     })
   } catch (error) {
     next(error)

@@ -19,6 +19,10 @@ import {
   buildGroqRequestPayload,
   extractGroqText
 } from '../src/services/groq-ai.service.js'
+import {
+  buildGroqUniversitySearchPayload,
+  parseGroqUniversitySearchResponse
+} from '../src/services/groq-university-search.service.js'
 import { benefitCompareSchema } from '../src/modules/benefits/benefits.schema.js'
 import { olympiadFiltersSchema } from '../src/modules/olympiads/olympiads.schema.js'
 import {
@@ -314,9 +318,49 @@ test('схемы данных: корректные сценарии и огра
     assert.equal(messages.at(-1)?.content, 'Подбери олимпиаду.')
   })
 
+
+  await t.test('Groq Browser Search строит запрос с официальными источниками и встроенным браузером', () => {
+    const payload = buildGroqUniversitySearchPayload({
+      query: 'вузы Москвы с биоинформатикой',
+      mode: 'universities'
+    }) as { model: string; tool_choice: string; tools: Array<{ type: string }>; messages: Array<{ content: string }> }
+
+    assert.equal(payload.model, 'openai/gpt-oss-120b')
+    assert.equal(payload.tool_choice, 'required')
+    assert.deepEqual(payload.tools, [{ type: 'browser_search' }])
+    assert.match(payload.messages[0]?.content ?? '', /официальные сайты/u)
+    assert.match(payload.messages[1]?.content ?? '', /вузы Москвы с биоинформатикой/u)
+  })
+
+  await t.test('Groq Browser Search извлекает только безопасные уникальные HTTPS-страницы', () => {
+    const results = parseGroqUniversitySearchResponse({
+      choices: [{ message: { content: JSON.stringify({ results: [
+        { title: 'МГУ', url: 'https://www.msu.ru/', snippet: 'Официальный сайт Московского государственного университета.' },
+        { title: 'Локальная подмена', url: 'https://localhost/admin', snippet: 'Не допускать.' },
+        { title: 'Повтор', url: 'https://www.msu.ru/', snippet: 'Дубликат.' },
+        { title: 'ВШЭ', url: 'https://www.hse.ru/', snippet: 'Официальный сайт НИУ ВШЭ.' }
+      ] }) } }]
+    })
+
+    assert.equal(results.length, 2)
+    assert.equal(results[0]?.domain, 'msu.ru')
+    assert.equal(results[0]?.url, 'https://www.msu.ru/')
+
+    const programResults = parseGroqUniversitySearchResponse({
+      choices: [{ message: { content: JSON.stringify({ results: [
+        { title: 'Страница МГУ', url: 'https://www.msu.ru/programs/', snippet: 'Страница на разрешённом домене.' },
+        { title: 'Чужой домен', url: 'https://www.hse.ru/education/', snippet: 'Не должен попасть в поиск программ МГУ.' }
+      ] }) } }]
+    }, 'msu.ru')
+
+    assert.equal(programResults.length, 1)
+    assert.equal(programResults[0]?.domain, 'msu.ru')
+  })
+
   await t.test('ИИ запускает внешний поиск только для запросов о поиске вузов и программ', () => {
     assert.equal(shouldUseExternalUniversitySearch('Найди вузы Москвы с программой биоинформатика'), true)
     assert.equal(shouldUseExternalUniversitySearch('Подбери образовательные программы по искусственному интеллекту'), true)
+    assert.equal(shouldUseExternalUniversitySearch('Сравни МГУ и ВШЭ'), true)
     assert.equal(shouldUseExternalUniversitySearch('Как подготовиться к олимпиаде по математике?'), false)
   })
 
@@ -371,6 +415,7 @@ test('HTTP smoke-тесты Express API', async () => {
     const universitySearchStatusBody = await universitySearchStatus.json() as Record<string, unknown>
     assert.equal(typeof universitySearchStatusBody.enabled, 'boolean')
     assert.equal(typeof universitySearchStatusBody.configured, 'boolean')
+    assert.ok(['groq', 'tavily', 'none'].includes(String(universitySearchStatusBody.provider)))
 
     const profileResponse = await fetch(`${baseUrl}/api/profile`)
     assert.equal(profileResponse.status, 401)

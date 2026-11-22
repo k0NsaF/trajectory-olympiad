@@ -4,6 +4,7 @@ import {
   Compass,
   CalendarDays,
   GraduationCap,
+  GitCompareArrows,
   Trophy,
   Bot,
   UserRound,
@@ -38,6 +39,11 @@ export const APP_NAVIGATION: NavigationItem[] = [
     icon: GraduationCap
   },
   {
+    label: 'Сравнение вузов',
+    path: '/universities/compare',
+    icon: GitCompareArrows
+  },
+  {
     label: 'Мои достижения',
     path: '/achievements',
     icon: Trophy
@@ -60,6 +66,7 @@ export const MOBILE_NAVIGATION = APP_NAVIGATION.filter(
     item.path === '/olympiads' ||
     item.path === '/calendar' ||
     item.path === '/universities' ||
+    item.path === '/universities/compare' ||
     item.path === '/profile'
 )
 
@@ -68,6 +75,7 @@ export const ROUTE_TITLES: Record<string, string> = {
   '/olympiads': 'Каталог олимпиад',
   '/calendar': 'Календарь',
   '/universities': 'Университеты',
+  '/universities/compare': 'Сравнение вузов',
   '/achievements': 'Мои достижения',
   '/ai': 'ИИ-консультант',
   '/profile': 'Мой профиль',

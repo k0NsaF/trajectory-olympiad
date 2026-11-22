@@ -1,0 +1,464 @@
+.university-comparison-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.university-compare-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.university-compare-empty-panel {
+  min-height: 300px;
+  display: grid;
+  place-items: center;
+}
+
+.university-compare-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px 20px;
+  align-items: center;
+}
+
+.university-compare-toolbar-copy {
+  min-width: 0;
+}
+
+.university-compare-toolbar-copy > strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-heading);
+  font-size: 19px;
+  font-weight: 750;
+}
+
+.university-compare-toolbar-copy p {
+  margin: 5px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.university-compare-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.university-compare-toolbar-actions .secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 39px;
+}
+
+.university-compare-selected-chips {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.university-compare-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.university-compare-chip button,
+.university-compare-remove {
+  display: grid;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.university-compare-chip button:hover,
+.university-compare-remove:hover {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+}
+
+.university-compare-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.university-compare-filters label {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 7px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.university-compare-filters select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+}
+
+.university-compare-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.university-compare-summary-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.university-compare-summary-item span {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.university-compare-summary-item strong {
+  color: var(--text-heading);
+  font-size: 20px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.university-compare-summary-item.is-official strong { color: var(--success); }
+.university-compare-summary-item.is-draft strong { color: var(--warning); }
+.university-compare-summary-item.is-archived strong { color: var(--text-muted); }
+
+.university-compare-notice,
+.university-compare-data-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 13px 15px;
+  border: 1px solid color-mix(in srgb, var(--warning) 32%, var(--border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--warning) 7%, var(--card));
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.university-compare-notice svg,
+.university-compare-data-note svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--warning);
+}
+
+.university-compare-notice p,
+.university-compare-data-note p { margin: 0; }
+
+.university-compare-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 350px), 1fr));
+  align-items: start;
+  gap: 16px;
+}
+
+.university-compare-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 15px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 17px;
+  background: var(--card);
+  box-shadow: var(--shadow-small);
+}
+
+.university-compare-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  min-width: 0;
+}
+
+.university-compare-card-mark {
+  display: grid;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.university-compare-card-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.university-compare-card-title > span {
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.university-compare-card-title h2 {
+  margin: 4px 0 6px;
+  color: var(--text-heading);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.university-compare-card-title small {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.university-compare-remove {
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.university-compare-card-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.university-compare-card-stats > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.university-compare-card-stats strong {
+  color: var(--text-heading);
+  font-variant-numeric: tabular-nums;
+}
+
+.university-compare-site-link,
+.university-compare-source-link,
+.university-compare-card-footer a {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.university-compare-site-link:hover,
+.university-compare-source-link:hover,
+.university-compare-card-footer a:hover { text-decoration: underline; }
+
+.university-compare-category {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.university-compare-category-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.university-compare-category-heading h3 {
+  margin: 0;
+  color: var(--text-heading);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.university-compare-category-heading span {
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.university-compare-benefits {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.university-compare-benefit {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.university-compare-benefit-top,
+.university-compare-benefit > p {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  min-width: 0;
+  margin: 0;
+}
+
+.university-compare-benefit-top svg,
+.university-compare-benefit > p svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--accent);
+}
+
+.university-compare-benefit-top strong {
+  color: var(--text-heading);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.university-compare-benefit > p {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.university-compare-benefit-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.university-compare-benefit-facts span {
+  max-width: 100%;
+  padding: 5px 7px;
+  border: 1px solid var(--border-soft);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--card) 65%, transparent);
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.university-compare-benefit-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px 10px;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.university-compare-source-link { font-size: 10px; }
+
+.university-compare-no-data {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.university-compare-requirements {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.university-compare-card-footer {
+  padding-top: 12px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.university-compare-error {
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, var(--border));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--danger) 7%, var(--card));
+  color: var(--danger);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .university-compare-toolbar {
+    grid-template-columns: 1fr;
+  }
+  .university-compare-toolbar-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 700px) {
+  .university-comparison-page { gap: 14px; }
+  .university-compare-back { width: 100%; justify-content: center; }
+  .university-compare-toolbar { padding: 15px; }
+  .university-compare-toolbar-actions { display: grid; grid-template-columns: 1fr; }
+  .university-compare-toolbar-actions > * { width: 100%; }
+  .university-compare-filters { grid-template-columns: 1fr; padding: 14px; }
+  .university-compare-summary { grid-template-columns: 1fr; gap: 7px; }
+  .university-compare-summary-item { padding: 10px 12px; }
+  .university-compare-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .university-compare-card { padding: 14px; border-radius: 14px; }
+  .university-compare-card-title h2 { font-size: 14px; }
+}

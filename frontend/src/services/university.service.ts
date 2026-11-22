@@ -60,7 +60,7 @@ export const universityService = {
   ): Promise<UniversityDiscoveryResponse> {
     return api.get<UniversityDiscoveryResponse>(
       `/api/universities/discover${createQuery(input)}`,
-      { timeoutMs: 25_000 }
+      { timeoutMs: 85_000 }
     )
   },
 

@@ -21,7 +21,9 @@ export function MobileNavigation() {
                 ? 'Вузы'
                 : item.path === '/profile'
                   ? 'Профиль'
-                  : item.label
+                  : item.path === '/universities/compare'
+                    ? 'Сравнить'
+                    : item.label
 
         return (
           <NavLink

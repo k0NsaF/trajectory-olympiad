@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 import { AppError } from '../../utils/AppError.js'
 import { generateAIAnswer, getAIProviderStatus } from '../../services/ai-provider.service.js'
-import { getTavilySearchStatus, searchTavilyWeb } from '../../services/tavily-search.service.js'
+import { getUniversitySearchStatus, searchUniversitiesWeb } from '../../services/groq-university-search.service.js'
 import type { AIAskInput } from './ai.schema.js'
 
 interface OlympiadRow {
@@ -505,8 +505,8 @@ function buildSystemPrompt(knowledge: RetrievedKnowledge): string {
 
 export function shouldUseExternalUniversitySearch(question: string): boolean {
   const value = normalizeText(question)
-  const asksToFind = /(найди|найти|подбери|подобрать|список|какие|какой|посоветуй|покажи|где|ищу|поиск)/u.test(value)
-  const mentionsUniversityOrProgram = /(вуз|вузы|университет|университеты|институт|академи|программ|направлен|бакалавриат|специалитет|магистратур|поступлен)/u.test(value)
+  const asksToFind = /(найди|найти|подбери|подобрать|подскажи|список|какие|какой|посоветуй|покажи|где|ищу|поиск|сравни|сравнить|сравнение)/u.test(value)
+  const mentionsUniversityOrProgram = /(вуз|вузы|университет|университеты|институт|академи|программ|направлен|бакалавриат|специалитет|магистратур|поступлен|вшэ|мфти|мгу|спбгу|итмо|физтех|высшая школа экономики)/u.test(value)
   return asksToFind && mentionsUniversityOrProgram
 }
 
@@ -518,7 +518,7 @@ export function getAIServiceStatus(): {
   webSearchEnabled: boolean
   webSearchConfigured: boolean
 } {
-  const searchStatus = getTavilySearchStatus()
+  const searchStatus = getUniversitySearchStatus()
   const providerStatus = getAIProviderStatus()
   return {
     ...providerStatus,
@@ -541,16 +541,17 @@ export async function askAI(
   let externalSearchNotice = ''
 
   if (shouldUseExternalUniversitySearch(input.question)) {
-    const searchStatus = getTavilySearchStatus()
+    const searchStatus = getUniversitySearchStatus()
     if (searchStatus.enabled && searchStatus.configured) {
       try {
-        const webResults = await searchTavilyWeb({
+        const search = await searchUniversitiesWeb({
           query: input.question,
           mode: 'universities'
         })
+        const webResults = search.results
         if (webResults.length > 0) {
           const webDocuments = webResults.map((result, index) => [
-            `ВНЕШНИЙ ПОИСК — РЕЗУЛЬТАТ ${index + 1} (НЕПОДТВЕРЖДЁННЫЙ ИСТОЧНИК):`,
+            `ВНЕШНИЙ ПОИСК ЧЕРЕЗ ${search.provider.toUpperCase()} — РЕЗУЛЬТАТ ${index + 1} (НЕПОДТВЕРЖДЁННЫЙ ИСТОЧНИК):`,
             `Заголовок: ${result.title}`,
             `Домен: ${result.domain}`,
             `Адрес: ${result.url}`,
@@ -576,10 +577,10 @@ export async function askAI(
       } catch (error) {
         externalSearchNotice = error instanceof Error
           ? `Внешний поиск сейчас недоступен: ${error.message}`
-          : 'Внешний поиск сейчас недоступен. Проверь TAVILY_API_KEY и настройки Tavily.'
+          : 'Внешний поиск сейчас недоступен. Проверь настройки Groq Browser Search.'
       }
     } else {
-      externalSearchNotice = 'Внешний поиск университетов пока не подключён. Ответ сформирован только по справочнику проекта.'
+      externalSearchNotice = 'Внешний поиск университетов пока не настроен. Ответ сформирован только по справочнику проекта.'
     }
   }
 

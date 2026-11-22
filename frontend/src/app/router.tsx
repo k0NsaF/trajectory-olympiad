@@ -16,6 +16,7 @@ import { ProfilePage } from '@/pages/Profile/ProfilePage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { TrajectoryPage } from '@/pages/Trajectory/TrajectoryPage'
 import { UniversitiesPage } from '@/pages/Universities/UniversitiesPage'
+import { UniversityComparisonPage } from '@/pages/Universities/UniversityComparisonPage'
 
 export const router = createBrowserRouter([
   {
@@ -50,6 +51,10 @@ export const router = createBrowserRouter([
             <CalendarPage />
           </RequireAuth>
         )
+      },
+      {
+        path: 'universities/compare',
+        element: <UniversityComparisonPage />
       },
       {
         path: 'universities',

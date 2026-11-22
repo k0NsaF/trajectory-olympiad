@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   ArrowUpRight,
   BookOpen,
@@ -18,9 +18,7 @@ import {
 } from 'lucide-react'
 
 import type {
-  BenefitRightType,
   BenefitVerificationFilter,
-  University,
   UniversityBenefit
 } from '@trajectory/shared'
 
@@ -31,6 +29,7 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { UniversityDiscoveryPanel } from '@/components/universities/UniversityDiscoveryPanel'
 import { useAsyncData } from '@/hooks/useAsyncData'
 import { universityService } from '@/services/university.service'
+import { readComparisonUniversityIds, writeComparisonUniversityIds } from '@/services/university-comparison.store'
 import {
   getBenefitVerificationClass,
   getBenefitVerificationLabel,
@@ -66,12 +65,6 @@ const SORT_LABELS: Record<UniversitySortMode, string> = {
   name: 'По названию',
   city: 'По городу'
 }
-
-const COMPARISON_RIGHTS: { value: BenefitRightType; label: string }[] = [
-  { value: 'BVI', label: 'БВИ' },
-  { value: '100_points', label: '100 баллов' },
-  { value: 'extra_points', label: 'Дополнительные баллы' }
-]
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return 'Дата проверки не указана'
@@ -116,10 +109,6 @@ function getResultClassLabel(resultClass?: number): string {
   return resultClass == null
     ? 'Не указан в документе'
     : `Диплом за ${resultClass} класс`
-}
-
-function getErrorMessage(cause: unknown): string {
-  return cause instanceof Error ? cause.message : 'Не удалось загрузить данные.'
 }
 
 function BenefitList({ universityId }: { universityId: string }) {
@@ -398,355 +387,19 @@ function BenefitList({ universityId }: { universityId: string }) {
   )
 }
 
-function UniversityComparison({
-  universities
-}: {
-  universities: University[]
-}) {
-  const targetAdmissionYear = getTargetAdmissionYear()
-  const [benefitsByUniversity, setBenefitsByUniversity] = useState<
-    Record<string, UniversityBenefit[]>
-  >({})
-  const [loadErrors, setLoadErrors] = useState<Record<string, string>>({})
-  const [loading, setLoading] = useState(true)
-  const [selectedYear, setSelectedYear] = useState<number>(targetAdmissionYear)
-  const [verificationFilter, setVerificationFilter] =
-    useState<BenefitVerificationFilter>('all')
-
-  useEffect(() => {
-    let cancelled = false
-
-    const loadComparison = async () => {
-      setLoading(true)
-      setLoadErrors({})
-
-      const results = await Promise.all(
-        universities.map(async (university) => {
-          try {
-            const benefits = await universityService.compareBenefits({
-              universityId: university.id
-            })
-            return { universityId: university.id, benefits, error: null }
-          } catch (cause) {
-            return {
-              universityId: university.id,
-              benefits: [],
-              error: getErrorMessage(cause)
-            }
-          }
-        })
-      )
-
-      if (cancelled) return
-
-      const benefitsMap: Record<string, UniversityBenefit[]> = {}
-      const errorsMap: Record<string, string> = {}
-
-      for (const result of results) {
-        benefitsMap[result.universityId] = result.benefits
-        if (result.error) errorsMap[result.universityId] = result.error
-      }
-
-      setBenefitsByUniversity(benefitsMap)
-      setLoadErrors(errorsMap)
-      setLoading(false)
-    }
-
-    void loadComparison()
-    return () => {
-      cancelled = true
-    }
-  }, [universities])
-
-  const allBenefits = Object.values(benefitsByUniversity).flat()
-
-  const availableYears = useMemo(() => {
-    const years = allBenefits.map((benefit) => benefit.validYear)
-    return [...new Set([targetAdmissionYear, ...years])].sort(
-      (first, second) => second - first
-    )
-  }, [allBenefits, targetAdmissionYear])
-
-  const getYearBenefits = (universityId: string): UniversityBenefit[] =>
-    (benefitsByUniversity[universityId] ?? []).filter(
-      (benefit) =>
-        benefit.validYear === selectedYear &&
-        matchesBenefitVerificationFilter(benefit, verificationFilter)
-    )
-
-  const selectedYearAllBenefits = allBenefits.filter(
-    (benefit) => benefit.validYear === selectedYear
-  )
-  const selectedYearOfficialCount = selectedYearAllBenefits.filter(
-    hasCompleteOfficialEvidence
-  ).length
-  const selectedYearDraftCount = selectedYearAllBenefits.filter((benefit) =>
-    matchesBenefitVerificationFilter(benefit, 'draft')
-  ).length
-  const selectedYearArchivedCount = selectedYearAllBenefits.filter(
-    (benefit) => benefit.verificationStatus === 'archived'
-  ).length
-
-  const renderNoData = (university: University) => (
-    <span className="university-comparison-no-data">
-      {loadErrors[university.id] ? 'Ошибка загрузки' : 'Нет записи в базе'}
-    </span>
-  )
-
-  const renderBenefitCell = (
-    university: University,
-    rightType: BenefitRightType
-  ) => {
-    const items = getYearBenefits(university.id).filter(
-      (benefit) => benefit.rightType === rightType
-    )
-
-    if (items.length === 0) return renderNoData(university)
-
-    return (
-      <div className="university-comparison-cell-list">
-        {items.map((benefit) => (
-          <div className="university-comparison-benefit" key={benefit.id}>
-            <strong>{benefit.olympiadName ?? 'Олимпиада не указана'}</strong>
-            {benefit.programName && <span>{benefit.programName}</span>}
-            <span>
-              {STATUS_LABELS[benefit.forStatus] ?? benefit.forStatus}
-              {' · '}
-              {getLevelLabel(benefit.levelRequired)}
-            </span>
-            <span className="university-comparison-result-class">
-              {getResultClassLabel(benefit.resultClassRequired)}
-            </span>
-            {benefit.confirmExamSubject && (
-              <span>
-                Подтверждение: {benefit.confirmExamSubject}
-                {benefit.confirmExamThreshold != null
-                  ? ` от ${benefit.confirmExamThreshold} баллов`
-                  : ''}
-              </span>
-            )}
-            <span
-              className={`benefit-verification-status ${getBenefitVerificationClass(benefit)}`}
-            >
-              {getBenefitVerificationLabel(benefit)}
-            </span>
-            {benefit.lastCheckedAt && (
-              <span className="university-comparison-checked">
-                Проверено: {formatDate(benefit.lastCheckedAt)}
-              </span>
-            )}
-            {getSafeUrl(benefit.sourceUrl) && (
-              <a
-                href={getSafeUrl(benefit.sourceUrl) ?? undefined}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="university-comparison-source"
-              >
-                Официальный источник <ExternalLink size={12} />
-              </a>
-            )}
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  const renderThresholdCell = (university: University) => {
-    const items = getYearBenefits(university.id)
-    const thresholds = [
-      ...new Set(
-        items.map((benefit) => {
-          if (benefit.confirmExamThreshold == null) return 'Порог не указан'
-          const subject = benefit.confirmExamSubject ?? 'Предмет не указан'
-          return `${subject}: ${benefit.confirmExamThreshold} баллов`
-        })
-      )
-    ]
-
-    if (thresholds.length === 0) return renderNoData(university)
-
-    return (
-      <div className="university-comparison-thresholds">
-        {thresholds.map((threshold) => <span key={threshold}>{threshold}</span>)}
-      </div>
-    )
-  }
-
-  const renderResultClassCell = (university: University) => {
-    const items = getYearBenefits(university.id)
-    if (items.length === 0) return renderNoData(university)
-
-    const resultClasses = [
-      ...new Set(
-        items.map((benefit) => getResultClassLabel(benefit.resultClassRequired))
-      )
-    ]
-
-    return (
-      <div className="university-comparison-thresholds">
-        {resultClasses.map((label) => <span key={label}>{label}</span>)}
-      </div>
-    )
-  }
-
-  if (loading) {
-    return <LoadingState message="Загружаем условия поступления для сравнения..." />
-  }
-
-  return (
-    <div className="university-comparison">
-      <div className="university-comparison-controls benefit-comparison-controls">
-        <div>
-          <strong>Год поступления</strong>
-          <p>Сравнение выполняется только внутри выбранного года.</p>
-        </div>
-        <select
-          value={selectedYear}
-          onChange={(event) => setSelectedYear(Number(event.target.value))}
-          aria-label="Год поступления для сравнения"
-        >
-          {availableYears.map((year) => (
-            <option value={year} key={year}>
-              {year}{year < targetAdmissionYear ? ' · архивный год' : ''}
-            </option>
-          ))}
-        </select>
-        <label className="benefit-comparison-status-select">
-          <span>Статус</span>
-          <select
-            value={verificationFilter}
-            onChange={(event) =>
-              setVerificationFilter(event.target.value as BenefitVerificationFilter)
-            }
-          >
-            <option value="all">Все статусы</option>
-            <option value="official">Официально подтверждённые</option>
-            <option value="draft">Предварительные / требуют проверки</option>
-            <option value="archived">Архивные</option>
-          </select>
-        </label>
-      </div>
-
-      <div className="benefit-status-summary" aria-live="polite">
-        <span className="benefit-status-summary-item">
-          <i className="status-dot status-dot-official" />
-          Официальные: <strong>{selectedYearOfficialCount}</strong>
-        </span>
-        <span className="benefit-status-summary-item">
-          <i className="status-dot status-dot-draft" />
-          Требуют проверки: <strong>{selectedYearDraftCount}</strong>
-        </span>
-        <span className="benefit-status-summary-item">
-          <i className="status-dot status-dot-archived" />
-          Архив: <strong>{selectedYearArchivedCount}</strong>
-        </span>
-      </div>
-
-      {selectedYear < targetAdmissionYear && (
-        <div className="benefit-admission-notice benefit-admission-notice-archive">
-          <Info size={17} />
-          <p>
-            Это архивные условия за {selectedYear} год. Они не подтверждают
-            правила приёма на {targetAdmissionYear} год.
-          </p>
-        </div>
-      )}
-
-      {selectedYear === targetAdmissionYear && selectedYearAllBenefits.length === 0 && (
-        <div className="benefit-admission-notice">
-          <Info size={17} />
-          <p>
-            В базе проекта пока нет записей о льготах за {targetAdmissionYear} год.
-            Отсутствие записей не означает отсутствие льгот в университете.
-          </p>
-        </div>
-      )}
-
-      {Object.entries(loadErrors).map(([universityId, message]) => {
-        const university = universities.find((item) => item.id === universityId)
-        return (
-          <div className="university-comparison-error" key={universityId}>
-            Не удалось загрузить данные {university?.shortName ?? 'вуза'}: {message}
-          </div>
-        )
-      })}
-
-      {availableYears.length === 0 ||
-      universities.every((university) => getYearBenefits(university.id).length === 0) ? (
-        <EmptyState
-          icon={<ShieldCheck size={25} />}
-          title="Нет условий по выбранным фильтрам"
-          description="Измени год или статус. Пустая ячейка означает отсутствие записи в базе проекта, а не отсутствие льготы в университете."
-        />
-      ) : (
-        <>
-          <div className="university-comparison-table-wrap">
-            <table className="university-comparison-table">
-              <thead>
-                <tr>
-                  <th>Условие</th>
-                  {universities.map((university) => (
-                    <th key={university.id}>
-                      <div className="university-comparison-university">
-                        <strong>{university.shortName}</strong>
-                        <span>{university.city}</span>
-                      </div>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {COMPARISON_RIGHTS.map((right) => (
-                  <tr key={right.value}>
-                    <th>{right.label}</th>
-                    {universities.map((university) => (
-                      <td key={university.id}>
-                        {renderBenefitCell(university, right.value)}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-                <tr>
-                  <th>Порог подтверждения</th>
-                  {universities.map((university) => (
-                    <td key={university.id}>{renderThresholdCell(university)}</td>
-                  ))}
-                </tr>
-                <tr>
-                  <th>Требование к классу диплома</th>
-                  {universities.map((university) => (
-                    <td key={university.id}>{renderResultClassCell(university)}</td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div className="university-comparison-note">
-            <Info size={16} />
-            <p>
-              Сравнение показывает только записи из справочника проекта.
-              Официально подтверждённой считается запись со статусом «Официально»,
-              действующей ссылкой на первоисточник и датой проверки. Черновики
-              и архивы не следует использовать как действующие условия. Перед
-              поступлением проверяй локальные акты университета.
-            </p>
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
-
 export function UniversitiesPage() {
   const [selectedUniversityId, setSelectedUniversityId] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCity, setSelectedCity] = useState('')
   const [sortBy, setSortBy] = useState<UniversitySortMode>('name')
 
-  const [comparisonIds, setComparisonIds] = useState<string[]>([])
-  const [comparisonOpen, setComparisonOpen] = useState(false)
+  const navigate = useNavigate()
+  const [comparisonIds, setComparisonIds] = useState<string[]>(readComparisonUniversityIds)
   const [comparisonNotice, setComparisonNotice] = useState('')
+
+  useEffect(() => {
+    writeComparisonUniversityIds(comparisonIds)
+  }, [comparisonIds])
 
   const loadUniversities = useCallback(
     () => universityService.getAll(),
@@ -846,9 +499,6 @@ export function UniversitiesPage() {
 
       setComparisonIds(nextIds)
 
-      if (nextIds.length < 2) {
-        setComparisonOpen(false)
-      }
 
       return
     }
@@ -869,14 +519,10 @@ export function UniversitiesPage() {
     setComparisonIds(nextIds)
     setComparisonNotice('')
 
-    if (nextIds.length < 2) {
-      setComparisonOpen(false)
-    }
   }
 
   const clearComparison = () => {
     setComparisonIds([])
-    setComparisonOpen(false)
     setComparisonNotice('')
   }
 
@@ -885,7 +531,7 @@ export function UniversitiesPage() {
       <PageHeader
         eyebrow="ТВОЁ БУДУЩЕЕ ОБРАЗОВАНИЕ"
         title="Университеты"
-        description="Изучай университеты, программы подготовки и подтверждённые условия поступления по олимпиадам."
+        description="Находи университеты через интернет, изучай программы и сравнивай условия поступления по олимпиадам."
       />
 
       <UniversityDiscoveryPanel />
@@ -1163,35 +809,6 @@ export function UniversitiesPage() {
         </div>
       )}
 
-      {comparisonOpen && comparisonUniversities.length >= 2 && (
-        <section className="panel university-comparison-panel">
-          <div className="panel-heading">
-            <div>
-              <div className="section-kicker">
-                СРАВНЕНИЕ УНИВЕРСИТЕТОВ
-              </div>
-
-              <h2>Сравнение условий поступления</h2>
-
-              <p>
-                Сравниваются олимпиады и преимущества по выбранному году.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => setComparisonOpen(false)}
-            >
-              Свернуть
-            </button>
-          </div>
-
-          <UniversityComparison
-            universities={comparisonUniversities}
-          />
-        </section>
-      )}
 
       {selectedUniversity && (
         <section className="panel benefits-panel">
@@ -1280,12 +897,9 @@ export function UniversitiesPage() {
               type="button"
               className="primary-button"
               disabled={comparisonIds.length < 2}
-              onClick={() => {
-                setComparisonOpen(true)
-                setComparisonNotice('')
-              }}
+              onClick={() => navigate('/universities/compare')}
             >
-              Сравнить
+              Открыть сравнение
               <GitCompareArrows size={16} />
             </button>
           </div>
