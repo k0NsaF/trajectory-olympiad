@@ -1,0 +1,555 @@
+# TECH.md — «Траектория в олимпиаду»
+
+## 0. Назначение документа
+
+Техническая спецификация проекта: архитектура, модель данных, API, логика генератора траектории, интеграции, безопасность, развёртывание и готовность к MAX. Документ самодостаточен: по нему можно реализовать бэкенд, связать его с фронтендом и развернуть демо.
+
+Область действия: только техника. Визуал и UX — в `VISUAL.md`.
+
+Принципиальное решение: в MVP используется **правиловая логика**, без обучения ML-моделей. «Умная» часть (ИИ-консультант) — опциональный модуль с внешним LLM API, работающий по схеме RAG (поиск по базе + генерация с опорой на найденное). Это не обучение модели, а инженерия промптов и поиска.
+
+---
+
+## 1. Стек (фиксированный)
+
+| Слой | Технология |
+|---|---|
+| Frontend | React + TypeScript |
+| Стили | Tailwind CSS |
+| UI-компоненты | shadcn/ui |
+| Иконки | Lucide |
+| Анимации | Framer Motion |
+| Backend / BaaS | Supabase |
+| База данных | PostgreSQL (через Supabase) |
+| Auth | Supabase Auth (Email + Google OAuth) |
+| Графики | Recharts |
+| ИИ (опционально) | YandexGPT API (Алиса) |
+| Деплой | Vercel (frontend) + Supabase (backend) |
+
+Требование: фронтенд не зависит от MAX. Интеграция с MAX — отдельный адаптер поверх тех же REST-вызовов. На демо показывается веб-приложение.
+
+---
+
+## 2. Модель данных (PostgreSQL / Supabase)
+
+### 2.1. Схема сущностей
+
+Ниже — полная SQL-схема. Все таблицы создаются в Supabase (или локальном PostgreSQL для разработки).
+
+```sql
+-- Профиль пользователя (расширение auth.users)
+create table profiles (
+  id uuid references auth.users primary key,
+  grade int check (grade between 7 and 11),
+  region text,
+  subjects text[] default '{}',
+  target_university_id uuid references universities(id),
+  target_program_id uuid references programs(id),
+  onboarding_completed boolean default false,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- Вуз
+create table universities (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  city text,
+  website text,
+  verified boolean default false,
+  created_at timestamptz default now()
+);
+
+-- Направление / программа
+create table programs (
+  id uuid primary key default gen_random_uuid(),
+  university_id uuid references universities(id) on delete cascade,
+  name text not null,
+  code text,
+  created_at timestamptz default now()
+);
+
+-- Олимпиада (справочник)
+create table olympiads (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  organizer text,
+  level int check (level between 1 and 4),
+  list_source text check (list_source in ('minobrnauki', 'minprosveshcheniya')),
+  subjects text[] default '{}',
+  grades int[] default '{}',
+  website text,
+  created_at timestamptz default now()
+);
+
+-- Сезон олимпиады (учебный год)
+create table olympiad_seasons (
+  id uuid primary key default gen_random_uuid(),
+  olympiad_id uuid references olympiads(id) on delete cascade,
+  academic_year text not null,
+  grades int[],
+  created_at timestamptz default now(),
+  unique(olympiad_id, academic_year)
+);
+
+-- Этап (регистрация / отбор / финал)
+create table stages (
+  id uuid primary key default gen_random_uuid(),
+  season_id uuid references olympiad_seasons(id) on delete cascade,
+  type text check (type in ('registration', 'qualifying', 'final')),
+  start_date date not null,
+  end_date date not null,
+  format text check (format in ('online', 'offline', 'mixed')),
+  region_scope text default 'all',
+  created_at timestamptz default now()
+);
+
+-- Льгота (Benefit)
+create table benefits (
+  id uuid primary key default gen_random_uuid(),
+  university_id uuid references universities(id) on delete cascade,
+  program_id uuid references programs(id) on delete cascade,
+  olympiad_id uuid references olympiads(id) on delete cascade,
+  right_type text check (right_type in ('BVI', '100_points', 'extra_points')),
+  for_status text check (for_status in ('winner', 'prize', 'both')),
+  level_required int check (level_required between 1 and 4),
+  confirm_exam_threshold int,
+  source_url text,
+  valid_year text,
+  last_checked_at date,
+  created_at timestamptz default now()
+);
+
+-- Достижение пользователя
+create table achievements (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references profiles(id) on delete cascade,
+  olympiad_id uuid references olympiads(id),
+  status text check (status in ('participant', 'prize', 'winner')),
+  grade int,
+  year text,
+  diploma_url text,
+  created_at timestamptz default now()
+);
+
+-- Напоминание
+create table reminders (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references profiles(id) on delete cascade,
+  stage_id uuid references stages(id) on delete cascade,
+  remind_at timestamptz not null,
+  status text check (status in ('pending', 'sent', 'dismissed')) default 'pending',
+  created_at timestamptz default now()
+);
+### 2.2. Row Level Security (RLS)
+
+Включить RLS на всех таблицах. Справочники — read-only для всех. Пользовательские таблицы — только свои записи.
+
+```sql
+-- Профиль: пользователь видит и редактирует только свой
+alter table profiles enable row level security;
+create policy "own profile" on profiles
+  for all using (auth.uid() = id);
+
+-- Достижения: только свои
+alter table achievements enable row level security;
+create policy "own achievements" on achievements
+  for all using (auth.uid() = user_id);
+
+-- Напоминания: только свои
+alter table reminders enable row level security;
+create policy "own reminders" on reminders
+  for all using (auth.uid() = user_id);
+
+-- Справочники: публичное чтение
+alter table olympiads enable row level security;
+create policy "public read olympiads" on olympiads for select using (true);
+
+alter table universities enable row level security;
+create policy "public read universities" on universities for select using (true);
+
+alter table programs enable row level security;
+create policy "public read programs" on programs for select using (true);
+
+alter table olympiad_seasons enable row level security;
+create policy "public read seasons" on olympiad_seasons for select using (true);
+
+alter table stages enable row level security;
+create policy "public read stages" on stages for select using (true);
+
+alter table benefits enable row level security;
+create policy "public read benefits" on benefits for select using (true);
+```
+
+Запись в справочники — только через service_role (админ-импорт или ручное заполнение).
+
+### 2.3. Заполнение данными (пилотный набор)
+
+На хакатоне база заполняется **репрезентативной выборкой** — не все 60 олимпиад, а 15–25 по популярным предметам. Этого достаточно для демонстрации генератора и льгот.
+
+#### Олимпиады (примеры из перечня Минобрнауки)
+
+| Название | Уровень | Профили | Классы | Источник |
+|---|---|---|---|---|
+| Олимпиада «Физтех» | I–II | математика, физика, информатика, биология | 7–11 | minobrnauki |
+| Олимпиада «Ломоносов» | I–II | математика, физика, химия, биология, история, обществознание | 5–11 | minobrnauki |
+| Высшая проба (ВШЭ) | I–II | математика, информатика, экономика, иностранный язык | 7–11 | minobrnauki |
+| Московская олимпиада школьников | I–II | математика, физика, информатика, химия, история | 6–11 | minobrnauki |
+| Олимпиада Курчатов | II | математика, физика | 6–11 | minobrnauki |
+| Турнир городов | I | математика | 8–11 | minobrnauki |
+| Всесибирская открытая олимпиада | II–III | математика, физика, информатика, химия, биология | 7–11 | minobrnauki |
+
+#### Вузы (пилотные)
+
+**МФТИ** — правила приёма на 2026/27 (и проект на 2027):
+
+- Количество учитываемых олимпиад РСОШ сокращено с 50 до 35 (2026/27), а для БВИ на 2027 — до 7 олимпиад.
+- По олимпиадам РСОШ **право БВИ предоставляется только победителям** (призёрам — 100 баллов).
+- Подтверждающий балл ЕГЭ повышен с 75 до 80 (на ряд программ выше). Для «Физтеха» порог сохранён — 75.
+- Минимальный балл для подачи: 85 по профильным предметам, 70 по русскому.
+
+**ВШЭ** — особые права:
+
+- Победители и призёры перечневых олимпиад могут получить **БВИ** или **100 баллов** (по выбору, если олимпиада даёт оба права).
+- Подтверждение особым правом — результат ЕГЭ не ниже 75 баллов (порог устанавливается по программе).
+- Индивидуальные достижения — до 10 баллов, но не суммируются сверх лимита.
+
+**ИТМО** — особые права:
+
+- Подтверждающий балл для олимпиад РСОШ — **75 баллов** по профильному предмету.
+- Для БВИ и 100 баллов соответствие профилей и программ устанавливается локальным актом (Приложения 5 и 6 к правилам приёма).
+
+#### Регионы
+
+Полный список субъектов РФ (85 регионов) закладывается в справочник `regions` (можно хранить как enum или отдельную таблицу). Для демо достаточно поля `region` в `profiles` и `region_scope` в `stages`.
+
+#### Предметы
+
+Фиксированный список:
+
+- `математика`
+- `информатика`
+- `физика`
+- `биология`
+- `химия`
+- `экономика`
+- `русский язык`
+- `история`
+- `обществознание`
+- `иностранный язык`
+
+Хранятся как `text[]` в `olympiads.subjects` и `profiles.subjects`.
+---
+
+## 3. Генератор траектории (Rule-based)
+
+### 3.1. Вход
+
+```typescript
+interface TrajectoryInput {
+  grade: number;                    // 7–11
+  region: string;
+  subjects: string[];
+  targetUniversityId?: string;
+  targetProgramId?: string;
+  currentDate: Date;
+}
+```
+
+### 3.2. Псевдокод
+
+```typescript
+function buildTrajectory(input: TrajectoryInput): TrajectoryItem[] {
+  const candidates: OlympiadCandidate[] = [];
+
+  // 1. Отбираем олимпиады, подходящие по классу и предметам
+  for (const olympiad of allOlympiads) {
+    if (!olympiad.grades.includes(input.grade)) continue;
+    if (!intersects(olympiad.subjects, input.subjects)) continue;
+
+    // 2. Для каждой олимпиады находим сезон текущего учебного года
+    const season = getSeason(olympiad.id, currentAcademicYear());
+    if (!season) continue; // нет сезона — пропускаем
+
+    // 3. Проверяем этапы
+    const stages = getStages(season.id);
+    const registrationStage = stages.find(s => s.type === 'registration');
+    const hasOpenOrFutureRegistration = registrationStage
+      ? registrationStage.end_date >= input.currentDate
+      : stages.some(s => s.end_date >= input.currentDate);
+
+    // 4. Статус
+    let status: 'eligible' | 'closed' | 'upcoming';
+    if (!hasOpenOrFutureRegistration) {
+      status = 'closed'; // регистрация закрыта — НЕ показываем как «можно успеть»
+    } else if (registrationStage && registrationStage.start_date <= input.currentDate) {
+      status = 'eligible'; // регистрация открыта
+    } else {
+      status = 'upcoming'; // регистрация ещё не открылась, но будет
+    }
+
+    // 5. Льготы в целевом вузе (если выбран)
+    const benefits = input.targetUniversityId
+      ? getBenefits(olympiad.id, input.targetUniversityId, input.targetProgramId)
+      : [];
+
+    candidates.push({ olympiad, season, stages, status, benefits });
+  }
+
+  // 6. Сортировка:
+  //    - сначала eligible и upcoming (не closed)
+  //    - внутри: приоритет 1 — есть льготы в целевом вузе
+  //    - приоритет 2 — уровень I–II
+  //    - приоритет 3 — ближайший дедлайн регистрации
+  candidates.sort(byPriority(input.targetUniversityId));
+
+  return candidates.map(toTrajectoryItem);
+}
+```
+
+### 3.3. Статусы (жёсткое правило)
+
+| Статус | Условие | Отображение |
+|---|---|---|
+| `eligible` («Подходит») | Регистрация открыта, класс и предметы совпадают | Бейдж `--success` |
+| `upcoming` («Можно успеть») | Регистрация ещё не открылась, но будет в текущем сезоне | Бейдж `--accent` |
+| `closed` («Не подходит») | Регистрация уже закрыта в текущем сезоне | Бейдж `--error` |
+
+Важно: если регистрация закрыта — олимпиада **не попадает** в активную траекторию как «можно успеть». Она может быть показана в архиве или каталоге, но не в персональном плане на текущий сезон.
+
+---
+
+## 4. API (Supabase Edge Functions / REST)
+
+### 4.1. Эндпоинты
+
+| Метод | Путь | Назначение |
+|---|---|---|
+| `POST` | `/api/trajectory` | Построить траекторию по профилю |
+| `GET` | `/api/olympiads` | Каталог с фильтрами (query params) |
+| `GET` | `/api/olympiads/:id` | Карточка олимпиады |
+| `GET` | `/api/universities` | Список вузов |
+| `GET` | `/api/universities/:id` | Карточка вуза + льготы |
+| `GET` | `/api/benefits/compare` | Сравнение вузов (ids через query) |
+| `POST` | `/api/achievements` | Добавить достижение (auth) |
+| `GET` | `/api/achievements` | Список достижений (auth) |
+| `GET` | `/api/reminders` | Напоминания (auth) |
+| `POST` | `/api/ai/ask` | Запрос к ИИ-консультанту (опционально) |
+
+### 4.2. Пример: `POST /api/trajectory`
+
+Запрос:
+
+```json
+{
+  "grade": 9,
+  "region": "Москва",
+  "subjects": ["математика", "информатика"],
+  "targetUniversityId": "uuid-мфти",
+  "targetProgramId": "uuid-прикладная-математика"
+}
+```
+
+Ответ:
+
+```json
+{
+  "items": [
+    {
+      "olympiadId": "uuid-физтех",
+      "name": "Олимпиада «Физтех»",
+      "level": 1,
+      "subjects": ["математика", "физика", "информатика"],
+      "status": "eligible",
+      "nextStage": {
+        "type": "registration",
+        "startDate": "2026-11-01",
+        "endDate": "2026-12-15",
+        "daysLeft": 25
+      },
+      "benefits": [
+        {
+          "university": "МФТИ",
+          "rightType": "BVI",
+          "forStatus": "winner",
+          "confirmExamThreshold": 75
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total": 8,
+    "activeRegistrations": 2,
+    "upcomingEvents": 3
+  }
+}
+```
+
+### 4.3. Пример: `GET /api/benefits/compare?ids=uuid1,uuid2,uuid3`
+
+Ответ:
+
+```json
+{
+  "universities": [
+    { "id": "uuid1", "name": "МФТИ" },
+    { "id": "uuid2", "name": "ВШЭ" },
+    { "id": "uuid3", "name": "ИТМО" }
+  ],
+  "comparison": [
+    { "condition": "БВИ", "values": ["✅", "✅", "✅"] },
+    { "condition": "100 баллов", "values": ["✅", "✅", "✅"] },
+    { "condition": "Порог ЕГЭ", "values": [75, 75, 75] }
+  ]
+}
+```
+---
+
+## 5. Аутентификация (Supabase Auth)
+
+### 5.1. Включение провайдеров
+
+В настройках Supabase:
+
+1. **Email** — включить, включить подтверждение по email (опционально на демо).
+2. **Google OAuth** — создать проект в Google Cloud Console, получить `Client ID` и `Client Secret`, вставить в Supabase Auth → Providers → Google.
+
+### 5.2. Клиентская логика
+
+- После онбординга (до регистрации) данные квиза хранятся в `localStorage` (временный `guestProfile`).
+- При нажатии «Сохранить мою траекторию» → открывается модалка регистрации.
+- После успешной регистрации или входа `guestProfile` мержится в `profiles` (upsert по `auth.uid()`).
+- Все запросы к пользовательским данным — с JWT из Supabase Auth (RLS проверяет `auth.uid()`).
+
+### 5.3. Защита
+
+- RLS включён на всех пользовательских таблицах (см. раздел 2.2).
+- Справочники — read-only для анонимных и авторизованных, запись — только `service_role`.
+- API-ключи (LLM) — только на сервере (Edge Function), никогда на клиенте.
+
+---
+
+## 6. ИИ-консультант (опциональный модуль)
+
+### 6.1. Архитектура (RAG)
+
+```text
+Пользователь → POST /api/ai/ask { question, context }
+                ↓
+         Edge Function (Supabase)
+                ↓
+    1. Поиск релевантных фрагментов в базе (olympiads, benefits, stages)
+       — простой SQL-поиск по ключевым словам / subject + grade
+                ↓
+    2. Формирование промпта:
+       "Ты — консультант по олимпиадам. Ответь на вопрос,
+        опираясь ТОЛЬКО на эти данные: {фрагменты}.
+        Если данных нет — скажи, что не знаешь.
+        В конце укажи источники."
+                ↓
+    3. Вызов YandexGPT API (или другого LLM)
+                ↓
+    4. Возврат ответа + источники
+```
+
+Важно: это не обучение модели. Модель не тренируется на ваших данных — она получает их в контексте запроса (RAG). Это снимает риск галлюцинаций и юридических ошибок.
+
+### 6.2. Переменные окружения (Edge Function)
+
+```env
+YANDEX_GPT_API_KEY=...
+YANDEX_GPT_FOLDER_ID=...
+SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
+```
+
+### 6.3. Fallback (если ИИ не подключён)
+
+- В интерфейсе чат показывается, но при отправке вопроса возвращается заглушка: «ИИ-консультант временно недоступен. Попробуй найти олимпиаду в каталоге».
+- Быстрые вопросы (чипы) работают как фильтры или навигация (ведут на каталог или страницу вуза), а не как запросы к LLM.
+
+---
+
+## 7. Готовность к MAX (Mini App)
+
+### 7.1. Что уже готово
+
+- Фронтенд — обычное веб-приложение (React + Vite). Открывается в WebView MAX без изменений.
+- Бэкенд — REST API (Supabase). MAX-адаптер только добавляет авторизацию через MAX и push-напоминания.
+- Напоминания вынесены в отдельный модуль `reminders` (в БД). На демо показываются в интерфейсе; при запуске в MAX — отправляются push через MAX API.
+
+### 7.2. Что добавится при интеграции
+
+- **Авторизация через MAX:** `initData` из MAX Bridge → валидация на сервере → создание или поиск `profiles` по `max_user_id`.
+- **Push-напоминания:** вместо in-app баннеров — вызов MAX API для отправки сообщений.
+- **Деплой:** приложение размещается на HTTPS-хостинге (VK Cloud, Yandex Cloud, GitHub Pages). URL добавляется в настройки бота MAX.
+
+### 7.3. Требования MAX (для справки)
+
+- Mini App работает только внутри чат-бота MAX, не автономно.
+- Нужен подтверждённый профиль (юрлицо, ИП или самозанятый) — на хакатоне не требуется, достаточно веб-демо.
+- URL мини-приложения: HTTPS, до 1024 символов, допустимые символы — латиница, цифры, точка, дефис.
+
+---
+
+## 8. Развёртывание (демо)
+
+### 8.1. Frontend (Vercel)
+
+1. Создать репозиторий (GitHub).
+2. Подключить репозиторий к Vercel.
+3. Переменные окружения:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+4. Build command: `npm run build`, Output: `dist`.
+
+### 8.2. Backend (Supabase)
+
+1. Создать проект в Supabase.
+2. Выполнить SQL-схему (раздел 2.1) в SQL Editor.
+3. Включить RLS и политики (раздел 2.2).
+4. Включить Auth (Email + Google).
+5. Заполнить справочники (олимпиады, вузы, льготы) через Table Editor или seed-скрипт.
+6. (Опционально) Задеплоить Edge Function для ИИ.
+
+### 8.3. Локальная разработка
+
+```bash
+# Frontend
+npm install
+npm run dev
+
+# Supabase (локально, опционально)
+supabase start
+supabase db reset  # применить миграции
+```
+
+---
+
+## 9. Ограничения и допущения
+
+| Ограничение | Причина / решение |
+|---|---|
+| Данные о льготах могут меняться ежегодно | Поля `valid_year`, `last_checked_at`, `source_url`. На демо — 3 вуза, ручной парсинг. |
+| Перечень Минпросвещения не даёт прав | Поле `list_source`. В UI — предупреждение, если олимпиада из этого перечня. |
+| Юридическая точность | Дисклеймер везде, где есть льготы: «проверяй локальные акты вуза». |
+| ML не используется в MVP | Задача детерминирована, данных мало, объяснимость критична. LLM — опционально, RAG. |
+| MAX не подключён на демо | Архитектура готова (REST + reminders). Интеграция — отдельный адаптер. |
+
+---
+
+## 10. Чек-лист для реализации
+
+- [ ] SQL-схема выполнена в Supabase (все таблицы).
+- [ ] RLS включён, политики применены.
+- [ ] Справочники заполнены: 15–25 олимпиад, 3 вуза, льготы (МФТИ, ВШЭ, ИТМО), регионы, предметы.
+- [ ] Auth: Email + Google настроены.
+- [ ] Генератор траектории реализован (правила из раздела 3).
+- [ ] API-эндпоинты работают (раздел 4).
+- [ ] Guest-профиль в `localStorage` + merge при регистрации.
+- [ ] (Опционально) Edge Function для ИИ с RAG.
+- [ ] (Опционально) YandexGPT API подключён.
+- [ ] Frontend задеплоен на Vercel, URL доступен.
+- [ ] Напоминания: in-app баннеры (демо).
+- [ ] Дисклеймеры на страницах льгот и в чате.
+- [ ] MAX-адаптер описан в roadmap (не реализован на демо).
