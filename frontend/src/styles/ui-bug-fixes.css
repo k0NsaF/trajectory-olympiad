@@ -1,0 +1,182 @@
+/* Исправление мобильных кнопок навигации на широких экранах.
+   .icon-button имеет такой же уровень специфичности и ранее переопределял
+   display: none у этих кнопок. Более точный селектор фиксирует поведение. */
+.app-shell .sidebar-close,
+.app-shell .mobile-menu-button {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .app-shell .sidebar-close,
+  .app-shell .mobile-menu-button {
+    display: grid;
+  }
+}
+
+/* Карточки образовательных программ: только переменные активной темы. */
+.universities-page .university-programs-heading {
+  color: var(--text-muted);
+}
+
+.universities-page .university-programs-heading strong {
+  color: var(--text-heading);
+}
+
+.universities-page .university-programs-heading span {
+  border: 1px solid var(--border-soft);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.universities-page .university-program-tag {
+  max-width: 100%;
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text-heading);
+  overflow-wrap: anywhere;
+}
+
+.universities-page .university-program-tag small {
+  color: var(--accent);
+}
+
+/* Направления и карточки программ на странице отдельного университета. */
+.university-detail-program-direction {
+  border-color: var(--border);
+  background: var(--accent-soft);
+  color: var(--accent) !important;
+}
+
+.university-detail-program-info .university-program-tag {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text-heading);
+}
+
+.university-detail-program-info .university-program-tag small {
+  color: var(--accent);
+}
+
+/* Панель сравнения: прежние переменные surface-primary/text-primary
+   не объявлены в теме, из-за чего фон оставался белым в dark mode. */
+.university-comparison-panel {
+  border-color: var(--border);
+  background: var(--card);
+  color: var(--text);
+}
+
+.university-comparison-panel .university-comparison-controls h3 {
+  color: var(--text-heading);
+}
+
+.university-comparison-panel .university-comparison-controls select {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.university-comparison-panel .university-comparison-table-wrap {
+  border-color: var(--border);
+  background: var(--card);
+}
+
+.university-comparison-panel .university-comparison-table {
+  color: var(--text);
+}
+
+.university-comparison-panel .university-comparison-table th,
+.university-comparison-panel .university-comparison-table td {
+  border-color: var(--border);
+}
+
+.university-comparison-panel .university-comparison-table thead th,
+.university-comparison-panel .university-comparison-table thead th:first-child {
+  background: var(--surface);
+  color: var(--text-heading);
+}
+
+.university-comparison-panel .university-comparison-table tbody th {
+  background: var(--card);
+  color: var(--text-heading);
+}
+
+.university-comparison-panel .university-comparison-table tbody td {
+  background: var(--card);
+  color: var(--text);
+}
+
+.university-comparison-panel .university-comparison-table tbody tr:hover td {
+  background: var(--surface);
+}
+
+.university-comparison-panel .university-comparison-benefit {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.university-comparison-panel .university-comparison-benefit strong,
+.university-comparison-panel .university-comparison-thresholds strong,
+.university-comparison-panel .university-comparison-university strong {
+  color: var(--text-heading);
+}
+
+.university-comparison-panel .university-comparison-benefit span,
+.university-comparison-panel .university-comparison-thresholds span,
+.university-comparison-panel .university-comparison-university span,
+.university-comparison-panel .university-comparison-no-data,
+.university-comparison-panel .university-comparison-note {
+  color: var(--text-muted);
+}
+
+.university-comparison-panel .university-comparison-benefit a,
+.university-comparison-panel .university-comparison-source {
+  color: var(--accent);
+}
+
+.university-comparison-panel .university-comparison-result-class {
+  border-color: var(--border);
+  background: var(--accent-soft);
+  color: var(--accent) !important;
+}
+
+.university-comparison-panel .university-comparison-note > svg {
+  color: var(--accent);
+}
+
+/* Счётчики статусов льгот получают видимые поверхности и контраст в обеих темах. */
+.benefit-status-summary-item {
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.benefit-status-summary-item strong {
+  color: var(--text-heading);
+  font-weight: 750;
+}
+
+.status-dot-official {
+  background: var(--success);
+}
+
+.status-dot-draft {
+  background: var(--warning);
+}
+
+.status-dot-archived {
+  background: var(--text-muted);
+}
+
+/* Уведомление и элементы пустого результата сохраняют единый контраст темы. */
+.university-comparison-notice {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+}
+
+.university-comparison-notice svg {
+  color: var(--accent);
+}

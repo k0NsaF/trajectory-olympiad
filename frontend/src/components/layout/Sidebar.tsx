@@ -1,10 +1,8 @@
-
 import { NavLink, Link } from 'react-router-dom'
 import {
   ChevronRight,
   GraduationCap,
   Settings,
-  Sparkles,
   X
 } from 'lucide-react'
 
@@ -76,24 +74,6 @@ export function Sidebar({
       </nav>
 
       <div className="sidebar-bottom">
-        <div className="sidebar-promo">
-          <div className="promo-icon">
-            <Sparkles size={19} />
-          </div>
-
-          <strong>Твой путь к победе</strong>
-
-          <p>
-            Выполняй задания и постепенно приближайся к своей цели.
-          </p>
-
-          <div className="promo-progress">
-            <span />
-          </div>
-
-          <small>Настройка профиля</small>
-        </div>
-
         <NavLink
           to="/settings"
           onClick={onNavigate}
@@ -111,7 +91,6 @@ export function Sidebar({
           onClick={onNavigate}
         >
           <div className="avatar">У</div>
-
           <div className="profile-mini-info">
             <strong>Мой аккаунт</strong>
             <span>Перейти в профиль</span>
