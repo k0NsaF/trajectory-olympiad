@@ -543,14 +543,20 @@ export function UniversitiesPage() {
   }
 
   return (
-    <div className="dashboard-container universities-page">
+    <div className={`dashboard-container universities-page${comparisonCount > 0 ? ' has-comparison-bar' : ''}`}>
       <PageHeader
         eyebrow="ТВОЁ БУДУЩЕЕ ОБРАЗОВАНИЕ"
         title="Университеты"
         description="Находи университеты через интернет, изучай программы и сравнивай условия поступления по олимпиадам."
       />
 
-      <UniversityDiscoveryPanel />
+      <details className="university-discovery-disclosure">
+        <summary>
+          <span>Не нашли нужный вуз в каталоге?</span>
+          <span className="university-discovery-disclosure-action">Поиск в интернете</span>
+        </summary>
+        <UniversityDiscoveryPanel />
+      </details>
 
       <section className="panel universities-catalog-panel">
         <div className="panel-heading">
@@ -703,7 +709,7 @@ export function UniversitiesPage() {
 
                           <span className="university-location">
                             <MapPin size={14} />
-                            {university.city}
+                            <span>{university.city?.trim()}</span>
                           </span>
                         </div>
 
@@ -913,20 +919,20 @@ export function UniversitiesPage() {
           <div className="university-comparison-bar-actions">
             <button
               type="button"
-              className="secondary-button"
-              onClick={clearComparison}
-            >
-              Очистить
-            </button>
-
-            <button
-              type="button"
               className="primary-button"
               disabled={comparisonCount < 2}
               onClick={() => navigate('/universities/compare')}
             >
               Открыть сравнение
               <GitCompareArrows size={16} />
+            </button>
+
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={clearComparison}
+            >
+              Очистить
             </button>
           </div>
         </aside>

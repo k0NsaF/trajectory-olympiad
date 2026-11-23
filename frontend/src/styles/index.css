@@ -5687,3 +5687,235 @@ button:disabled {
 .auth-register-cta svg:last-child {
   margin-left: auto;
 }
+/* University picker compact layout v1 */
+
+/* Keep catalog content accessible above the fixed comparison bar. */
+.universities-page.has-comparison-bar {
+  padding-bottom: 160px;
+}
+
+/* Compact floating comparison bar. */
+.university-comparison-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px;
+  align-items: center;
+  gap: 12px 18px;
+  padding: 11px 16px;
+  max-height: min(145px, calc(100vh - 24px));
+  overflow: hidden;
+}
+
+.university-comparison-bar-content {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  min-width: 0;
+  gap: 14px;
+}
+
+.university-comparison-bar-heading {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.university-comparison-bar-heading strong {
+  font-size: 13px;
+}
+
+.university-comparison-chips {
+  flex-wrap: nowrap;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 3px 1px 6px;
+  scrollbar-width: thin;
+  overscroll-behavior-x: contain;
+}
+
+.university-comparison-chip {
+  flex: 0 0 auto;
+  max-width: 210px;
+  white-space: nowrap;
+}
+
+/* Actions stay visible; Clear is visually above Open comparison. */
+.university-comparison-bar-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
+}
+
+.university-comparison-bar-actions > button {
+  width: 100%;
+  min-width: 0;
+  min-height: 33px;
+  justify-content: center;
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+
+.university-comparison-bar-actions > button:first-child {
+  order: 2;
+}
+
+.university-comparison-bar-actions > button:last-child {
+  order: 1;
+}
+
+/* The external discovery search stays available but no longer dominates the page. */
+.university-discovery-disclosure {
+  margin: 0 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--card);
+  overflow: hidden;
+}
+
+.university-discovery-disclosure > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 15px;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.university-discovery-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.university-discovery-disclosure > summary::after {
+  content: "+";
+  flex: 0 0 auto;
+  color: var(--accent);
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.university-discovery-disclosure[open] > summary::after {
+  content: "−";
+}
+
+.university-discovery-disclosure-action {
+  margin-left: auto;
+  color: var(--accent);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.university-discovery-disclosure[open] {
+  padding: 0 14px 14px;
+}
+
+.university-discovery-disclosure .university-discovery-panel {
+  margin: 12px 0 0;
+}
+
+/* Prevent city names from being clipped beside the location icon. */
+.university-card-heading {
+  min-width: 0;
+}
+
+.university-card-heading > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.university-location {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 42%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+
+.university-location > svg {
+  flex: 0 0 14px;
+}
+
+.university-location > span {
+  display: inline-block;
+  min-width: 0;
+  padding-left: 1px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+  .university-comparison-bar {
+    grid-template-columns: minmax(0, 1fr) 165px;
+    padding: 10px 13px;
+  }
+
+  .university-comparison-bar-content {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .university-comparison-bar-heading {
+    width: auto;
+  }
+
+  .university-comparison-bar-actions {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .universities-page.has-comparison-bar {
+    padding-bottom: 180px;
+  }
+
+  .university-comparison-bar {
+    right: 9px;
+    bottom: 9px;
+    left: 9px;
+    width: calc(100% - 18px);
+    grid-template-columns: minmax(0, 1fr);
+    gap: 9px;
+    padding: 11px;
+    max-height: 42vh;
+    overflow-y: auto;
+  }
+
+  .university-comparison-bar-content {
+    gap: 8px;
+  }
+
+  .university-comparison-bar-heading {
+    min-width: 0;
+    white-space: normal;
+  }
+
+  .university-comparison-chips {
+    gap: 6px;
+  }
+
+  .university-comparison-bar-actions {
+    flex-direction: column;
+  }
+
+  .university-comparison-bar-actions > button {
+    width: 100%;
+  }
+
+  .university-card-heading {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .university-location {
+    align-self: flex-start;
+    max-width: 100%;
+  }
+}
