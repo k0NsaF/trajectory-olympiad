@@ -12,6 +12,7 @@ interface BenefitRow {
   olympiad_id: string
   right_type: 'BVI' | '100_points' | 'extra_points'
   for_status: 'winner' | 'prize' | 'both'
+  points_awarded: number | null
   level_required: number | null
   confirm_exam_threshold: number | null
   confirm_exam_subject: string | null
@@ -53,6 +54,7 @@ export interface BenefitResult {
   olympiadOrganizer?: string
   rightType: 'BVI' | '100_points' | 'extra_points'
   forStatus: 'winner' | 'prize' | 'both'
+  pointsAwarded?: number
   levelRequired?: number
   confirmExamThreshold?: number
   confirmExamSubject?: string
@@ -112,6 +114,9 @@ function mapBenefit(
 
     rightType: row.right_type,
     forStatus: row.for_status,
+    ...(row.points_awarded !== null
+      ? { pointsAwarded: row.points_awarded }
+      : {}),
 
     ...(row.level_required !== null
       ? { levelRequired: row.level_required }
@@ -145,7 +150,7 @@ export async function compareBenefits(
   let query = supabase
     .from('benefits')
     .select(
-      'id, university_id, program_id, olympiad_id, right_type, for_status, level_required, confirm_exam_threshold, confirm_exam_subject, result_class_required, source_url, valid_year, last_checked_at, verification_status'
+      'id, university_id, program_id, olympiad_id, right_type, for_status, points_awarded, level_required, confirm_exam_threshold, confirm_exam_subject, result_class_required, source_url, valid_year, last_checked_at, verification_status'
     )
     .order('valid_year', { ascending: false })
     .order('last_checked_at', { ascending: false })

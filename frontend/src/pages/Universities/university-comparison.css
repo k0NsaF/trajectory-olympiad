@@ -610,3 +610,8 @@
   .university-compare-accordion-copy strong { font-size: 12px; }
   .university-compare-accordion-panel { padding: 0 9px 9px; }
 }
+/* benefit points value */
+.university-compare-points-value {
+  color: var(--purple);
+  font-weight: 700;
+}

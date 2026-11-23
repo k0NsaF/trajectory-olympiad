@@ -67,6 +67,7 @@ export interface UniversityBenefit {
   olympiadOrganizer?: string
   rightType: BenefitRightType
   forStatus: BenefitRecipientStatus
+  pointsAwarded?: number
   levelRequired?: number
   confirmExamThreshold?: number
   confirmExamSubject?: string
