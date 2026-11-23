@@ -1,4 +1,3 @@
-
 import { Router } from 'express'
 
 import { authenticate } from '../../middleware/authenticate.js'
@@ -8,6 +7,7 @@ import { getAuthContext } from '../../utils/authContext.js'
 import {
   createReminderSchema,
   reminderIdSchema,
+  updateReminderSchema,
   updateReminderStatusSchema
 } from './reminders.schema.js'
 
@@ -15,6 +15,7 @@ import {
   createReminder,
   deleteReminder,
   getReminders,
+  updateReminder,
   updateReminderStatus
 } from './reminders.service.js'
 
@@ -66,6 +67,28 @@ router.patch(
       const { userId, supabase } = getAuthContext(req)
 
       const reminder = await updateReminderStatus(
+        supabase,
+        userId,
+        id,
+        req.body
+      )
+
+      res.status(200).json(reminder)
+    } catch (error) {
+      next(error)
+    }
+  }
+)
+
+router.patch(
+  '/:id',
+  validateBody(updateReminderSchema),
+  async (req, res, next) => {
+    try {
+      const { id } = reminderIdSchema.parse(req.params)
+      const { userId, supabase } = getAuthContext(req)
+
+      const reminder = await updateReminder(
         supabase,
         userId,
         id,

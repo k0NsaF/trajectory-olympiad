@@ -41,6 +41,7 @@ import {
 } from '@/utils/benefits'
 
 import './university-comparison.css'
+import './university-comparison-layout.css'
 
 type CompareRecord = {
   selectionId: string

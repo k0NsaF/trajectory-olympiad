@@ -1,0 +1,25 @@
+/* Make all university comparison cards equal in height within the grid. */
+.university-compare-grid {
+  align-items: stretch;
+  grid-auto-rows: minmax(0, 1fr);
+}
+
+.university-compare-card {
+  height: 100%;
+  min-height: 100%;
+}
+
+.university-compare-card-footer {
+  margin-top: auto;
+}
+
+@media (max-width: 700px) {
+  .university-compare-grid {
+    grid-auto-rows: auto;
+  }
+
+  .university-compare-card {
+    height: auto;
+    min-height: 0;
+  }
+}

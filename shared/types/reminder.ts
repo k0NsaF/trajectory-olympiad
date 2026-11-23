@@ -1,4 +1,3 @@
-
 export type ReminderType =
   | 'registration_deadline'
   | 'stage_start'
@@ -26,4 +25,11 @@ export interface CreateReminderInput {
   description?: string
   type: ReminderType
   dueAt: string
+}
+
+export interface UpdateReminderInput {
+  title?: string
+  description?: string
+  type?: ReminderType
+  dueAt?: string
 }

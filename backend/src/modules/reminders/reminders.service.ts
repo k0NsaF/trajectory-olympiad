@@ -1,9 +1,9 @@
-
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 import { AppError } from '../../utils/AppError.js'
 import type {
   CreateReminderInput,
+  UpdateReminderInput,
   UpdateReminderStatusInput
 } from './reminders.schema.js'
 
@@ -83,7 +83,7 @@ export async function createReminder(
     .insert({
       user_id: userId,
       title: input.title,
-      description: input.description ?? null,
+      description: input.description?.trim() || null,
       type: input.type,
       due_at: input.dueAt
     })
@@ -95,6 +95,53 @@ export async function createReminder(
       'Не удалось создать напоминание.',
       500,
       'REMINDER_CREATE_FAILED'
+    )
+  }
+
+  return mapReminder(data as unknown as ReminderRow)
+}
+
+export async function updateReminder(
+  supabase: SupabaseClient,
+  userId: string,
+  id: string,
+  input: UpdateReminderInput
+): Promise<ReminderResult> {
+  const updates: {
+    title?: string
+    description?: string | null
+    type?: CreateReminderInput['type']
+    due_at?: string
+  } = {}
+
+  if (input.title !== undefined) updates.title = input.title
+  if (input.description !== undefined) {
+    updates.description = input.description.trim() || null
+  }
+  if (input.type !== undefined) updates.type = input.type
+  if (input.dueAt !== undefined) updates.due_at = input.dueAt
+
+  const { data, error } = await supabase
+    .from('reminders')
+    .update(updates)
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select(REMINDER_FIELDS)
+    .maybeSingle()
+
+  if (error) {
+    throw new AppError(
+      'Не удалось изменить напоминание.',
+      500,
+      'REMINDER_EDIT_FAILED'
+    )
+  }
+
+  if (!data) {
+    throw new AppError(
+      'Напоминание не найдено.',
+      404,
+      'REMINDER_NOT_FOUND'
     )
   }
 

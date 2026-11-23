@@ -1,8 +1,8 @@
-
 import type {
   CreateReminderInput,
   Reminder,
-  ReminderStatus
+  ReminderStatus,
+  UpdateReminderInput
 } from '@trajectory/shared'
 
 import { api } from '@/services/api'
@@ -15,6 +15,16 @@ export const reminderService = {
   create(input: CreateReminderInput): Promise<Reminder> {
     return api.post<Reminder, CreateReminderInput>(
       '/api/reminders',
+      input
+    )
+  },
+
+  update(
+    id: string,
+    input: UpdateReminderInput
+  ): Promise<Reminder> {
+    return api.patch<Reminder, UpdateReminderInput>(
+      `/api/reminders/${encodeURIComponent(id)}`,
       input
     )
   },
