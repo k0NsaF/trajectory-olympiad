@@ -24,6 +24,13 @@ export interface UniversityProgram {
   direction?: string
 }
 
+export type UniversityRegistryStatus =
+  | 'manual'
+  | 'minobrnauki_listed'
+  | 'miccedu_listed'
+  | 'multiple_sources'
+  | 'needs_review'
+
 export interface University {
   id: string
   name: string
@@ -31,6 +38,19 @@ export interface University {
   city: string
   website?: string
   description?: string
+  region?: string
+  officialDomain?: string
+  inn?: string
+  ogrn?: string
+  organizationType?: string
+  isBranch?: boolean
+  registryStatus?: UniversityRegistryStatus
+  registrySources?: string[]
+  registryLastSeenAt?: string
+  admissionUrl?: string
+  admissionRulesUrl?: string
+  admissionPlacesUrl?: string
+  monitoringProfileUrl?: string
   programs?: UniversityProgram[]
 }
 

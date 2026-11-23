@@ -14,7 +14,8 @@
     "dev:backend": "npm run dev --workspace=backend",
     "build": "npm run build --workspace=shared && npm run build --workspace=backend && npm run build --workspace=frontend",
     "typecheck": "npm run typecheck --workspace=shared && npm run typecheck --workspace=backend && npm run typecheck --workspace=frontend",
-    "test": "npm run test --workspace=backend"
+    "test": "npm run test --workspace=backend",
+    "registry:import": "npm run registry:import --workspace=backend --"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

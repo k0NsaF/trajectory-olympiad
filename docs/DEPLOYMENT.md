@@ -124,3 +124,7 @@ Cloudflare Workers AI остаётся резервным провайдером
 | `CLOUDFLARE_AI_MODEL` | Render | Нет |
 | `TAVILY_API_KEY` | Только Render | Да, необязательный резервный поиск |
 | Supabase `service_role` key | Не использовать в этом приложении | Да |
+
+## Импорт единого реестра университетов
+
+Подробная инструкция по применению миграции, локальной настройке Supabase Secret key, dry-run и импорту государственных каталогов находится в [UNIVERSITY_REGISTRY.md](./UNIVERSITY_REGISTRY.md). Импорт запускается только локально; секретный ключ Supabase нельзя помещать во frontend, Vercel, Render или Git.

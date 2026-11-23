@@ -1,4 +1,3 @@
-
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 import { AppError } from '../../utils/AppError.js'
@@ -8,9 +7,22 @@ interface UniversityRow {
   id: string
   name: string
   short_name: string
-  city: string
+  city: string | null
   website: string | null
   description: string | null
+  region: string | null
+  official_domain: string | null
+  inn: string | null
+  ogrn: string | null
+  organization_type: string | null
+  is_branch: boolean | null
+  registry_status: string | null
+  registry_sources: string[] | null
+  registry_last_seen_at: string | null
+  minobrnauki_admission_url: string | null
+  minobrnauki_rules_url: string | null
+  minobrnauki_places_url: string | null
+  miccedu_profile_url: string | null
 }
 
 interface ProgramRow {
@@ -34,8 +46,46 @@ interface UniversityResult {
   city: string
   website?: string
   description?: string
+  region?: string
+  officialDomain?: string
+  inn?: string
+  ogrn?: string
+  organizationType?: string
+  isBranch?: boolean
+  registryStatus?: string
+  registrySources?: string[]
+  registryLastSeenAt?: string
+  admissionUrl?: string
+  admissionRulesUrl?: string
+  admissionPlacesUrl?: string
+  monitoringProfileUrl?: string
   programs: UniversityProgramResult[]
 }
+
+const UNIVERSITY_SELECT = [
+  'id',
+  'name',
+  'short_name',
+  'city',
+  'website',
+  'description',
+  'region',
+  'official_domain',
+  'inn',
+  'ogrn',
+  'organization_type',
+  'is_branch',
+  'registry_status',
+  'registry_sources',
+  'registry_last_seen_at',
+  'minobrnauki_admission_url',
+  'minobrnauki_rules_url',
+  'minobrnauki_places_url',
+  'miccedu_profile_url'
+].join(', ')
+
+const PAGE_SIZE = 1000
+const PROGRAM_UNIVERSITY_CHUNK_SIZE = 150
 
 function mapProgram(row: ProgramRow): UniversityProgramResult {
   return {
@@ -54,78 +104,116 @@ function mapUniversity(
     id: row.id,
     name: row.name,
     shortName: row.short_name,
-    city: row.city,
+    city: row.city?.trim() || 'Город не указан',
     ...(row.website ? { website: row.website } : {}),
     ...(row.description ? { description: row.description } : {}),
+    ...(row.region ? { region: row.region } : {}),
+    ...(row.official_domain ? { officialDomain: row.official_domain } : {}),
+    ...(row.inn ? { inn: row.inn } : {}),
+    ...(row.ogrn ? { ogrn: row.ogrn } : {}),
+    ...(row.organization_type ? { organizationType: row.organization_type } : {}),
+    ...(row.is_branch != null ? { isBranch: row.is_branch } : {}),
+    ...(row.registry_status ? { registryStatus: row.registry_status } : {}),
+    ...(row.registry_sources?.length ? { registrySources: row.registry_sources } : {}),
+    ...(row.registry_last_seen_at ? { registryLastSeenAt: row.registry_last_seen_at } : {}),
+    ...(row.minobrnauki_admission_url ? { admissionUrl: row.minobrnauki_admission_url } : {}),
+    ...(row.minobrnauki_rules_url ? { admissionRulesUrl: row.minobrnauki_rules_url } : {}),
+    ...(row.minobrnauki_places_url ? { admissionPlacesUrl: row.minobrnauki_places_url } : {}),
+    ...(row.miccedu_profile_url ? { monitoringProfileUrl: row.miccedu_profile_url } : {}),
     programs: programs.map(mapProgram)
   }
+}
+
+async function loadAllUniversities(
+  supabase: SupabaseClient,
+  filters: UniversityQuery
+): Promise<UniversityRow[]> {
+  const universities: UniversityRow[] = []
+
+  for (let from = 0; ; from += PAGE_SIZE) {
+    let query = supabase
+      .from('universities')
+      .select(UNIVERSITY_SELECT)
+      .order('name', { ascending: true })
+      .range(from, from + PAGE_SIZE - 1)
+
+    if (filters.search) {
+      query = query.ilike('name', `%${filters.search}%`)
+    }
+
+    if (filters.city) {
+      query = query.ilike('city', `%${filters.city}%`)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      throw new AppError(
+        'Не удалось загрузить список университетов.',
+        500,
+        'UNIVERSITIES_LOAD_FAILED'
+      )
+    }
+
+    const page = (data ?? []) as unknown as UniversityRow[]
+    universities.push(...page)
+    if (page.length < PAGE_SIZE) break
+  }
+
+  return universities
+}
+
+async function loadProgramsForUniversities(
+  supabase: SupabaseClient,
+  universityIds: string[]
+): Promise<ProgramRow[]> {
+  const programs: ProgramRow[] = []
+
+  for (let index = 0; index < universityIds.length; index += PROGRAM_UNIVERSITY_CHUNK_SIZE) {
+    const ids = universityIds.slice(index, index + PROGRAM_UNIVERSITY_CHUNK_SIZE)
+    const { data, error } = await supabase
+      .from('programs')
+      .select('id, university_id, name, direction')
+      .in('university_id', ids)
+      .order('name', { ascending: true })
+
+    if (error) {
+      throw new AppError(
+        'Не удалось загрузить образовательные программы.',
+        500,
+        'PROGRAMS_LOAD_FAILED'
+      )
+    }
+
+    programs.push(...((data ?? []) as ProgramRow[]))
+  }
+
+  return programs
 }
 
 export async function getUniversities(
   supabase: SupabaseClient,
   filters: UniversityQuery = {}
 ): Promise<UniversityResult[]> {
-  let query = supabase
-    .from('universities')
-    .select('id, name, short_name, city, website, description')
-    .order('name', { ascending: true })
+  const universities = await loadAllUniversities(supabase, filters)
+  if (universities.length === 0) return []
 
-  if (filters.search) {
-    query = query.ilike('name', `%${filters.search}%`)
-  }
-
-  if (filters.city) {
-    query = query.ilike('city', `%${filters.city}%`)
-  }
-
-  const { data, error } = await query
-
-  if (error) {
-    throw new AppError(
-      'Не удалось загрузить список университетов.',
-      500,
-      'UNIVERSITIES_LOAD_FAILED'
-    )
-  }
-
-  const universities = (data ?? []) as UniversityRow[]
-
-  if (universities.length === 0) {
-    return []
-  }
-
-  const universityIds = universities.map((item) => item.id)
-
-  const { data: programData, error: programError } = await supabase
-    .from('programs')
-    .select('id, university_id, name, direction')
-    .in('university_id', universityIds)
-    .order('name', { ascending: true })
-
-  if (programError) {
-    throw new AppError(
-      'Не удалось загрузить образовательные программы.',
-      500,
-      'PROGRAMS_LOAD_FAILED'
-    )
-  }
-
-  const programs = (programData ?? []) as ProgramRow[]
+  const programRows = await loadProgramsForUniversities(
+    supabase,
+    universities.map((item) => item.id)
+  )
 
   const programsByUniversity = new Map<string, ProgramRow[]>()
-
-  for (const program of programs) {
+  for (const program of programRows) {
     const current = programsByUniversity.get(program.university_id) ?? []
     current.push(program)
     programsByUniversity.set(program.university_id, current)
   }
 
-  return universities.map((university) =>
-    mapUniversity(
-      university,
-      programsByUniversity.get(university.id) ?? []
-    )
-  )
+  return universities.map((university) => mapUniversity(
+    university,
+    programsByUniversity.get(university.id) ?? []
+  ))
 }
 
 export async function getUniversityById(
@@ -134,7 +222,7 @@ export async function getUniversityById(
 ): Promise<UniversityResult> {
   const { data, error } = await supabase
     .from('universities')
-    .select('id, name, short_name, city, website, description')
+    .select(UNIVERSITY_SELECT)
     .eq('id', id)
     .maybeSingle()
 
@@ -154,24 +242,8 @@ export async function getUniversityById(
     )
   }
 
-  const university = data as UniversityRow
+  const university = data as unknown as UniversityRow
+  const programRows = await loadProgramsForUniversities(supabase, [id])
 
-  const { data: programData, error: programError } = await supabase
-    .from('programs')
-    .select('id, university_id, name, direction')
-    .eq('university_id', id)
-    .order('name', { ascending: true })
-
-  if (programError) {
-    throw new AppError(
-      'Не удалось загрузить образовательные программы.',
-      500,
-      'PROGRAMS_LOAD_FAILED'
-    )
-  }
-
-  return mapUniversity(
-    university,
-    (programData ?? []) as ProgramRow[]
-  )
+  return mapUniversity(university, programRows)
 }
