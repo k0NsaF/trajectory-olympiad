@@ -98,6 +98,7 @@ function AchievementForm({ onClose, onCreated }: AchievementFormProps) {
   const [olympiadSearch, setOlympiadSearch] = useState('')
   const [selectedOlympiad, setSelectedOlympiad] = useState<OlympiadWithStatus | null>(null)
   const [showOlympiadOptions, setShowOlympiadOptions] = useState(false)
+  const [customOlympiad, setCustomOlympiad] = useState(false)
   const [resultStatus, setResultStatus] = useState<AchievementResultStatus>('prize')
   const [grade, setGrade] = useState('11')
   const [achievementYear, setAchievementYear] = useState(String(CURRENT_YEAR))
@@ -155,6 +156,7 @@ function AchievementForm({ onClose, onCreated }: AchievementFormProps) {
   function selectOlympiad(olympiad: OlympiadWithStatus) {
     setSelectedOlympiad(olympiad)
     setOlympiadSearch(olympiad.name)
+    setCustomOlympiad(false)
     setShowOlympiadOptions(false)
     setFormError(null)
   }
@@ -264,6 +266,7 @@ function AchievementForm({ onClose, onCreated }: AchievementFormProps) {
                 onChange={(event) => {
                   setOlympiadSearch(event.target.value)
                   setSelectedOlympiad(null)
+                  setCustomOlympiad(false)
                   setShowOlympiadOptions(true)
                 }}
                 onFocus={() => setShowOlympiadOptions(true)}
@@ -308,17 +311,25 @@ function AchievementForm({ onClose, onCreated }: AchievementFormProps) {
                     className="achievement-custom-option"
                     onClick={() => {
                       setSelectedOlympiad(null)
+                      setCustomOlympiad(true)
                       setShowOlympiadOptions(false)
+                      setFormError(null)
                     }}
                   >
-                    Сохранить «{olympiadSearch.trim()}» без привязки к каталогу
+                    Добавить свою олимпиаду: «{olympiadSearch.trim()}»
                   </button>
                 )}
               </div>
             )}
             <span className="achievement-field-hint">
-              Можно выбрать олимпиаду из каталога или указать другую вручную.
+              Выбери олимпиаду из списка или добавь собственное название вручную.
             </span>
+            {customOlympiad && (
+              <div className="achievement-manual-selected" role="status">
+                <CheckCircle2 size={15} />
+                <span>«{olympiadSearch.trim()}» будет сохранена вручную, без привязки к каталогу.</span>
+              </div>
+            )}
           </div>
 
           <fieldset className="achievement-form-field achievement-result-field">

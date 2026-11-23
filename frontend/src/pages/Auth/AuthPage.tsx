@@ -25,7 +25,9 @@ export function AuthPage() {
   const [mode, setMode] = useState<AuthMode>(
     searchParams.get('mode') === 'recovery'
       ? 'new-password'
-      : 'login'
+      : searchParams.get('mode') === 'register'
+        ? 'register'
+        : 'login'
   )
 
   const [fullName, setFullName] = useState('')
@@ -469,6 +471,18 @@ export function AuthPage() {
             {!loading && <ArrowRight size={17} />}
           </button>
         </form>
+
+        {mode === 'login' && (
+          <button
+            type="button"
+            className="auth-register-cta"
+            onClick={() => changeMode('register')}
+          >
+            <UserRound size={17} />
+            Нет аккаунта? Зарегистрироваться
+            <ArrowRight size={16} />
+          </button>
+        )}
 
         <div className="auth-footer">
           <span>

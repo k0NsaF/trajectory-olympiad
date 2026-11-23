@@ -580,3 +580,13 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Profile header action sizing */
+.profile-header-actions > .primary-button,
+.profile-header-actions > .secondary-button {
+  min-height: 43px;
+  margin: 0;
+  padding: 0 16px;
+  box-sizing: border-box;
+  line-height: 1;
+}

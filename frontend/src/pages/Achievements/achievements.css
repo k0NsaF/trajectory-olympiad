@@ -597,3 +597,22 @@
     transition-duration: 0.01ms;
   }
 }
+
+/* Manual olympiad entry confirmation */
+.achievement-manual-selected {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 11px;
+  border: 1px solid color-mix(in srgb, var(--success) 28%, transparent);
+  border-radius: 9px;
+  color: var(--success);
+  background: var(--success-soft);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.achievement-manual-selected svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
