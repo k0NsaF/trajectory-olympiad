@@ -534,6 +534,11 @@ function logReconciliationPreview(sourceKey, merged) {
     console.log(`  ${reason}: ${total}`)
   }
 
+  const cityChanges = merged.cityChanges ?? []
+  console.log(`CITY_CHANGES ${cityChanges.length}`)
+  for (const change of cityChanges) {
+    console.log(`CITY_CHANGE ${JSON.stringify(change)}`)
+  }
   const reviewExamples = decisions
     .filter((item) => item.status === 'review')
     .slice(0, 15)
@@ -568,6 +573,7 @@ async function reconcileUniversities(supabase, records, { dryRun = false } = {})
     fetchAllExternalIds(supabase)
   ])
   const catalogById = new Map(catalog.map((item) => [item.id, { ...item }]))
+  const originalCityById = new Map(catalog.map((item) => [item.id, item.city ?? null]))
   const externalIdIndex = new Map(existingExternalIds.map((item) => [
     `${item.source_key}:${item.external_id}`,
     item.university_id
@@ -797,6 +803,39 @@ async function reconcileUniversities(supabase, records, { dryRun = false } = {})
       miccedu_profile_url: university.miccedu_profile_url
     }))
 
+  const cityChanges = universityRows.flatMap((row) => {
+    if (!originalCityById.has(row.id)) return []
+
+    const oldCity = originalCityById.get(row.id)
+    const newCity = row.city ?? null
+
+    if (oldCity === newCity || !newCity || isPlaceholderCity(newCity)) return []
+
+    const sources = decisions
+      .filter((item) => item.universityId === row.id)
+      .map(({ record, reason, status }) => ({
+        sourceKey: record.sourceKey,
+        sourceRecordKey: record.sourceRecordKey,
+        sourceUrl: record.sourceUrl ?? null,
+        sourceCity: record.city ?? null,
+        sourceRegion: record.region ?? null,
+        address: record.address ?? null,
+        profileEnriched: record.metadata?.profileEnriched === true,
+        status,
+        matchReason: reason ?? null
+      }))
+
+    return [{
+      universityId: row.id,
+      universityName: row.name,
+      oldCity,
+      newCity,
+      region: row.region ?? null,
+      isBranch: Boolean(row.is_branch),
+      parentUniversityId: row.parent_university_id ?? null,
+      sources
+    }]
+  })
   // Check deferred parent FK references even in dry-run mode.
   const existingUniversityIds = new Set(catalog.map((university) => university.id))
   const rowsToInsertBeforeParentLinks = universityRows.map((row) => ({
@@ -928,6 +967,7 @@ async function reconcileUniversities(supabase, records, { dryRun = false } = {})
     externalIdsPrepared: externalIds.length,
     domainsPrepared: uniqueDomains.length,
     parentLinksPrepared: universityRows.filter((row) => row.is_branch && row.parent_university_id).length,
+    cityChanges,
     dryRun
   }
 }

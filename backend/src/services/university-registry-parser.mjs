@@ -367,27 +367,87 @@ function extractUrlFromValue(valueHtml, valueText, baseUrl) {
   return safeHttpUrl(rawUrl.startsWith('www.') ? `https://${rawUrl}` : rawUrl, baseUrl)
 }
 
+function normalizeLocalityDisplay(value) {
+  const lower = String(value ?? '').trim().toLocaleLowerCase('ru-RU')
+  return lower
+    .replace(/(^|[\s-])(\p{L})/gu, (_match, separator, letter) => separator + letter.toLocaleUpperCase('ru-RU'))
+    .replace(/-(\u043d\u0430|\u043f\u043e|\u0437\u0430|\u043f\u043e\u0434|\u0432|\u043a)-/giu, (_match, preposition) => '-' + preposition.toLocaleLowerCase('ru-RU') + '-')
+}
+
+function normalizeLocalityKey(value) {
+  return String(value ?? '')
+    .toLocaleLowerCase('ru-RU')
+    .replace(/\u0451/gu, '\u0435')
+    .replace(/[.,]/gu, ' ')
+    .replace(/\s+/gu, ' ')
+    .trim()
+}
+
+function cleanLocalityCandidate(value) {
+  const rawValue = String(value ?? '')
+  const withoutHouse = rawValue.replace(/(?:^|\s)(?:\u0434\.?\s*\d*|\u0434\u043e\u043c|\u043a\u043e\u0440\u043f\.?|\u043a\u043e\u0440\u043f\u0443\u0441|\u0441\u0442\u0440\.?|\u0441\u0442\u0440\u043e\u0435\u043d\u0438\u0435)(?=$|[\s.,;:]|\d)[\s\S]*$/iu, '')
+  const streetNameBeforeMarker = /^(.*\s)\S+\s+(?:\u0443\u043b\.?|\u0443\u043b\u0438\u0446\u0430|\u043f\u0440-\u0442|\u043f\u0440\.?|\u043f\u0440\u043e\u0441\u043f\u0435\u043a\u0442|\u043f\u0440-\u043a\u0442|\u043c\u043a\u0440\.?|\u043c\u0438\u043a\u0440\u043e\u0440\u0430\u0439\u043e\u043d|\u043f\u0435\u0440\.?|\u043f\u0435\u0440\u0435\u0443\u043b\u043e\u043a|\u043f\u043b\.?|\u043f\u043b\u043e\u0449\u0430\u0434\u044c|\u043d\u0430\u0431\.?|\u043d\u0430\u0431\u0435\u0440\u0435\u0436\u043d\u0430\u044f|\u0448\u043e\u0441\u0441\u0435|\u0431-\u0440|\u0431\u0443\u043b\u044c\u0432\u0430\u0440|\u043f\u0440\u043e\u0435\u0437\u0434)\s*$/iu.exec(withoutHouse)
+  let locality = String(streetNameBeforeMarker ? streetNameBeforeMarker[1] : withoutHouse)
+    .replace(/(?:^|\s)\u043d\u0430\s+\u043a\u0430\u0440\u0442\u0435(?=$|[\s.,;:])[\s\S]*$/iu, '')
+    .replace(/\s+\d{5,6}\b[\s\S]*$/u, '')
+    .replace(/\s+(?:\u0440\u043e\u0441\u0441\u0438\u044f|\u0440\u0444)\s*$/iu, '')
+    .replace(/(?:^|\s)(?:\u0443\u043b\.?|\u0443\u043b\u0438\u0446\u0430|\u043f\u0440-\u0442|\u043f\u0440\.?|\u043f\u0440\u043e\u0441\u043f\u0435\u043a\u0442|\u043f\u0440-\u043a\u0442|\u043c\u043a\u0440\.?|\u043c\u0438\u043a\u0440\u043e\u0440\u0430\u0439\u043e\u043d|\u043f\u0435\u0440\.?|\u043f\u0435\u0440\u0435\u0443\u043b\u043e\u043a|\u0434\.?|\u0434\u043e\u043c|\u043f\u043b\.?|\u043f\u043b\u043e\u0449\u0430\u0434\u044c|\u043d\u0430\u0431\.?|\u043d\u0430\u0431\u0435\u0440\u0435\u0436\u043d\u0430\u044f|\u0448\u043e\u0441\u0441\u0435|\u0431-\u0440|\u0431\u0443\u043b\u044c\u0432\u0430\u0440|\u043f\u0440\u043e\u0435\u0437\u0434|\u043a\u043e\u0440\u043f\.?|\u043a\u043e\u0440\u043f\u0443\u0441|\u0441\u0442\u0440\.?|\u0441\u0442\u0440\u043e\u0435\u043d\u0438\u0435)(?=$|[\s.,;:])[\s\S]*$/iu, '')
+    .replace(/[.,;:]+$/u, '')
+    .replace(/\s+/gu, ' ')
+    .trim()
+
+  if (!locality || locality.length > 90 || !/\p{L}/u.test(locality) || /^\d/u.test(locality)) return null
+  if (/(?:^|\s)(?:\u043e\u0431\u043b\u0430\u0441\u0442\u044c|\u043e\u0431\u043b\.?|\u043a\u0440\u0430\u0439|\u0440\u0435\u0441\u043f\u0443\u0431\u043b\u0438\u043a\u0430|\u0430\u0432\u0442\u043e\u043d\u043e\u043c\u043d\u044b\u0439\s+\u043e\u043a\u0440\u0443\u0433|\u0430\u0432\u0442\u043e\u043d\u043e\u043c\u043d\u0430\u044f\s+\u043e\u0431\u043b\u0430\u0441\u0442\u044c|\u0440\u0430\u0439\u043e\u043d|\u0440-\u043d|\u0433\u043e\u0440\u043e\u0434\u0441\u043a\u043e\u0439\s+\u043e\u043a\u0440\u0443\u0433|\u043c\u0443\u043d\u0438\u0446\u0438\u043f\u0430\u043b\u044c\u043d\u044b\u0439\s+\u043e\u043a\u0440\u0443\u0433|\u0443\u043b\u0443\u0441|\u0442\u0435\u0440\u0440\u0438\u0442\u043e\u0440\u0438\u044f)(?:$|\s)/iu.test(locality)) return null
+  if (/^(?:\u0440\u043e\u0441\u0441\u0438\u044f|\u0440\u043e\u0441\u0441\u0438\u0439\u0441\u043a\u0430\u044f\s+\u0444\u0435\u0434\u0435\u0440\u0430\u0446\u0438\u044f|\u0440\u0444|\u0443\u043b\u0438\u0446\u0430|\u043f\u0440\u043e\u0441\u043f\u0435\u043a\u0442|\u043f\u0435\u0440\u0435\u0443\u043b\u043e\u043a|\u043f\u043b\u043e\u0449\u0430\u0434\u044c|\u043d\u0430\u0431\u0435\u0440\u0435\u0436\u043d\u0430\u044f|\u0448\u043e\u0441\u0441\u0435)(?:$|\s)/iu.test(locality)) return null
+  if (/\d/u.test(locality)) return null
+  return normalizeLocalityDisplay(locality)
+}
+
 export function extractCityFromAddress(value, region = null) {
   const text = htmlToText(value)
-  const segments = text.split(/[,;]/u).map((part) => part.trim()).filter(Boolean)
-  const localityPrefix = /^(?:(?:пос[её]лок\s+городского\s+типа)|(?:рабочий\s+пос[её]лок)|(?:город)|(?:село)|(?:пос[её]лок)|(?:деревня)|(?:станица)|(?:хутор)|(?:пгт\.?|пс\.?|рп\.?|ст-ца\.?|ст\.?|х\.?|г\.?|с\.?|п\.?|д\.?))\s*/iu
+
+  const segments = text ? text.split(/[,;]/u).map((part) => part.trim()).filter(Boolean) : []
+  const localityPrefix = /^(?:(?:\u043f\u043e\u0441[\u0435\u0451]\u043b\u043e\u043a\s+\u0433\u043e\u0440\u043e\u0434\u0441\u043a\u043e\u0433\u043e\s+\u0442\u0438\u043f\u0430)|(?:\u0440\u0430\u0431\u043e\u0447\u0438\u0439\s+\u043f\u043e\u0441[\u0435\u0451]\u043b\u043e\u043a)|(?:\u0433\u043e\u0440\u043e\u0434|\u0441\u0435\u043b\u043e|\u043f\u043e\u0441[\u0435\u0451]\u043b\u043e\u043a|\u0434\u0435\u0440\u0435\u0432\u043d\u044f|\u0441\u0442\u0430\u043d\u0438\u0446\u0430|\u0445\u0443\u0442\u043e\u0440)\s+|(?:\u0434\.\u043f\.)\s*|(?:\u043f\.\u0433\.\u0442\.)\s*|(?:\u0433\.\s*-\s*\u043a\.?)\s*|(?:\u0433\.(?!\s*[\u043e\u043f]\.)|\u0433(?=\s))\s*|(?:\u043f\u0433\u0442|\u043f\u0441|\u0440\u043f|\u0441\u0442-\u0446\u0430|\u0441\u0442|\u0445|\u0441|\u043f|\u0434)\.\s*|(?:\u043f\u0433\u0442|\u043f\u0441|\u0440\u043f|\u0441\u0442-\u0446\u0430|\u0441\u0442|\u0445|\u0441|\u043f|\u0434)(?=\s)\s*)/iu
 
   for (const segment of segments) {
     const marker = localityPrefix.exec(segment)
     if (!marker) continue
-
-    let locality = segment.slice(marker[0].length)
-      .replace(/\s+(?:ул\.?|улица|пр\.?|проспект|пр-кт|мкр\.?|микрорайон|пер\.?|переулок|д\.?|дом|пл\.?|площадь|наб\.?|набережная)\b[\s\S]*$/iu, '')
-      .replace(/[.,;]+$/u, '')
-      .trim()
-
-    if (!locality || !/\p{L}/u.test(locality) || /^\d/u.test(locality)) continue
-    if (locality.length > 90) locality = locality.slice(0, 90).trim()
-    return locality || null
+    const locality = cleanLocalityCandidate(segment.slice(marker[0].length))
+    if (locality) return locality
   }
 
-  const regionMatch = /^\s*г\.?\s*(.+)$/iu.exec(String(region ?? '').trim())
-  return regionMatch?.[1]?.trim() || null
+  for (const segment of segments) {
+    const reverseMarker = /^(.+?)\s+\u0433\.?$/iu.exec(segment)
+    if (!reverseMarker) continue
+    const locality = cleanLocalityCandidate(reverseMarker[1])
+    if (locality) return locality
+  }
+
+  const streetMarker = /(?:^|\s)(?:\u0443\u043b\.?|\u0443\u043b\u0438\u0446\u0430|\u043f\u0440-\u0442|\u043f\u0440\.?|\u043f\u0440\u043e\u0441\u043f\u0435\u043a\u0442|\u043f\u0440-\u043a\u0442|\u043f\u0435\u0440\.?|\u043f\u0435\u0440\u0435\u0443\u043b\u043e\u043a|\u043f\u043b\.?|\u043f\u043b\u043e\u0449\u0430\u0434\u044c|\u043d\u0430\u0431\.?|\u043d\u0430\u0431\u0435\u0440\u0435\u0436\u043d\u0430\u044f|\u0448\u043e\u0441\u0441\u0435|\u0431-\u0440|\u0431\u0443\u043b\u044c\u0432\u0430\u0440|\u043f\u0440\u043e\u0435\u0437\u0434)(?=$|[\s.,;:])/iu
+  const regionText = String(region ?? '').trim().replace(/^\u0433\.(?!\s*[\u043e\u043f]\.)\s*/iu, '')
+  const regionKey = normalizeLocalityKey(regionText)
+
+  if (regionKey && regionKey.length >= 4) {
+    for (let index = 1; index < segments.length - 1; index += 1) {
+      const previousKey = normalizeLocalityKey(segments[index - 1])
+      if ((previousKey === regionKey || previousKey.startsWith(regionKey + ' ')) && streetMarker.test(segments[index + 1])) {
+        const locality = cleanLocalityCandidate(segments[index])
+        if (locality) return locality
+      }
+    }
+
+    for (let index = 0; index < segments.length - 2; index += 1) {
+      const currentKey = normalizeLocalityKey(segments[index])
+      const nextKey = normalizeLocalityKey(segments[index + 1])
+      if (!currentKey.startsWith(regionKey + ' ') || nextKey !== regionKey || !streetMarker.test(segments[index + 2])) continue
+      const remainder = segments[index].slice(regionText.length).trim().replace(/^\d{5,6}\s*/u, '')
+      const locality = cleanLocalityCandidate(remainder)
+      if (locality) return locality
+    }
+  }
+
+  const regionMatch = /^(?:\u0433\.\s*|\u0433(?=\s)\s*)(.+)$/iu.exec(String(region ?? '').trim())
+  return cleanLocalityCandidate(regionMatch?.[1]) || null
 }
 
 function organizationTypeFromDepartment(value) {

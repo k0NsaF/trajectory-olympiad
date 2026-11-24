@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import {
   ChevronRight,
-  GraduationCap,
+  Route,
   LogOut,
   Settings,
   UserRound,
@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 
 import { APP_NAVIGATION } from '@/config/navigation'
+import { TRAJECTORY_LOGO_URL } from '@/app/brandAssets'
 import { useAuth } from '@/app/providers'
 import { authService } from '@/services/auth.service'
 
@@ -54,14 +55,24 @@ export function Sidebar({
   return (
     <aside className={isOpen ? 'sidebar sidebar-open' : 'sidebar'}>
       <div className="brand">
-        <div className="brand-mark">
-          <GraduationCap size={25} />
-        </div>
-
-        <div className="brand-text">
-          <span>ТРАЕКТОРИЯ</span>
-          <small>ОЛИМПИАДНОЕ ДВИЖЕНИЕ</small>
-        </div>
+        <Link
+          to="/"
+          className="workspace-brand"
+          aria-label="Trajectory — главная страница"
+          onClick={onNavigate}
+        >
+          <span className="brand-mark brand-mark-image">
+            {TRAJECTORY_LOGO_URL ? (
+              <img src={TRAJECTORY_LOGO_URL} alt="" aria-hidden="true" />
+            ) : (
+              <Route size={25} strokeWidth={1.8} />
+            )}
+          </span>
+          <span className="brand-text">
+            <span>ТРАЕКТОРИЯ</span>
+            <small>ТВОЙ ПУТЬ К ПОСТУПЛЕНИЮ</small>
+          </span>
+        </Link>
 
         <button
           type="button"

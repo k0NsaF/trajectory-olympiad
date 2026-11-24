@@ -16,6 +16,7 @@ import benefitsRouter from './modules/benefits/benefits.routes.js'
 import achievementsRouter from './modules/achievements/achievements.routes.js'
 import remindersRouter from './modules/reminders/reminders.routes.js'
 import aiRouter from './modules/ai/ai.routes.js'
+import catalogRouter from './modules/catalog/catalog.routes.js'
 
 export const app = express()
 
@@ -68,6 +69,7 @@ app.use('/api/benefits', benefitsRouter)
 app.use('/api/achievements', achievementsRouter)
 app.use('/api/reminders', remindersRouter)
 app.use('/api/ai', aiRouter)
+app.use('/api/catalog', catalogRouter)
 
 app.use(notFound)
 app.use(errorHandler)

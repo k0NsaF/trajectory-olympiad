@@ -1,0 +1,46 @@
+﻿{
+    "license":  "Pexels License — each source page showed Free use at the time of project preparation. Re-check current terms before redistribution or major commercial use.",
+    "images":  [
+                   {
+                       "author":  "Katerina Holmes",
+                       "description":  "Школьница занимается с ноутбуком и блокнотом; сюжет о самоопределении и учебных интересах.",
+                       "section":  "Начни с себя",
+                       "source_download":  "https://images.pexels.com/photos/5905893/pexels-photo-5905893.jpeg?auto=compress\u0026dpr=1\u0026h=750\u0026w=1260",
+                       "source_page":  "https://www.pexels.com/photo/ethnic-girl-with-laptop-and-notepad-5905893/",
+                       "file":  "step-start.jpg"
+                   },
+                   {
+                       "author":  "George Pak",
+                       "description":  "Два студента разговаривают у здания университета.",
+                       "section":  "Изучай университеты",
+                       "source_download":  "https://images.pexels.com/photos/7972502/pexels-photo-7972502.jpeg?auto=compress\u0026dpr=1\u0026h=750\u0026w=1260",
+                       "source_page":  "https://www.pexels.com/photo/students-walking-by-an-university-building-7972502/",
+                       "file":  "step-university.jpg"
+                   },
+                   {
+                       "author":  "Andy Barbour",
+                       "description":  "Студенты выполняют письменную работу в светлой аудитории; визуальный сюжет учебного испытания.",
+                       "section":  "Открой олимпиады",
+                       "source_download":  "https://images.pexels.com/photos/6683675/pexels-photo-6683675.jpeg?auto=compress\u0026dpr=1\u0026h=750\u0026w=1260",
+                       "source_page":  "https://www.pexels.com/photo/students-sitting-in-the-room-6683675/",
+                       "file":  "step-olympiad.jpg"
+                   },
+                   {
+                       "author":  "Yan Krukau",
+                       "description":  "Два студента вместе работают за ноутбуком и учебниками.",
+                       "section":  "Собери траекторию",
+                       "source_download":  "https://images.pexels.com/photos/8199761/pexels-photo-8199761.jpeg?auto=compress\u0026dpr=1\u0026h=750\u0026w=1260",
+                       "source_page":  "https://www.pexels.com/photo/students-studying-together-while-looking-at-the-screen-of-a-laptop-8199761/",
+                       "file":  "step-trajectory.jpg"
+                   },
+                   {
+                       "author":  "Natalia S",
+                       "description":  "Календарь, ручка и блокнот на столе — сюжет планирования.",
+                       "section":  "Планируй вовремя",
+                       "source_download":  "https://images.pexels.com/photos/28353121/pexels-photo-28353121/free-photo-of-a-black-and-white-calendar-with-a-pen-on-top.jpeg?auto=compress\u0026dpr=1\u0026h=750\u0026w=1260",
+                       "source_page":  "https://www.pexels.com/photo/a-black-and-white-calendar-with-a-pen-on-top-28353121/",
+                       "file":  "step-planning.jpg"
+                   }
+               ],
+    "downloaded_at":  "2026-11-24T17:03:04+05:00"
+}

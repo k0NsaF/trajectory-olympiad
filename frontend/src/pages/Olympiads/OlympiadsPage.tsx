@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronRight,
   Clock3,
+  ExternalLink,
   GraduationCap,
   MapPin,
   Monitor,
@@ -67,6 +68,15 @@ const FORMAT_LABELS: Record<OlympiadFormat, string> = {
 type SortMode = 'date' | 'name' | 'level'
 type FilterStatus = OlympiadStatus | ''
 type FilterFormat = OlympiadFormat | ''
+type PeriodFilter = 'week' | 'month' | 'threeMonths' | 'all'
+type CollectionFilter = 'upcoming' | 'all' | 'closed'
+
+const PERIOD_LABELS: Record<PeriodFilter, string> = {
+  week: 'На этой неделе',
+  month: 'В этом месяце',
+  threeMonths: 'В ближайшие 3 месяца',
+  all: 'Без ограничения'
+}
 
 function parseLocalDate(value: string): Date | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
@@ -82,8 +92,7 @@ function getNextStageDate(olympiad: OlympiadWithStatus): number | null {
   today.setHours(0, 0, 0, 0)
 
   const timestamps = (olympiad.season?.stages ?? [])
-    .flatMap((stage) => [stage.startDate, stage.endDate])
-    .map(parseLocalDate)
+    .map((stage) => parseLocalDate(stage.startDate))
     .filter((date): date is Date => Boolean(date))
     .map((date) => date.getTime())
     .filter((timestamp) => timestamp >= today.getTime())
@@ -106,6 +115,14 @@ function formatDateCompact(timestamp: number): string {
   }).format(new Date(timestamp))
 }
 
+function formatDateValue(value?: string): string {
+  if (!value) return 'Уточняется'
+  const date = parseLocalDate(value)
+  return date
+    ? new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }).format(date)
+    : 'Уточняется'
+}
+
 function getFormats(olympiad: OlympiadWithStatus): OlympiadFormat[] {
   return [...new Set((olympiad.season?.stages ?? []).map((stage) => stage.format))]
 }
@@ -121,6 +138,61 @@ function getNextRegistration(olympiad: OlympiadWithStatus): string | null {
     .sort((first, second) => first.getTime() - second.getTime())[0]
 
   return future ? formatDateCompact(future.getTime()) : null
+}
+
+function getTimeline(olympiad: OlympiadWithStatus) {
+  const stages = [...(olympiad.season?.stages ?? [])].sort(
+    (first, second) => first.startDate.localeCompare(second.startDate)
+  )
+  const registration = stages.filter((stage) => stage.type === 'registration')
+  const competition = stages.filter((stage) => stage.type !== 'registration')
+
+  const registrationStart = registration[0]?.startDate
+  const registrationEnd = registration.reduce<string | undefined>(
+    (latest, stage) => !latest || stage.endDate > latest ? stage.endDate : latest,
+    undefined
+  )
+  const competitionStart = competition[0]?.startDate
+  const competitionEnd = competition.reduce<string | undefined>(
+    (latest, stage) => !latest || stage.endDate > latest ? stage.endDate : latest,
+    undefined
+  )
+
+  return {
+    registration: registrationStart
+      ? `${formatDateValue(registrationStart)} — ${formatDateValue(registrationEnd)}`
+      : 'Сроки уточняются',
+    start: formatDateValue(competitionStart),
+    end: formatDateValue(competitionEnd)
+  }
+}
+
+function isInPeriod(olympiad: OlympiadWithStatus, period: PeriodFilter): boolean {
+  if (period === 'all') return true
+
+  const nextDate = getNextStageDate(olympiad)
+  if (nextDate === null) return false
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const target = new Date(nextDate)
+
+  if (period === 'week') {
+    const weekStart = new Date(today)
+    weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7))
+    const weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekEnd.getDate() + 7)
+    return target >= today && target < weekEnd
+  }
+
+  if (period === 'month') {
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 1)
+    return target >= today && target < monthEnd
+  }
+
+  const threeMonthEnd = new Date(today)
+  threeMonthEnd.setMonth(threeMonthEnd.getMonth() + 3)
+  return target >= today && target < threeMonthEnd
 }
 
 function getBenefitLabel(rightType: string): string {
@@ -148,14 +220,17 @@ export function OlympiadsPage() {
   const { searchQuery, setSearchQuery } = useAppLayout()
   const { session } = useAuth()
 
-  const [profile, setProfile] = useState<CreateProfileInput | null>(() => getGuestProfile())
+  const guestProfile = useMemo(() => getGuestProfile(), [])
+  const [profile, setProfile] = useState<CreateProfileInput | null>(() => guestProfile)
   const [profileLoading, setProfileLoading] = useState(false)
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery)
-  const [subjects, setSubjects] = useState<string[]>([])
+  const [subjects, setSubjects] = useState<string[]>(() => guestProfile?.subjects ?? [])
   const [grade, setGrade] = useState('')
   const [level, setLevel] = useState('')
   const [status, setStatus] = useState<FilterStatus>('')
   const [format, setFormat] = useState<FilterFormat>('')
+  const [period, setPeriod] = useState<PeriodFilter>('all')
+  const [collection, setCollection] = useState<CollectionFilter>('upcoming')
   const [onlyWithBenefits, setOnlyWithBenefits] = useState(false)
   const [onlyTargetUniversity, setOnlyTargetUniversity] = useState(false)
   const [onlyMyRegion, setOnlyMyRegion] = useState(false)
@@ -171,7 +246,8 @@ export function OlympiadsPage() {
     let active = true
 
     if (!session?.access_token) {
-      setProfile(getGuestProfile())
+      setProfile(guestProfile)
+      setSubjects(guestProfile?.subjects ?? [])
       setProfileLoading(false)
       return
     }
@@ -179,10 +255,16 @@ export function OlympiadsPage() {
     setProfileLoading(true)
     void getAuthenticatedProfile(session.access_token)
       .then((savedProfile) => {
-        if (active) setProfile(savedProfile ?? getGuestProfile())
+        if (!active) return
+        const nextProfile = savedProfile ?? guestProfile
+        setProfile(nextProfile)
+        setSubjects(nextProfile?.subjects ?? [])
       })
       .catch(() => {
-        if (active) setProfile(getGuestProfile())
+        if (active) {
+          setProfile(guestProfile)
+          setSubjects(guestProfile?.subjects ?? [])
+        }
       })
       .finally(() => {
         if (active) setProfileLoading(false)
@@ -191,19 +273,15 @@ export function OlympiadsPage() {
     return () => {
       active = false
     }
-  }, [session?.access_token])
+  }, [session?.access_token, guestProfile])
 
   useEffect(() => {
     if (profile?.grade) setGrade(String(profile.grade))
   }, [profile?.grade])
 
   const subjectKey = subjects.join(',')
-  const targetUniversityId = onlyTargetUniversity
-    ? profile?.targetUniversityId
-    : undefined
-  const targetProgramId = onlyTargetUniversity
-    ? profile?.targetProgramId
-    : undefined
+  const targetUniversityId = onlyTargetUniversity ? profile?.targetUniversityId : undefined
+  const targetProgramId = onlyTargetUniversity ? profile?.targetProgramId : undefined
   const targetRegion = onlyMyRegion ? profile?.region : undefined
   const admissionGrade = grade ? Number(grade) : profile?.grade ?? 11
   const benefitYear = getAdmissionYearForGrade(admissionGrade)
@@ -246,14 +324,21 @@ export function OlympiadsPage() {
     reload
   } = useAsyncData(loadOlympiads, [])
 
+  const collectionCounts = useMemo(() => ({
+    upcoming: (olympiads ?? []).filter((item) => item.status !== 'closed').length,
+    all: olympiads?.length ?? 0,
+    closed: (olympiads ?? []).filter((item) => item.status === 'closed').length
+  }), [olympiads])
+
   const visibleOlympiads = useMemo(() => {
-    const result = [...(olympiads ?? [])]
+    const result = (olympiads ?? []).filter((olympiad) => {
+      if (collection === 'upcoming' && olympiad.status === 'closed') return false
+      if (collection === 'closed' && olympiad.status !== 'closed') return false
+      return isInPeriod(olympiad, period)
+    })
 
     result.sort((first, second) => {
-      if (sortBy === 'name') {
-        return first.name.localeCompare(second.name, 'ru')
-      }
-
+      if (sortBy === 'name') return first.name.localeCompare(second.name, 'ru')
       if (sortBy === 'level') {
         const firstLevel = first.level ?? Number.MAX_SAFE_INTEGER
         const secondLevel = second.level ?? Number.MAX_SAFE_INTEGER
@@ -262,17 +347,14 @@ export function OlympiadsPage() {
 
       const firstDate = getNextStageDate(first)
       const secondDate = getNextStageDate(second)
-
-      if (firstDate === null && secondDate === null) {
-        return first.name.localeCompare(second.name, 'ru')
-      }
+      if (firstDate === null && secondDate === null) return first.name.localeCompare(second.name, 'ru')
       if (firstDate === null) return 1
       if (secondDate === null) return -1
       return firstDate - secondDate
     })
 
     return result
-  }, [olympiads, sortBy])
+  }, [olympiads, sortBy, collection, period])
 
   const activeFiltersCount = [
     subjects.length > 0,
@@ -280,22 +362,24 @@ export function OlympiadsPage() {
     Boolean(level),
     Boolean(status),
     Boolean(format),
+    period !== 'all',
+    collection !== 'upcoming',
     onlyWithBenefits,
     onlyTargetUniversity,
     onlyMyRegion
   ].filter(Boolean).length
 
-  const hasFilters = Boolean(
-    searchQuery.trim() || activeFiltersCount > 0 || sortBy !== 'date'
-  )
+  const hasFilters = Boolean(searchQuery.trim() || activeFiltersCount > 0 || sortBy !== 'date')
 
   const clearFilters = () => {
     setSearchQuery('')
-    setSubjects([])
+    setSubjects(profile?.subjects ?? [])
     setGrade(profile?.grade ? String(profile.grade) : '')
     setLevel('')
     setStatus('')
     setFormat('')
+    setPeriod('all')
+    setCollection('upcoming')
     setOnlyWithBenefits(false)
     setOnlyTargetUniversity(false)
     setOnlyMyRegion(false)
@@ -309,7 +393,7 @@ export function OlympiadsPage() {
       <PageHeader
         eyebrow="ВОЗМОЖНОСТИ ДЛЯ ТВОЕГО РОСТА"
         title="Каталог олимпиад"
-        description="Найди соревнования по своим предметам, проверь сроки и узнай о подтверждённых льготах."
+        description="Подбирай соревнования по предметам из профиля, следи за регистрацией и находи олимпиады с преимуществами при поступлении."
       />
 
       <section className="panel catalog-panel catalog-panel-enhanced">
@@ -324,11 +408,7 @@ export function OlympiadsPage() {
               aria-label="Поиск олимпиад"
             />
             {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                aria-label="Очистить поиск"
-              >
+              <button type="button" onClick={() => setSearchQuery('')} aria-label="Очистить поиск">
                 <X size={16} />
               </button>
             )}
@@ -343,9 +423,7 @@ export function OlympiadsPage() {
           >
             <SlidersHorizontal size={17} />
             Фильтры
-            {activeFiltersCount > 0 && (
-              <span className="catalog-filter-count">{activeFiltersCount}</span>
-            )}
+            {activeFiltersCount > 0 && <span className="catalog-filter-count">{activeFiltersCount}</span>}
             <ChevronDown size={15} />
           </button>
         </div>
@@ -353,7 +431,7 @@ export function OlympiadsPage() {
         <div className="catalog-subject-filter">
           <div className="catalog-filter-heading">
             <strong>Предметы</strong>
-            <span>Можно выбрать несколько</span>
+            <span>{subjects.length ? 'Выбраны предметы из твоего профиля — можно изменить подбор' : 'Можно выбрать несколько'}</span>
           </div>
           <div className="catalog-chip-row">
             <button
@@ -382,24 +460,50 @@ export function OlympiadsPage() {
           </div>
         </div>
 
+        <div className="catalog-period-filter">
+          <div className="catalog-filter-heading">
+            <strong>Период проведения</strong>
+            <span>Выбери, насколько далеко смотреть</span>
+          </div>
+          <div className="catalog-chip-row catalog-period-chips">
+            {(Object.keys(PERIOD_LABELS) as PeriodFilter[]).map((value) => (
+              <button
+                type="button"
+                key={value}
+                className={`catalog-chip${period === value ? ' is-selected' : ''}`}
+                aria-pressed={period === value}
+                onClick={() => setPeriod(value)}
+              >
+                {PERIOD_LABELS[value]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="catalog-collection-tabs" role="group" aria-label="Разделы каталога">
+          <button type="button" className={collection === 'upcoming' ? 'is-active' : ''} onClick={() => { setCollection('upcoming'); setStatus('') }} aria-pressed={collection === 'upcoming'}>
+            Ближайшие <span>{collectionCounts.upcoming}</span>
+          </button>
+          <button type="button" className={collection === 'all' ? 'is-active' : ''} onClick={() => { setCollection('all'); setStatus('') }} aria-pressed={collection === 'all'}>
+            Все олимпиады <span>{collectionCounts.all}</span>
+          </button>
+          <button type="button" className={collection === 'closed' ? 'is-active' : ''} onClick={() => { setCollection('closed'); setStatus('') }} aria-pressed={collection === 'closed'}>
+            Регистрация завершена <span>{collectionCounts.closed}</span>
+          </button>
+        </div>
+        <p className="catalog-collection-note">В завершённом разделе собраны олимпиады, на которые регистрация уже закрыта, даже если отдельные этапы ещё впереди.</p>
+
         <div className="catalog-results-bar catalog-results-bar-enhanced">
           <div className="catalog-results-count">
             Найдено олимпиад: <strong>{visibleOlympiads.length}</strong>
-            {profile?.region && (
-              <span className="catalog-profile-context">
-                <MapPin size={13} /> {profile.region}
-              </span>
-            )}
+            {profile?.region && <span className="catalog-profile-context"><MapPin size={13} /> {profile.region}</span>}
             {profileLoading && <span className="catalog-profile-loading">Загружаем профиль…</span>}
           </div>
 
           <div className="catalog-results-actions">
             <label className="catalog-sort-select">
               <span>Сортировка</span>
-              <select
-                value={sortBy}
-                onChange={(event) => setSortBy(event.target.value as SortMode)}
-              >
+              <select value={sortBy} onChange={(event) => setSortBy(event.target.value as SortMode)}>
                 <option value="date">По ближайшим датам</option>
                 <option value="name">По названию</option>
                 <option value="level">По уровню</option>
@@ -407,8 +511,7 @@ export function OlympiadsPage() {
             </label>
             {hasFilters && (
               <button type="button" className="catalog-reset-button" onClick={clearFilters}>
-                <X size={14} />
-                Сбросить
+                <X size={14} /> Сбросить
               </button>
             )}
           </div>
@@ -459,11 +562,16 @@ export function OlympiadsPage() {
                 <div className="catalog-filter-grid">
                   <label className="catalog-filter-select">
                     <span>Статус регистрации</span>
-                    <select value={status} onChange={(event) => setStatus(event.target.value as FilterStatus)}>
+                    <select value={status} onChange={(event) => {
+                      const nextStatus = event.target.value as FilterStatus
+                      setStatus(nextStatus)
+                      if (nextStatus === 'closed') setCollection('closed')
+                      else if (nextStatus) setCollection('all')
+                    }}>
                       <option value="">Любой статус</option>
                       <option value="eligible">Открыта</option>
                       <option value="upcoming">Скоро</option>
-                      <option value="closed">Закрыта</option>
+                      <option value="closed">Завершена</option>
                       <option value="unknown">Даты уточняются</option>
                     </select>
                   </label>
@@ -513,8 +621,7 @@ export function OlympiadsPage() {
                   Сбросить фильтры
                 </button>
                 <button type="button" className="primary-button" onClick={closeFilters}>
-                  Показать результаты
-                  <ChevronRight size={16} />
+                  Показать результаты <ChevronRight size={16} />
                 </button>
               </div>
             </section>
@@ -529,7 +636,7 @@ export function OlympiadsPage() {
           <EmptyState
             icon={<BookOpen size={25} />}
             title="Пока ничего не нашли"
-            description="Попробуй изменить фильтры или класс. Можно сбросить условия поиска и посмотреть весь каталог."
+            description="Попробуй изменить предметы, период или фильтры. В разделе «Регистрация завершена» можно посмотреть олимпиады, на которые уже нельзя записаться."
           />
         ) : (
           <div className="catalog-list catalog-list-enhanced">
@@ -537,6 +644,7 @@ export function OlympiadsPage() {
               const nextDate = getNextStageDate(olympiad)
               const formats = getFormats(olympiad)
               const nextRegistration = getNextRegistration(olympiad)
+              const timeline = getTimeline(olympiad)
 
               return (
                 <article className="catalog-card catalog-card-enhanced" key={olympiad.id}>
@@ -544,16 +652,19 @@ export function OlympiadsPage() {
 
                   <div className="catalog-card-content">
                     <div className="catalog-card-topline">
-                      <span className={`status-pill status-${olympiad.status}`}>
-                        {STATUS_LABELS[olympiad.status]}
-                      </span>
-                      <span className="catalog-level">
-                        {olympiad.level !== null ? LEVEL_LABELS[olympiad.level] : 'Уровень уточняется'}
-                      </span>
+                      <span className={`status-pill status-${olympiad.status}`}>{STATUS_LABELS[olympiad.status]}</span>
+                      <span className="catalog-level">{olympiad.level !== null ? LEVEL_LABELS[olympiad.level] : 'Уровень уточняется'}</span>
                     </div>
 
                     <h2>{olympiad.name}</h2>
-                    <p className="catalog-organizer">Организатор: {olympiad.organizer}</p>
+                    <p className="catalog-organizer">
+                      Организатор: {olympiad.organizer}
+                      {olympiad.website && (
+                        <a href={olympiad.website} target="_blank" rel="noreferrer noopener" className="catalog-organizer-link">
+                          Перейти к организатору <ExternalLink size={12} />
+                        </a>
+                      )}
+                    </p>
                     {olympiad.description && <p className="catalog-description">{olympiad.description}</p>}
 
                     <div className="tag-list">
@@ -563,11 +674,28 @@ export function OlympiadsPage() {
                       })}
                     </div>
 
+                    <div className="catalog-timeline" aria-label="Сроки олимпиады">
+                      <div className="catalog-timeline-step">
+                        <span>Регистрация</span>
+                        <strong>{timeline.registration}</strong>
+                      </div>
+                      <span className="catalog-timeline-connector" aria-hidden="true" />
+                      <div className="catalog-timeline-step">
+                        <span>Начало</span>
+                        <strong>{timeline.start}</strong>
+                      </div>
+                      <span className="catalog-timeline-connector" aria-hidden="true" />
+                      <div className="catalog-timeline-step">
+                        <span>Завершение</span>
+                        <strong>{timeline.end}</strong>
+                      </div>
+                    </div>
+
                     <div className="catalog-card-facts">
                       <span><GraduationCap size={14} /> Классы: {olympiad.grades.length ? olympiad.grades.join(', ') : 'уточняются'}</span>
                       <span><Monitor size={14} /> {formats.length ? formats.map((item) => FORMAT_LABELS[item]).join(' / ') : 'Формат уточняется'}</span>
                       {nextDate !== null && <span><CalendarDays size={14} /> Ближайший этап: {formatDate(nextDate)}</span>}
-                      {nextRegistration && <span><Clock3 size={14} /> Регистрация: {nextRegistration}</span>}
+                      {nextRegistration && <span><Clock3 size={14} /> Начало регистрации: {nextRegistration}</span>}
                     </div>
 
                     {olympiad.benefits.length > 0 ? (
@@ -587,8 +715,7 @@ export function OlympiadsPage() {
                     <div className="catalog-card-footer">
                       <span className="catalog-card-season">{olympiad.season?.academicYear ?? 'Сезон не опубликован'}</span>
                       <Link className="catalog-details-link" to={`/olympiads/${encodeURIComponent(olympiad.id)}`}>
-                        Подробнее об олимпиаде
-                        <ChevronRight size={16} />
+                        Подробнее об олимпиаде <ChevronRight size={16} />
                       </Link>
                     </div>
                   </div>

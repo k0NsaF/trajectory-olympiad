@@ -1,7 +1,7 @@
-
+﻿
 import { useState, type FormEvent } from 'react'
 
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   ArrowRight,
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 
 import { useAuth } from '@/app/providers'
+import { TRAJECTORY_LOGO_URL, TRAJECTORY_LOGO_MODE } from '@/app/brandAssets'
 import { authService } from '@/services/auth.service'
 
 type AuthMode = 'login' | 'register' | 'reset' | 'new-password'
@@ -285,8 +286,8 @@ export function AuthPage() {
   return (
     <main className="auth-page app-shell theme-dark">
       <section className="auth-card">
-        <div className="auth-logo">
-          <GraduationCap size={27} />
+        <div className={`auth-logo auth-logo-${TRAJECTORY_LOGO_MODE}`}>
+          {TRAJECTORY_LOGO_URL ? <img src={TRAJECTORY_LOGO_URL} alt="Trajectory" /> : <GraduationCap size={27} />}
         </div>
 
         <div className="auth-eyebrow">
@@ -489,6 +490,7 @@ export function AuthPage() {
             Продолжая, ты соглашаешься использовать сервис
             в соответствии с его правилами.
           </span>
+          <Link to="/privacy" className="auth-privacy-link">Политика конфиденциальности</Link>
         </div>
       </section>
     </main>

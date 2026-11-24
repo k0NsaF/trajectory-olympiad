@@ -1,0 +1,41 @@
+﻿/* Trajectory V2 — Soft Light design tokens. Page accents belong to one warm-red family. */
+:root {
+  --trajectory-font-family: 'Roboto', Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --trajectory-font-weight-regular: 400;
+  --trajectory-font-weight-bold: 700;
+
+  --trajectory-color-canvas: #F7F4F0;
+  --trajectory-color-surface: #FFFFFF;
+  --trajectory-color-surface-raised: #F1ECE7;
+  --trajectory-color-text: #302B29;
+  --trajectory-color-text-secondary: #5F5752;
+  --trajectory-color-text-muted: #81766F;
+  --trajectory-color-border: #E8E0DA;
+  --trajectory-color-border-strong: #CFC2B8;
+
+  --trajectory-accent-home: #B94A52;
+  --trajectory-accent-red: #B94A52;
+  --trajectory-accent-yellow: #B94A52;
+  --trajectory-accent-sky: #B94A52;
+  --trajectory-accent-blue: #8C5960;
+  --trajectory-accent-soft-red: #F9E9E6;
+
+  --trajectory-space-unit: 2px;
+  --trajectory-space-1: 2px;
+  --trajectory-space-2: 4px;
+  --trajectory-space-4: 8px;
+  --trajectory-space-6: 12px;
+  --trajectory-space-8: 16px;
+  --trajectory-space-10: 20px;
+  --trajectory-space-12: 24px;
+  --trajectory-space-16: 32px;
+  --trajectory-space-24: 48px;
+  --trajectory-space-university-section: 84px;
+
+  --trajectory-radius-control: 10px;
+  --trajectory-radius-card: 12px;
+  --trajectory-radius-home-card: 18px;
+  --trajectory-content-width: 1366px;
+  --trajectory-section-gap: 48px;
+  --trajectory-card-padding: 16px;
+}
