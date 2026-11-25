@@ -21,38 +21,6 @@
 Обычный цикл: внести изменения в `trajectory-v2` → push → дождаться GitHub Actions → открыть Pull Request в `main` → проверить Preview → merge. После успешных CI-проверок Render и Vercel обновляют production. Не редактируй файлы непосредственно в GitHub Web Editor, если параллельно работаешь с локальным клоном: сначала синхронизируй `git pull`.
 
 
-## 0. Подготовка репозитория
-
-1. Создай пустой репозиторий GitHub. Не добавляй на GitHub README, License или .gitignore, если будешь загружать уже существующий проект.
-2. Открой PowerShell в корневой папке проекта.
-3. Если Git ещё не инициализирован, выполни:
-
-```powershell
-git init
-git add .
-git status --short
-```
-
-Перед коммитом убедись, что `backend/.env` и `frontend/.env` НЕ отображаются среди добавленных файлов. В проекте `.gitignore` исключает `.env` и `.env.*`.
-
-Если эти файлы когда-либо были добавлены в Git ранее, одного `.gitignore` недостаточно. Убери их из индекса:
-
-```powershell
-git rm --cached backend/.env frontend/.env
-```
-
-Затем проверь статус и отправь проект:
-
-```powershell
-git add .
-git commit -m "Prepare production deployment"
-git branch -M main
-git remote add origin https://github.com/USERNAME/REPOSITORY.git
-git push -u origin main
-```
-
-Замени `USERNAME/REPOSITORY` на адрес своего пустого репозитория. Если `origin` уже существует, вместо `git remote add origin` используй `git remote set-url origin ...`.
-
 ## 1. Разверни backend на Render
 
 1. Открой Render и выбери **New → Blueprint**.
@@ -139,3 +107,4 @@ Cloudflare Workers AI остаётся резервным провайдером
 ## Импорт единого реестра университетов
 
 Подробная инструкция по применению миграции, локальной настройке Supabase Secret key, dry-run и импорту государственных каталогов находится в [UNIVERSITY_REGISTRY.md](./UNIVERSITY_REGISTRY.md). Импорт запускается только локально; секретный ключ Supabase нельзя помещать во frontend, Vercel, Render или Git.
+Для проверки Preview-деплоя проверь, что `VITE_API_URL`, `VITE_SUPABASE_URL` и `VITE_SUPABASE_PUBLISHABLE_KEY` заданы также для окружения **Preview**. Backend должен разрешать точный Preview-origin в `FRONTEND_URL` (вместе с production-origin, через запятую). При создании нового Preview-домена проверь CORS ещё раз: не используй произвольный wildcard без отдельной настройки backend.

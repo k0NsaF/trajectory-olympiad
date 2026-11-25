@@ -1,28 +1,64 @@
-# Trajectory V2 — backend typecheck fix
+# Trajectory — твой путь к поступлению
 
-Date: 2026-11-25
+Trajectory — платформа для школьников 7–11 классов, которая помогает изучать профессии, выбирать образовательные направления и университеты, находить олимпиады и планировать подготовку к поступлению.
 
-## What changed
+## Возможности
 
-Fixed TypeScript typing in:
+- Каталог профессий и образовательных направлений.
+- Каталог университетов и образовательных программ, поиск, фильтры и сравнение.
+- Каталог школьных олимпиад и отдельный список других интеллектуальных и творческих конкурсов.
+- Этапы мероприятий, календарь, личные задачи и напоминания.
+- Профиль, избранное и достижения.
+- ИИ-помощник с учётом контекста страницы и профиля; переходы по разделам выполняются по запросу пользователя.
 
-- `backend/src/modules/ai/ai.service.ts`
-- `backend/src/modules/olympiads/olympiads.service.ts`
+## Технологии
 
-The extended Supabase SELECTs include year/list metadata. The legacy fallback SELECTs intentionally omit those columns while supporting a database that has not yet received the migration. TypeScript inferred the extended query's narrow row shape and rejected assigning the legacy query result.
+- Frontend: React, TypeScript, Vite.
+- Backend: Node.js, Express, TypeScript.
+- Общие типы и контракты: TypeScript workspace `shared`.
+- Database/Auth: Supabase PostgreSQL и Supabase Auth.
+- AI: Groq; предусмотрен резервный провайдер Cloudflare Workers AI.
+- Поиск: встроенный поиск модели; Tavily может использоваться как резервный источник.
 
-The service now explicitly normalizes both result variants to the application row interfaces (`OlympiadRow` and `SeasonRow`) using a narrow `unknown` bridge at the database boundary. Runtime behavior is unchanged: missing optional metadata remains absent and existing defaults/compatibility handling remain in place.
+Проект — npm-монорепозиторий с workspace-пакетами `shared`, `backend` и `frontend`.
 
-## Apply
+## Локальный запуск
 
-Extract the fix ZIP into the project root (`trajectory-olympiad-v2-ready`) and allow the two files under `backend/src/modules/...` to be overwritten.
+Требования: Node.js 24.x и npm.
 
-Then run:
-
-```powershell
-npm.cmd run typecheck
-npm.cmd run build
-npm.cmd test
+```bash
+npm ci
+npm run dev
 ```
 
-No database migration, API key, environment variable, or live Supabase change is required for this TypeScript fix.
+Проверки перед отправкой изменений:
+
+```bash
+npm run typecheck
+npm run build
+npm test
+```
+
+## Структура репозитория
+
+- `frontend/` — интерфейс, страницы и маршруты.
+- `backend/` — HTTP API и серверная бизнес-логика.
+- `shared/` — общие TypeScript-типы и контракты.
+- `backend/supabase/migrations/` — SQL-миграции Supabase.
+- `docs/` — документация проекта и развёртывания.
+
+## Безопасность и достоверность данных
+
+- Не добавляй `.env` и секретные ключи в Git.
+- Публичный Supabase Publishable key допустим во frontend; `service_role`, Groq, Cloudflare и Tavily API keys должны оставаться на сервере.
+- Не придумывай уровни олимпиад, льготы и условия приёма. Подтверждай их первичными официальными источниками с указанием университета, программы и года приёма.
+- Официальный перечень школьных олимпиад и другие конкурсы должны оставаться разными категориями.
+
+## Git и публикация
+
+- `trajectory-v2` — ветка разработки и Preview.
+- `main` — production-ветка.
+- GitHub Actions выполняет typecheck, production build и тесты.
+- Перед слиянием Pull Request проверь Preview, конфигурацию окружения и авторизацию.
+
+Инструкция по публикации на Vercel, Render и настройке Supabase: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
