@@ -15,6 +15,7 @@ function normalizeMarkdown(value: string): string {
     .replace(/&#39;|&apos;/gi, "'")
     .replace(/&lt;/gi, '<')
     .replace(/&gt;/gi, '>')
+    .replace(/<br\s*\/?\s*>/gi, '\n')
 }
 
 function renderInline(value: string, keyPrefix: string): ReactNode[] {

@@ -920,3 +920,770 @@
   .public-site .university-filter-controls { grid-template-columns: 1fr; }
   .public-site .olympiad-compact-actions { align-items: flex-start; }
 }
+
+/* TRAJECTORY QUALITY PASS — university cards and pagination */
+
+.public-site .university-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+
+.public-site .university-card {
+  display: grid;
+  grid-template-columns: minmax(190px, 250px) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 20px;
+  min-height: 190px;
+  padding: 14px;
+  border: 1px solid #e8e0d8;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.public-site .university-card .university-photo-slot {
+  display: flex;
+  min-height: 180px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #f5f0ea;
+}
+
+.public-site .university-photo-slot img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 180px;
+  object-fit: cover;
+}
+
+.public-site .university-photo-placeholder {
+  display: flex;
+  width: 100%;
+  min-height: 180px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 15px;
+  color: #897b72;
+  text-align: center;
+}
+
+.public-site .university-photo-placeholder small {
+  max-width: 220px;
+  color: #756b65;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.public-site .university-card-content {
+  min-width: 0;
+}
+
+.public-site .university-card-heading h2 {
+  margin: 5px 0 8px;
+  color: #302b29;
+  font-size: clamp(16px, 1.6vw, 19px);
+  line-height: 1.35;
+}
+
+.public-site .university-card-heading h2 a {
+  color: #302b29;
+  text-decoration: none;
+}
+
+.public-site .university-card-heading h2 a:hover {
+  color: #a53e47;
+}
+
+.public-site .university-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.public-site .university-card-meta > span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #625750;
+  background: #f7f4f0;
+  font-size: 11px;
+}
+
+.public-site .university-pagination {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 2px 2px;
+  color: #756b65;
+  font-size: 12px;
+}
+
+.public-site .university-pagination > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.public-site .university-pagination button {
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid #e8e0d8;
+  border-radius: 8px;
+  background: #fff;
+  color: #302b29;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.public-site .university-pagination button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.public-site .university-pagination strong {
+  color: #625750;
+  font-size: 11px;
+}
+
+@media (max-width: 760px) {
+  .public-site .university-card {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .public-site .university-card .university-photo-slot,
+  .public-site .university-photo-slot img {
+    min-height: 160px;
+    max-height: 190px;
+  }
+
+  .public-site .university-pagination {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+/* TRAJECTORY DETAIL CONTRAST FIX — university details page */
+
+/* Main text and white surfaces */
+.public-site .university-details-page {
+  color: #302b29;
+}
+
+.public-site .university-details-page .university-detail-summary,
+.public-site .university-details-page .university-detail-programs,
+.public-site .university-details-page .university-detail-benefits-panel {
+  color: #302b29;
+  background: #fff;
+  border-color: #e8e0d8;
+}
+
+/* University identity */
+.public-site .university-details-page .university-detail-identity {
+  border-bottom-color: #e8e0d8;
+}
+
+.public-site .university-details-page .university-detail-identity h2 {
+  color: #302b29;
+}
+
+.public-site .university-details-page .university-detail-city {
+  color: #756b65;
+}
+
+.public-site .university-details-page .university-detail-emblem {
+  border-color: #eee0d7;
+  background: #f7eee7;
+  color: #a7654d;
+}
+
+.public-site .university-details-page .university-detail-fact {
+  border-color: #e8e0d8;
+  background: #faf8f5;
+}
+
+.public-site .university-details-page .university-detail-fact > svg {
+  color: #a7654d;
+}
+
+.public-site .university-details-page .university-detail-fact span {
+  color: #756b65;
+}
+
+.public-site .university-details-page .university-detail-fact strong {
+  color: #302b29;
+}
+
+.public-site .university-details-page .university-detail-website {
+  border-top-color: #e8e0d8;
+  color: #a53e47;
+}
+
+.public-site .university-details-page .university-detail-website:hover {
+  color: #82343b;
+}
+
+.public-site .university-details-page .university-detail-photo-source {
+  color: #8a5548;
+}
+
+/* Section headings */
+.public-site .university-details-page .university-detail-section-heading h2 {
+  color: #302b29;
+}
+
+.public-site .university-details-page .university-detail-section-heading p {
+  color: #756b65;
+}
+
+.public-site .university-details-page .university-detail-section-heading .muted-icon {
+  color: #a7654d;
+}
+
+/* Empty states */
+.public-site .university-details-page .university-detail-empty {
+  border-color: #e8e0d8;
+  background: #faf8f5;
+  color: #625750;
+}
+
+.public-site .university-details-page .university-detail-empty > svg {
+  color: #a7654d;
+}
+
+.public-site .university-details-page .university-detail-empty strong {
+  color: #302b29;
+}
+
+.public-site .university-details-page .university-detail-empty p {
+  color: #756b65;
+}
+
+/* Education programs */
+.public-site .university-details-page .university-detail-program {
+  border-color: #e8e0d8;
+  background: #faf8f5;
+}
+
+.public-site .university-details-page .university-detail-program-icon {
+  border-color: #eee0d7;
+  background: #f7eee7;
+  color: #a7654d;
+}
+
+.public-site .university-details-page .university-detail-program strong {
+  color: #302b29;
+}
+
+.public-site .university-details-page .university-detail-program span {
+  color: #756b65;
+}
+
+.public-site .university-details-page .university-detail-program-direction {
+  border-color: #ead6ce;
+  background: #fbf0ed;
+  color: #93434a !important;
+}
+
+/* Admission benefits */
+.public-site .university-details-page .university-detail-benefit {
+  border-color: #e8e0d8;
+  background: #faf8f5;
+  color: #302b29;
+}
+
+.public-site .university-details-page .university-detail-benefit-icon {
+  background: #eaf4ed;
+  color: #386b4c;
+}
+
+.public-site .university-details-page .university-detail-benefit-content h3 {
+  color: #302b29;
+}
+
+.public-site .university-details-page .university-detail-benefit-info {
+  border-color: #e8e0d8;
+  background: #fff;
+}
+
+.public-site .university-details-page .university-detail-benefit-info span {
+  color: #756b65;
+}
+
+.public-site .university-details-page .university-detail-benefit-info strong {
+  color: #302b29;
+}
+
+.public-site .university-details-page .university-detail-benefit-context-item {
+  border-color: #e8e0d8;
+  background: #fff;
+}
+
+.public-site .university-details-page .university-detail-benefit-label {
+  color: #756b65;
+}
+
+.public-site .university-details-page .university-detail-benefit-name svg {
+  color: #a7654d;
+}
+
+.public-site .university-details-page .university-detail-benefit-name strong {
+  color: #302b29;
+}
+
+.public-site .university-details-page .university-detail-context-description {
+  color: #756b65;
+}
+
+.public-site .university-details-page .university-detail-benefit-footer > span {
+  color: #756b65;
+}
+
+.public-site .university-details-page .university-detail-source-missing {
+  color: #756b65;
+}
+
+/* Benefit filters */
+.public-site .university-details-page .benefit-filter-toolbar {
+  border-color: #e8e0d8;
+  background: #faf8f5;
+  color: #302b29;
+}
+
+.public-site .university-details-page .benefit-filter-toolbar label > span {
+  color: #625750;
+}
+
+.public-site .university-details-page .benefit-filter-toolbar select {
+  border-color: #e2d9d1;
+  background: #fff;
+  color: #302b29;
+}
+
+.public-site .university-details-page .benefit-filter-toolbar select:focus {
+  border-color: #b94a52;
+  box-shadow: 0 0 0 3px rgba(185, 74, 82, .12);
+}
+
+/* Status summary */
+.public-site .university-details-page .benefit-status-summary-item {
+  color: #625750;
+}
+
+.public-site .university-details-page .benefit-status-summary-item strong {
+  color: #302b29;
+}
+
+/* Verification badges */
+.public-site .university-details-page .benefit-verification-status.verification-official {
+  border-color: #c9e3d1;
+  background: #eaf4ed;
+  color: #2f6b45;
+}
+
+.public-site .university-details-page .benefit-verification-status.verification-draft {
+  border-color: #f0dfb3;
+  background: #fff4db;
+  color: #795a19;
+}
+
+.public-site .university-details-page .benefit-verification-status.verification-archived {
+  border-color: #ded8d1;
+  background: #f0eeeb;
+  color: #625750;
+}
+
+.public-site .university-details-page .benefit-year {
+  color: #625750;
+}
+
+/* Notices and warnings */
+.public-site .university-details-page .benefit-admission-notice,
+.public-site .university-details-page .benefit-evidence-warning {
+  border-color: #eadbb9;
+  background: #fff8e9;
+  color: #625750;
+}
+
+.public-site .university-details-page .benefit-admission-notice svg,
+.public-site .university-details-page .benefit-evidence-warning svg {
+  color: #94651d;
+}
+
+.public-site .university-details-page .benefit-admission-notice-archive {
+  border-color: #e8e0d8;
+  background: #faf8f5;
+  color: #625750;
+}
+
+.public-site .university-details-page .university-detail-warning {
+  border-color: #e8e0d8;
+  background: #faf8f5;
+  color: #625750;
+}
+
+.public-site .university-details-page .university-detail-warning svg {
+  color: #a7654d;
+}
+
+.public-site .university-details-page .university-detail-warning p {
+  color: #625750;
+}
+
+/* Action buttons and links */
+.public-site .university-details-page .university-detail-actions .secondary-button {
+  border-color: #e8e0d8;
+  background: #fff;
+  color: #625750;
+}
+
+.public-site .university-details-page .university-detail-action-note {
+  color: #625750;
+}
+
+@media (max-width: 650px) {
+  .public-site .university-details-page .university-detail-benefit-context {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* TRAJECTORY OLYMPIAD DETAIL CONTRAST FIX */
+
+/* Base */
+.public-site .olympiad-details-page {
+  color: #302b29;
+}
+
+/* Summary panel */
+.public-site .olympiad-details-page .olympiad-summary-panel,
+.public-site .olympiad-details-page .olympiad-stages-panel,
+.public-site .olympiad-details-page .olympiad-benefits-panel,
+.public-site .olympiad-details-page .olympiad-participation-panel {
+  color: #302b29;
+  background: #fff;
+  border-color: #e8e0d8;
+}
+
+.public-site .olympiad-details-page .olympiad-summary-header {
+  border-bottom-color: #e8e0d8;
+}
+
+.public-site .olympiad-details-page .olympiad-level-badge {
+  border-color: #ead6ce;
+  background: #fbf3ef;
+  color: #93434a;
+}
+
+/* Current registration status */
+.public-site .olympiad-details-page .olympiad-status.status-eligible {
+  color: #286542;
+}
+
+.public-site .olympiad-details-page .olympiad-status.status-upcoming {
+  color: #315f91;
+}
+
+.public-site .olympiad-details-page .olympiad-status.status-closed {
+  color: #895b16;
+}
+
+.public-site .olympiad-details-page .olympiad-status.status-unknown {
+  color: #625750;
+}
+
+/* Official document explanation */
+.public-site .olympiad-details-page .olympiad-list-detail-note {
+  border-color: #e8e0d8;
+  background: #faf8f5;
+  color: #625750;
+}
+
+.public-site .olympiad-details-page .olympiad-list-detail-note strong {
+  color: #302b29;
+}
+
+.public-site .olympiad-details-page .olympiad-list-detail-note p {
+  color: #625750;
+}
+
+.public-site .olympiad-details-page .olympiad-list-detail-note a {
+  color: #9f3e46;
+}
+
+.public-site .olympiad-details-page .olympiad-list-detail-note small {
+  color: #756b65;
+}
+
+/* Main information grid */
+.public-site .olympiad-details-page .olympiad-level-badge svg,
+.public-site .olympiad-details-page .olympiad-info-icon,
+.public-site .olympiad-details-page .olympiad-heading-icon {
+  color: #a7654d;
+}
+
+.public-site .olympiad-details-page .olympiad-info-icon,
+.public-site .olympiad-details-page .olympiad-heading-icon {
+  border-color: #eee0d7;
+  background: #f7eee7;
+}
+
+.public-site .olympiad-details-page .olympiad-info-item > div:last-child > span {
+  color: #756b65;
+}
+
+.public-site .olympiad-details-page .olympiad-info-item strong {
+  color: #302b29;
+}
+
+.public-site .olympiad-details-page .subject-tag {
+  border-color: #e8e0d8;
+  background: #faf8f5;
+  color: #302b29;
+}
+
+.public-site .olympiad-details-page .olympiad-info-notice {
+  border-color: #e8e0d8;
+  background: #faf8f5;
+  color: #625750;
+}
+
+.public-site .olympiad-details-page .olympiad-info-notice svg {
+  color: #a7654d;
+}
+
+/* Section headings */
+.public-site .olympiad-details-page .olympiad-section-heading h2 {
+  color: #302b29;
+}
+
+.public-site .olympiad-details-page .olympiad-section-heading p {
+  color: #756b65;
+}
+
+/* Stage summary */
+.public-site .olympiad-details-page .olympiad-stage-summary {
+  border: 1px solid #e8e0d8;
+  background: #faf8f5;
+}
+
+.public-site .olympiad-details-page .olympiad-stage-summary span {
+  color: #625750;
+}
+
+.public-site .olympiad-details-page .olympiad-stage-summary strong {
+  color: #302b29;
+}
+
+/* Timeline and stage cards */
+.public-site .olympiad-details-page .olympiad-stage-connector {
+  background: #ded5cd;
+}
+
+.public-site .olympiad-details-page .olympiad-stage-icon {
+  border-color: #e8e0d8;
+  background: #f7f4f0;
+  color: #756b65;
+}
+
+.public-site .olympiad-details-page .stage-active .olympiad-stage-icon {
+  border-color: #c9e3d1;
+  background: #eaf4ed;
+  color: #286542;
+}
+
+.public-site .olympiad-details-page .stage-completed .olympiad-stage-icon {
+  border-color: #ead6ce;
+  background: #fbf0ed;
+  color: #93434a;
+}
+
+.public-site .olympiad-details-page .olympiad-stage-card {
+  border-color: #e8e0d8;
+  background: #faf8f5;
+  color: #302b29;
+}
+
+.public-site .olympiad-details-page .stage-active .olympiad-stage-card {
+  border-color: #c9e3d1;
+}
+
+.public-site .olympiad-details-page .olympiad-stage-number {
+  color: #756b65;
+}
+
+.public-site .olympiad-details-page .olympiad-stage-card h3 {
+  color: #302b29;
+}
+
+.public-site .olympiad-details-page .olympiad-stage-state {
+  border: 1px solid #ded8d1;
+  background: #f0eeeb;
+  color: #625750;
+}
+
+.public-site .olympiad-details-page .olympiad-stage-state.state-active {
+  border-color: #c9e3d1;
+  background: #eaf4ed;
+  color: #286542;
+}
+
+.public-site .olympiad-details-page .olympiad-stage-state.state-upcoming {
+  border-color: #d2e1f0;
+  background: #eef4fa;
+  color: #315f91;
+}
+
+.public-site .olympiad-details-page .olympiad-stage-state.state-completed {
+  border-color: #ead6ce;
+  background: #fbf0ed;
+  color: #93434a;
+}
+
+.public-site .olympiad-details-page .olympiad-stage-detail {
+  color: #625750;
+}
+
+.public-site .olympiad-details-page .olympiad-stage-detail svg {
+  color: #a7654d;
+}
+
+/* Empty schedule */
+.public-site .olympiad-details-page .olympiad-empty-icon {
+  background: #f7eee7;
+  color: #a7654d;
+}
+
+.public-site .olympiad-details-page .olympiad-empty-stages > strong {
+  color: #302b29;
+}
+
+.public-site .olympiad-details-page .olympiad-empty-stages p {
+  color: #756b65;
+}
+
+.public-site .olympiad-details-page .olympiad-inline-link {
+  color: #9f3e46;
+}
+
+.public-site .olympiad-details-page .olympiad-inline-link:hover {
+  color: #82343b;
+}
+
+/* Admission benefits */
+.public-site .olympiad-details-page .olympiad-benefits-empty {
+  border-color: #e8e0d8;
+  background: #faf8f5;
+  color: #625750;
+}
+
+.public-site .olympiad-details-page .olympiad-benefits-empty strong {
+  color: #302b29;
+}
+
+.public-site .olympiad-details-page .olympiad-benefits-empty p {
+  color: #625750;
+}
+
+.public-site .olympiad-details-page .olympiad-benefit-card {
+  border-color: #e8e0d8;
+  background: #fff;
+  color: #302b29;
+}
+
+.public-site .olympiad-details-page .olympiad-benefit-card-header > strong {
+  color: #286542;
+}
+
+.public-site .olympiad-details-page .olympiad-benefit-card-header > span {
+  color: #286542;
+}
+
+.public-site .olympiad-details-page .olympiad-benefit-card h3 {
+  color: #302b29;
+}
+
+.public-site .olympiad-details-page .olympiad-benefit-card > p {
+  color: #625750;
+}
+
+.public-site .olympiad-details-page .olympiad-benefit-facts span {
+  color: #756b65;
+}
+
+.public-site .olympiad-details-page .olympiad-benefit-facts strong {
+  color: #302b29;
+}
+
+.public-site .olympiad-details-page .olympiad-benefit-card-footer {
+  border-top-color: #e8e0d8;
+  color: #756b65;
+}
+
+.public-site .olympiad-details-page .olympiad-benefit-card-footer a {
+  color: #9f3e46;
+}
+
+.public-site .olympiad-details-page .olympiad-benefits-disclaimer {
+  color: #756b65;
+}
+
+/* Participation guide */
+.public-site .olympiad-details-page .olympiad-participation-item {
+  border-color: #e8e0d8;
+  background: #faf8f5;
+}
+
+.public-site .olympiad-details-page .olympiad-participation-number {
+  background: #f7eee7;
+  color: #93434a;
+}
+
+.public-site .olympiad-details-page .olympiad-participation-item strong {
+  color: #302b29;
+}
+
+.public-site .olympiad-details-page .olympiad-participation-item p {
+  color: #625750;
+}
+
+/* Back link and action buttons */
+.public-site .olympiad-details-page .back-link,
+.public-site .olympiad-details-page > .back-link {
+  color: #a53e47;
+}
+
+.public-site .olympiad-details-page .olympiad-details-actions .olympiad-save-action {
+  border-color: #e8e0d8;
+  background: #fff;
+  color: #625750;
+}
+
+.public-site .olympiad-details-page .olympiad-details-actions .olympiad-save-action.is-active {
+  border-color: #e7c7c0;
+  background: #fbf0ed;
+  color: #9f3e46;
+}
+/* TRAJECTORY MOBILE HEADER NAV HIDE FIX */
+@media (max-width: 900px) {
+  .public-site .public-header .public-nav {
+    display: none !important;
+  }
+
+  .public-site .public-header .public-menu-toggle {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .public-site .public-header-actions {
+    margin-left: auto;
+  }
+}

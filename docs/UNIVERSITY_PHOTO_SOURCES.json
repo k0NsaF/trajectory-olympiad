@@ -1,0 +1,340 @@
+{
+  "title": "Trajectory university campus photo source register",
+  "selectionBasis": "First 50 entries of RAEX-100 2026; selection criterion only, not a Trajectory recommendation or admission ranking.",
+  "rankingSource": "https://raex-rr.com/education/russian_universities/top-100_universities/2026/",
+  "rankingPublished": "2026-06-16",
+  "imagePolicy": "Display a photo only when the source page and license are recorded. Unverified entries remain placeholders. Branches do not inherit parent-campus imagery.",
+  "verifiedPhotoCount": 9,
+  "pendingSourceReviewCount": 41,
+  "universities": [
+    {
+      "rank": 1,
+      "name": "Московский государственный университет имени М.В. Ломоносова",
+      "officialDomain": "msu.ru",
+      "imageStatus": "verified_source_and_license",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Moscow._Main_building_of_Moscow_State_University_P4131808_2600.jpg",
+      "author": "Alexxx1979 (Alexxx-Malev)",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "rank": 2,
+      "name": "Московский государственный технический университет имени Н.Э. Баумана (национальный исследовательский университет)",
+      "officialDomain": "bmstu.ru",
+      "imageStatus": "verified_source_and_license",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Main_building_of_the_Bauman_Moscow_State_Technical_University_01.jpg",
+      "author": "MBH",
+      "license": "CC BY 4.0"
+    },
+    {
+      "rank": 3,
+      "name": "Московский физико-технический институт (национальный исследовательский университет)",
+      "officialDomain": "mipt.ru",
+      "imageStatus": "verified_source_and_license",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Физтех_кампус.jpg",
+      "author": "Lesless",
+      "license": "CC BY-SA 4.0",
+      "note": "Фото корпуса кампуса, не главного корпуса"
+    },
+    {
+      "rank": 4,
+      "name": "Санкт-Петербургский государственный университет",
+      "officialDomain": "spbu.ru",
+      "imageStatus": "verified_source_and_license",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:2018_SPb_Universitetskaya_01.jpg",
+      "author": "Andrey Korzun",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "rank": 5,
+      "name": "Национальный исследовательский ядерный университет «МИФИ»",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 6,
+      "name": "Национальный исследовательский университет «Высшая школа экономики»",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 7,
+      "name": "МГИМО МИД России",
+      "officialDomain": "mgimo.ru",
+      "imageStatus": "verified_source_and_license",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:MGIMO-University-main_building.jpg",
+      "author": "Foma",
+      "license": "CC BY-SA 3.0",
+      "note": "Архивное фото 2003 года, размер 774×580"
+    },
+    {
+      "rank": 8,
+      "name": "Российская академия народного хозяйства и государственной службы при Президенте РФ",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 9,
+      "name": "Санкт-Петербургский политехнический университет Петра Великого",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 10,
+      "name": "Финансовый университет при Правительстве РФ",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 11,
+      "name": "Первый Московский государственный медицинский университет имени И.М. Сеченова Минздрава России",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 12,
+      "name": "Уральский федеральный университет имени первого Президента России Б.Н. Ельцина",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 13,
+      "name": "Национальный исследовательский Томский политехнический университет",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 14,
+      "name": "Российский университет дружбы народов имени Патриса Лумумбы",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 15,
+      "name": "Университет ИТМО",
+      "officialDomain": "itmo.ru",
+      "imageStatus": "verified_source_and_license",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:ITMO_University_Main_Campus_October_2024.jpg",
+      "author": "Hvost239",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "rank": 16,
+      "name": "Новосибирский национальный исследовательский государственный университет",
+      "officialDomain": "nsu.ru",
+      "imageStatus": "verified_source_and_license",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:NSU_new_building.jpg",
+      "author": "Nsu marketing",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "rank": 17,
+      "name": "Университет МИСИС",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 18,
+      "name": "Российский экономический университет имени Г.В. Плеханова",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 19,
+      "name": "Национальный исследовательский Томский государственный университет",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 20,
+      "name": "Казанский (Приволжский) федеральный университет",
+      "officialDomain": "kpfu.ru",
+      "imageStatus": "verified_source_and_license",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Kazan_Federal_Unievrsity.jpg",
+      "author": "Ianiworld (Iani Nikolov)",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "rank": 21,
+      "name": "Российский национальный исследовательский медицинский университет имени Н.И. Пирогова Минздрава России",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 22,
+      "name": "Московский авиационный институт (национальный исследовательский университет)",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 23,
+      "name": "Сибирский федеральный университет",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 24,
+      "name": "Национальный исследовательский университет «МЭИ»",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 25,
+      "name": "Дальневосточный федеральный университет",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 26,
+      "name": "Московский государственный юридический университет имени О.Е. Кутафина (МГЮА)",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 27,
+      "name": "Российский государственный университет нефти и газа имени И.М. Губкина",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 28,
+      "name": "Санкт-Петербургский горный университет императрицы Екатерины II",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 29,
+      "name": "Первый Санкт-Петербургский государственный медицинский университет имени академика И.П. Павлова Минздрава России",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 30,
+      "name": "Национальный исследовательский Московский государственный строительный университет",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 31,
+      "name": "Южный федеральный университет",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 32,
+      "name": "Московский педагогический государственный университет",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 33,
+      "name": "Московский государственный лингвистический университет",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 34,
+      "name": "Санкт-Петербургский государственный электротехнический университет «ЛЭТИ» имени В.И. Ульянова (Ленина)",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 35,
+      "name": "Российский государственный аграрный университет — МСХА имени К.А. Тимирязева",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 36,
+      "name": "Национальный исследовательский Нижегородский государственный университет имени Н.И. Лобачевского",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 37,
+      "name": "МИРЭА — Российский технологический университет",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 38,
+      "name": "Всероссийская академия внешней торговли Министерства экономического развития РФ",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 39,
+      "name": "Уфимский государственный нефтяной технический университет",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 40,
+      "name": "Российский химико-технологический университет имени Д.И. Менделеева",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 41,
+      "name": "Российский государственный педагогический университет имени А.И. Герцена",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 42,
+      "name": "Южно-Уральский государственный университет",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 43,
+      "name": "Белгородский государственный национальный исследовательский университет",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 44,
+      "name": "Московский городской педагогический университет",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 45,
+      "name": "Самарский национальный исследовательский университет имени академика С.П. Королёва",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 46,
+      "name": "Санкт-Петербургский государственный экономический университет",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 47,
+      "name": "Новосибирский государственный технический университет",
+      "officialDomain": "nstu.ru",
+      "imageStatus": "verified_source_and_license",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:NSTU_Main_Building.JPG",
+      "author": "DMX Diman",
+      "license": "Public Domain"
+    },
+    {
+      "rank": 48,
+      "name": "Ставропольский государственный аграрный университет",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 49,
+      "name": "Санкт-Петербургский государственный педиатрический медицинский университет Минздрава России",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    },
+    {
+      "rank": 50,
+      "name": "Российский государственный гуманитарный университет",
+      "officialDomain": null,
+      "imageStatus": "pending_source_review"
+    }
+  ]
+}
