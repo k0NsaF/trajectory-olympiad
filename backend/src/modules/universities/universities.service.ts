@@ -8,6 +8,7 @@ interface UniversityRow {
   name: string
   short_name: string
   city: string | null
+  address: string | null
   website: string | null
   description: string | null
   region: string | null
@@ -75,6 +76,7 @@ const UNIVERSITY_SELECT = [
   'name',
   'short_name',
   'city',
+  'address',
   'website',
   'description',
   'region',
@@ -101,6 +103,25 @@ const LEGACY_UNIVERSITY_SELECT = UNIVERSITY_SELECT.split(', ').filter((column) =
 const PAGE_SIZE = 1000
 const PROGRAM_UNIVERSITY_CHUNK_SIZE = 150
 
+function cleanCityCandidate(value: string | null | undefined): string {
+  return (value ?? '')
+    .replace(/\b\d{5,6}\b/g, ' ')
+    .replace(/^\s*(?:г(?:ород)?\.?\s*)/i, '')
+    .replace(/[.,;]+$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function resolveUniversityCity(city: string | null, address: string | null): string {
+  const explicitMatches = [...(address ?? '').matchAll(/(?:^|[,;]\s*)г(?:ород)?\.?\s*([^,;]+)/giu)]
+  const fromAddress = cleanCityCandidate(explicitMatches.at(-1)?.[1])
+  if (fromAddress && !/^(?:не указан|неизвестно)$/i.test(fromAddress)) return fromAddress
+
+  const fromCity = cleanCityCandidate(city)
+  if (fromCity && !/(?:область|край|республик|автономн(?:ый|ая) округ)/i.test(fromCity) && !/^(?:не указан|неизвестно)$/i.test(fromCity)) return fromCity
+  return 'Город не указан'
+}
+
 function mapProgram(row: ProgramRow): UniversityProgramResult {
   return {
     id: row.id,
@@ -118,7 +139,7 @@ function mapUniversity(
     id: row.id,
     name: row.name,
     shortName: row.short_name,
-    city: row.city?.trim() || 'Город не указан',
+    city: resolveUniversityCity(row.city, row.address),
     ...(row.website ? { website: row.website } : {}),
     ...(row.description ? { description: row.description } : {}),
     ...(row.region ? { region: row.region } : {}),

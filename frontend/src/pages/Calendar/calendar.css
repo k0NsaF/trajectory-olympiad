@@ -591,3 +591,15 @@ a.calendar-popover-title:hover { color: var(--accent); text-decoration: underlin
 /* Distinguish the three monthly calendar event kinds. */
 .calendar-legend-dot.is-task, .calendar-day-dot.is-task { background: #6886b3; }
 .calendar-popover-event.is-task { border-left-color: #6886b3; }
+
+/* TRAJECTORY QUALITY PASS — calendar grid and popup */
+/* Clear weekday and date-cell boundaries. */
+.calendar-weekday-grid { border-bottom: 1px solid #d9d0c8; }
+.calendar-weekday-grid > span { color: #625750; }
+.calendar-day-cell { border-right: 1px solid #ded7d0; border-bottom: 1px solid #ded7d0; background: #fff; }
+.calendar-day-cell:nth-child(7n) { border-right: 0; }
+.calendar-day-cell.is-empty { background: #f7f4f0; }
+.calendar-day-cell.is-selected { z-index: 70; }
+.calendar-day-popover { z-index: 80; isolation: isolate; opacity: 1 !important; background: #fff !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; box-shadow: 0 12px 30px rgba(48, 43, 41, .14); }
+.calendar-day-popover * { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .calendar-day-button { transition: none; } }

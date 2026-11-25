@@ -50,7 +50,7 @@ export function PublicSiteLayout() {
             )}
             {(!TRAJECTORY_LOGO_URL || TRAJECTORY_LOGO_MODE === 'icon') && <span className="public-brand-copy">
               <strong>Trajectory</strong>
-              <small>ТВОЙ ПУТЬ К ПОСТУПЛЕНИЮ</small>
+              <small>ОЛИМПИАДЫ И ВОЗМОЖНОСТИ</small>
             </span>}
           </Link>
 
@@ -95,12 +95,12 @@ export function PublicSiteLayout() {
             <button
               type="button"
               className="public-menu-toggle"
-              aria-label={mobileMenuOpen ? 'Закрыть меню' : 'Открыть меню'}
+              aria-label={mobileMenuOpen ? 'Закрыть каталог и меню' : 'Открыть каталог и меню'}
               aria-expanded={mobileMenuOpen}
               aria-controls="public-mobile-nav"
               onClick={() => setMobileMenuOpen((value) => !value)}
             >
-              {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}<span className="public-menu-toggle-label">Каталог</span>
             </button>
           </div>
 
@@ -109,21 +109,19 @@ export function PublicSiteLayout() {
               id="public-mobile-nav"
               className="public-mobile-nav"
               aria-label="Мобильная навигация"
-            >
-              <Link to="/professions" onClick={closeMobileMenu}>Профессии</Link>
+            >              <Link to="/professions" onClick={closeMobileMenu}>Профессии</Link>
               <Link to="/directions" onClick={closeMobileMenu}>Направления</Link>
               <Link to="/olympiads" className="public-mobile-olympiads" onClick={closeMobileMenu}>Олимпиады</Link>
               <Link to="/calendar" onClick={closeMobileMenu}>Календарь</Link>
               <Link to="/universities" onClick={closeMobileMenu}>Университеты</Link>
-              <Link to="/ai" state={{ sourcePath: location.pathname }} onClick={closeMobileMenu}>ИИ-помощник</Link>
-              <div className="public-mobile-nav-actions">
+              <Link to="/ai" state={{ sourcePath: location.pathname }} onClick={closeMobileMenu}>ИИ-помощник</Link><div className="public-mobile-nav-actions">
                 {user ? (<>
-                  <Link to="/profile" onClick={closeMobileMenu}>Профиль</Link>
-                  <Link to="/favorites" onClick={closeMobileMenu}>Избранное</Link>
-                  <Link to="/calendar" onClick={closeMobileMenu}>Календарь</Link>
-                  <Link to="/achievements" onClick={closeMobileMenu}>Достижения</Link>
-                  <Link to="/settings" onClick={closeMobileMenu}>Настройки</Link>
-                  <button type="button" className="public-login-link" onClick={() => void handleSignOut()}>Выйти из аккаунта</button>
+                  <Link to="/profile" onClick={closeMobileMenu}><UserRound size={17} />Профиль</Link>
+                  <Link to="/favorites" onClick={closeMobileMenu}><Bookmark size={17} />Избранное</Link>
+                  <Link to="/calendar" onClick={closeMobileMenu}><CalendarDays size={17} />Календарь</Link>
+                  <Link to="/achievements" onClick={closeMobileMenu}><Trophy size={17} />Достижения</Link>
+                  <Link to="/settings" onClick={closeMobileMenu}><Settings size={17} />Настройки</Link>
+                  <button type="button" className="public-login-link" onClick={() => void handleSignOut()}><LogOut size={17} />Выйти из аккаунта</button>
                 </>) : (<>
                   <Link to="/auth" className="public-login-link" onClick={closeMobileMenu}>Войти</Link>
                   <Link to="/auth?mode=register" className="public-button" onClick={closeMobileMenu}>Регистрация <ArrowUpRight size={16} /></Link>

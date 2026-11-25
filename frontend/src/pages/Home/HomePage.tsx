@@ -13,6 +13,7 @@ import { Link } from 'react-router-dom'
 
 import { PublicMedia } from '@/components/public/PublicMedia'
 import { PublicSectionHeading } from '@/components/public/PublicSectionHeading'
+import { useAuth } from '@/app/providers'
 
 import './home-page.css'
 
@@ -84,6 +85,11 @@ const FEATURES: FeatureItem[] = [
 ]
 
 export function HomePage() {
+  const { user, loading: authLoading } = useAuth()
+  const displaySteps = user
+    ? STEPS.map((step, index) => index === 0 ? { ...step, title: 'Твой профиль', description: 'Профиль уже создан. Продолжай изучать варианты и сохраняй подходящие университеты и олимпиады.', href: '/profile', action: 'Открыть профиль' } : step)
+    : STEPS
+
   return (
     <>
       <section className="public-hero">
@@ -104,10 +110,17 @@ export function HomePage() {
             </p>
 
             <div className="public-hero-actions">
-              <Link to="/auth?mode=register" className="public-button public-button-large">
-                Создать аккаунт
-                <ArrowRight size={18} />
-              </Link>
+              {user ? (
+                <Link to="/profile" className="public-button public-button-large">
+                  Мой профиль
+                  <ArrowRight size={18} />
+                </Link>
+              ) : !authLoading ? (
+                <Link to="/auth?mode=register" className="public-button public-button-large">
+                  Создать аккаунт
+                  <ArrowRight size={18} />
+                </Link>
+              ) : null}
               <Link to="/olympiads" className="public-text-link">
                 Смотреть олимпиады
                 <ArrowUpRight size={17} />
@@ -144,7 +157,7 @@ export function HomePage() {
           />
 
           <div className="public-steps-grid">
-            {STEPS.map((step) => (
+            {displaySteps.map((step) => (
               <article className="public-step-card" key={step.title}>
                 <PublicMedia
                   src={step.imageSrc}
@@ -236,14 +249,17 @@ export function HomePage() {
             <p>Достаточно начать задавать вопросы и изучать варианты.</p>
           </div>
           <div className="public-final-cta-actions">
-            <Link to="/auth?mode=register" className="public-button public-button-light">
-              Зарегистрироваться
-              <ArrowRight size={18} />
-            </Link>
-            <Link to="/auth?mode=register" className="public-cta-secondary">
-              Создать аккаунт
-              <ArrowUpRight size={16} />
-            </Link>
+            {user ? (
+              <>
+                <Link to="/profile" className="public-button public-button-light">Открыть профиль <ArrowRight size={18} /></Link>
+                <Link to="/calendar" className="public-cta-secondary">Перейти в календарь <ArrowUpRight size={16} /></Link>
+              </>
+            ) : !authLoading ? (
+              <>
+                <Link to="/auth?mode=register" className="public-button public-button-light">Зарегистрироваться <ArrowRight size={18} /></Link>
+                <Link to="/auth?mode=register" className="public-cta-secondary">Создать аккаунт <ArrowUpRight size={16} /></Link>
+              </>
+            ) : null}
           </div>
         </div>
       </section>
