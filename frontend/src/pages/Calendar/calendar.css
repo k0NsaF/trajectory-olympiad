@@ -587,3 +587,7 @@ a.calendar-popover-title:hover { color: var(--accent); text-decoration: underlin
   .calendar-month-heading h2 { font-size: 17px; }
 }
 
+
+/* Distinguish the three monthly calendar event kinds. */
+.calendar-legend-dot.is-task, .calendar-day-dot.is-task { background: #6886b3; }
+.calendar-popover-event.is-task { border-left-color: #6886b3; }

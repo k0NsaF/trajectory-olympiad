@@ -6,7 +6,7 @@ import '../styles/onboarding.css'
 import '../styles/ui-bug-fixes.css'
 import '../styles/design-system/index.css'
 import '../styles/trajectory-app-theme.css'
-import '../styles/trajectory-workspace-redesign.css'
+import '../styles/public-workspace-pages.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

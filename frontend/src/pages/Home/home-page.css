@@ -1750,3 +1750,73 @@
   .public-site .public-brand-image-icon { width: 62px !important; height: 62px !important; max-width: 62px !important; max-height: 62px !important; }
 }
 
+
+/* Trajectory V2: seven compact entry points, arranged 5 + 2. */
+.public-site .public-steps-section .public-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 18px;
+}
+.public-site .public-steps-section .public-step-card:nth-child(6) { grid-column: 2; }
+.public-site .public-steps-section .public-step-card:nth-child(7) { grid-column: 4; }
+@media (max-width: 1180px) {
+  .public-site .public-steps-section .public-steps-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .public-site .public-steps-section .public-step-card:nth-child(6),
+  .public-site .public-steps-section .public-step-card:nth-child(7) { grid-column: auto; }
+}
+@media (max-width: 760px) {
+  .public-site .public-steps-section .public-steps-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+}
+@media (max-width: 520px) {
+  .public-site .public-steps-section .public-steps-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+
+/* Trajectory V2: editorial hero image; the former route/trajectory diagram is removed. */
+.public-site .public-hero-visual {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 13px;
+  isolation: auto;
+}
+.public-site .public-hero-student-photo {
+  position: relative;
+  display: block;
+  width: min(100%, 560px);
+  aspect-ratio: 5 / 4;
+  overflow: hidden;
+  border-radius: 26px;
+  background: #eee7df;
+  box-shadow: 0 20px 55px rgba(48, 43, 41, .12);
+}
+.public-site .public-hero-student-photo .public-media-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+.public-site .public-hero-photo-caption {
+  width: min(100%, 560px);
+  margin: 0;
+  padding-right: 4px;
+  color: #8c6d60;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: .12em;
+  text-align: right;
+  text-transform: uppercase;
+}
+@media (max-width: 900px) {
+  .public-site .public-hero-visual { align-items: center; margin-top: 12px; }
+  .public-site .public-hero-student-photo { width: min(100%, 620px); aspect-ratio: 16 / 10; }
+  .public-site .public-hero-photo-caption { width: min(100%, 620px); }
+}
+@media (max-width: 640px) {
+  .public-site .public-hero-student-photo { border-radius: 18px; aspect-ratio: 4 / 3; }
+  .public-site .public-hero-photo-caption { font-size: 10px; }
+}

@@ -1,4 +1,4 @@
-﻿{
+{
     "license":  "Pexels License — each source page showed Free use at the time of project preparation. Re-check current terms before redistribution or major commercial use.",
     "images":  [
                    {
@@ -27,8 +27,8 @@
                    },
                    {
                        "author":  "Yan Krukau",
-                       "description":  "Два студента вместе работают за ноутбуком и учебниками.",
-                       "section":  "Собери траекторию",
+                       "description":  "Два студента вместе работают за ноутбуком и учебниками; сюжет о совместном поиске и обсуждении информации.",
+                       "section":  "ИИ-помощник",
                        "source_download":  "https://images.pexels.com/photos/8199761/pexels-photo-8199761.jpeg?auto=compress\u0026dpr=1\u0026h=750\u0026w=1260",
                        "source_page":  "https://www.pexels.com/photo/students-studying-together-while-looking-at-the-screen-of-a-laptop-8199761/",
                        "file":  "step-trajectory.jpg"

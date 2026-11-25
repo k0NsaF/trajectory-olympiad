@@ -413,7 +413,7 @@ export function OnboardingPage() {
         await saveAuthenticatedProfile(profile, session.access_token)
       }
 
-      navigate('/trajectory')
+      navigate('/profile', { replace: true })
     } catch {
       setError(session?.access_token
         ? 'Анкета сохранена на этом устройстве, но не удалось обновить профиль. Проверь соединение и попробуй ещё раз.'

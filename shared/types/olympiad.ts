@@ -1,5 +1,7 @@
 
 export type OlympiadLevel = 1 | 2 | 3 | 4
+export type OlympiadListType = 'school_olympiad' | 'intellectual_competition'
+export type OlympiadSourceStatus = 'official' | 'needs_review' | 'archived'
 
 export type OlympiadStatus =
   | 'eligible'
@@ -22,6 +24,12 @@ export interface Olympiad {
   name: string
   organizer: string
   level: OlympiadLevel | null
+  listType: OlympiadListType
+  officialListNumber?: number
+  sourceDocumentTitle?: string
+  sourceDocumentUrl?: string
+  sourceCheckedAt?: string
+  sourceStatus?: OlympiadSourceStatus
   subjects: string[]
   grades: number[]
   website?: string

@@ -2,13 +2,11 @@ import {
   ArrowRight,
   ArrowUpRight,
   BookOpen,
-  CalendarDays,
   Compass,
   GitCompareArrows,
   Landmark,
   Medal,
   MessageCircle,
-  Route,
   type LucideIcon
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -17,12 +15,6 @@ import { PublicMedia } from '@/components/public/PublicMedia'
 import { PublicSectionHeading } from '@/components/public/PublicSectionHeading'
 
 import './home-page.css'
-
-interface JourneyPoint {
-  title: string
-  description: string
-  icon: LucideIcon
-}
 
 interface StepItem {
   imageSrc?: string
@@ -44,76 +36,20 @@ interface FeatureItem {
   featured?: boolean
 }
 
-const JOURNEY_POINTS: JourneyPoint[] = [
-  {
-    title: 'Интересы',
-    description: 'С чего тебе хочется начать',
-    icon: Compass
-  },
-  {
-    title: 'Возможности',
-    description: 'Что можно изучить и попробовать',
-    icon: BookOpen
-  },
-  {
-    title: 'Университеты',
-    description: 'Где можно продолжить обучение',
-    icon: Landmark
-  },
-  {
-    title: 'Личный план',
-    description: 'Какие шаги сделать дальше',
-    icon: CalendarDays
-  }
-]
-
 const STEPS: StepItem[] = [
-  {
-    imageClass: 'profile',
-    imageSrc: '/images/home/step-start.jpg',
-    title: 'Начни с себя',
-    description: 'Укажи класс, регион и предметы, которые тебе интересны.',
-    href: '/onboarding',
-    action: 'Настроить ориентиры'
-  },
-  {
-    imageClass: 'olympiads',
-    imageSrc: '/images/home/step-olympiad.jpg',
-    title: 'Открой олимпиады',
-    description: 'Подбирай соревнования по своим предметам, классам и срокам.',
-    href: '/olympiads',
-    action: 'Найти олимпиаду'
-  },
-  {
-    imageClass: 'universities',
-    imageSrc: '/images/home/step-university.jpg',
-    title: 'Изучай университеты',
-    description: 'Знакомься с вузами и находи варианты для дальнейшего изучения.',
-    href: '/universities',
-    action: 'Открыть каталог вузов'
-  },
-  {
-    imageClass: 'trajectory',
-    imageSrc: '/images/home/step-trajectory.jpg',
-    title: 'Собери траекторию',
-    description: 'Возвращайся к персональным вариантам и выбранным целям.',
-    href: '/trajectory',
-    action: 'Перейти к траектории'
-  },
-  {
-    imageClass: 'calendar',
-    imageSrc: '/images/home/step-planning.jpg',
-    title: 'Планируй вовремя',
-    description: 'Добавляй события и напоминания, чтобы не терять важные даты.',
-    href: '/calendar',
-    action: 'Открыть календарь'
-  }
+  { imageClass: 'profile', imageSrc: '/images/home/step-start.jpg', title: 'Начни с регистрации', description: 'Создай аккаунт, чтобы сохранять выбранные варианты и результаты.', href: '/auth?mode=register', action: 'Зарегистрироваться' },
+  { imageClass: 'professions', imageSrc: '/images/professions/architect.webp', title: 'Изучи профессии', description: 'Посмотри, чем занимаются специалисты и какие навыки им нужны.', href: '/professions', action: 'Открыть профессии' },
+  { imageClass: 'directions', imageSrc: '/images/professions/software-developer.webp', title: 'Выбери направления', description: 'Разберись в областях обучения и связанных с ними программах.', href: '/directions', action: 'Изучить направления' },
+  { imageClass: 'olympiads', imageSrc: '/images/home/step-olympiad.jpg', title: 'Открой олимпиады', description: 'Подбирай соревнования по предметам, классу и официальным условиям.', href: '/olympiads', action: 'Найти олимпиаду' },
+  { imageClass: 'universities', imageSrc: '/images/home/step-university.jpg', title: 'Изучай университеты', description: 'Знакомься с вузами и проверяй информацию о поступлении.', href: '/universities', action: 'Открыть каталог вузов' },
+  { imageClass: 'calendar', imageSrc: '/images/home/step-planning.jpg', title: 'Планируй в календаре', description: 'Собирай даты выбранных олимпиад, задачи и напоминания в одном месте.', href: '/calendar', action: 'Открыть календарь' },
+  { imageClass: 'assistant', imageSrc: '/images/home/step-trajectory.jpg', title: 'Общайся с ИИ-помощником', description: 'Задавай вопросы, уточняй информацию и получай подсказки с учётом профиля.', href: '/ai', action: 'Задать вопрос' }
 ]
 
 const FEATURES: FeatureItem[] = [
   {
     title: 'Олимпиады',
-    description: 'Подбирай соревнования по своим предметам, следи за регистрацией и этапами, отмечай важные даты в календаре.',
+    description: 'Подбирай соревнования по своим предметам и классам, следи за регистрацией и этапами.',
     href: '/olympiads',
     action: 'Открыть олимпиады',
     icon: Medal,
@@ -164,13 +100,12 @@ export function HomePage() {
             </h1>
 
             <p className="public-hero-description">
-              Разбирайся в возможностях, находи олимпиады по своим предметам и университеты,
-              собирай собственный образовательный маршрут — постепенно и в своём темпе.
+              Разбирайся в возможностях, находи олимпиады по своим предметам и изучай университеты — постепенно и в своём темпе.
             </p>
 
             <div className="public-hero-actions">
-              <Link to="/onboarding" className="public-button public-button-large">
-                Определить свой маршрут
+              <Link to="/auth?mode=register" className="public-button public-button-large">
+                Создать аккаунт
                 <ArrowRight size={18} />
               </Link>
               <Link to="/olympiads" className="public-text-link">
@@ -187,56 +122,14 @@ export function HomePage() {
             </div>
           </div>
 
-          <div className="public-hero-visual" role="img" aria-label="Схема образовательного маршрута">
-            <div className="public-hero-orbit public-hero-orbit-one" />
-            <div className="public-hero-orbit public-hero-orbit-two" />
-            <div className="public-route-card">
-              <div className="public-route-card-head">
-                <div>
-                  <span className="public-route-kicker">ТВОЙ МАРШРУТ</span>
-                  <strong>Большая цель — маленькими шагами</strong>
-                </div>
-                <span className="public-route-stamp" aria-hidden="true">
-                  <Route size={20} />
-                </span>
-              </div>
-
-              <div className="public-route-list">
-                {JOURNEY_POINTS.map((point, index) => {
-                  const Icon = point.icon
-
-                  return (
-                    <div className="public-route-item" key={point.title}>
-                      <div className="public-route-marker-wrap">
-                        <span className={`public-route-marker public-route-marker-${index + 1}`}>
-                          <Icon size={18} strokeWidth={1.9} />
-                        </span>
-                        {index < JOURNEY_POINTS.length - 1 && (
-                          <span className="public-route-connector" aria-hidden="true" />
-                        )}
-                      </div>
-                      <div className="public-route-item-copy">
-                        <strong>{point.title}</strong>
-                        <span>{point.description}</span>
-                      </div>
-                      <span className="public-route-index">0{index + 1}</span>
-                    </div>
-                  )
-                })}
-              </div>
-
-              <div className="public-route-card-foot">
-                <span className="public-route-foot-line" />
-                <span>ТВОЙ ТЕМП. ТВОЙ ВЫБОР.</span>
-              </div>
-            </div>
-            <div className="public-hero-note-card">
-              <span className="public-note-icon"><Compass size={16} /></span>
-              <span>
-                <strong>Не обязательно знать всё сразу</strong>
-                <small>Начни с того, что тебе интересно</small>
-              </span>
-            </div>
+          <div className="public-hero-visual" aria-label="Школьники вместе изучают учебные материалы">
+            <PublicMedia
+              src="/images/home/step-trajectory.jpg"
+              alt="Два школьника совместно занимаются за ноутбуком и учебными материалами"
+              className="public-hero-student-photo"
+              loading="eager"
+            />
+            <p className="public-hero-photo-caption">Учись. Исследуй. Выбирай.</p>
           </div>
         </div>
       </section>
@@ -245,8 +138,8 @@ export function HomePage() {
         <div className="public-container">
           <PublicSectionHeading
             kicker="ПОНЯТНЫЙ ПЛАН"
-            title="Путь складывается из небольших шагов"
-            description="Не нужно принимать все решения сегодня. Начни с простого и возвращайся к следующим шагам, когда будешь готов."
+            title="Всё необходимое — в понятных разделах"
+            description="Не нужно принимать все решения сегодня. Выбирай подходящие инструменты и пользуйся ими в удобном порядке."
             variant="centered"
           />
 
@@ -275,7 +168,7 @@ export function HomePage() {
           <PublicSectionHeading
             kicker="ИНСТРУМЕНТЫ TRAJECTORY"
             title="Исследуй. Сравнивай. Планируй."
-            description="Начни с олимпиад: подбирай соревнования по своим предметам и следи за сроками. Затем изучай университеты и планируй следующие шаги."
+            description="Изучай профессии и направления, находи олимпиады, сравнивай университеты и собирай важные даты в календаре."
             variant="split"
             className="public-discovery-heading"
           />
@@ -343,8 +236,8 @@ export function HomePage() {
             <p>Достаточно начать задавать вопросы и изучать варианты.</p>
           </div>
           <div className="public-final-cta-actions">
-            <Link to="/onboarding" className="public-button public-button-light">
-              Начать с интересов
+            <Link to="/auth?mode=register" className="public-button public-button-light">
+              Зарегистрироваться
               <ArrowRight size={18} />
             </Link>
             <Link to="/auth?mode=register" className="public-cta-secondary">

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Bot, ExternalLink, Send, Sparkles, UserRound } from 'lucide-react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 import type {
   AIMessage,
@@ -19,6 +19,38 @@ import './ai-enhancements.css'
 
 interface NavigationState {
   sourcePath?: string
+  initialQuestion?: string
+}
+
+function getAIHistoryKey(scope: string): string {
+  return `trajectory:ai-history:v1:${scope}`
+}
+
+function readAIHistory(scope: string): AIMessage[] {
+  try {
+    const raw = window.localStorage.getItem(getAIHistoryKey(scope))
+    if (!raw) return []
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((item): item is AIMessage => Boolean(
+      item && typeof item === 'object' &&
+      'id' in item && typeof item.id === 'string' &&
+      'role' in item && (item.role === 'user' || item.role === 'assistant') &&
+      'content' in item && typeof item.content === 'string' &&
+      'createdAt' in item && typeof item.createdAt === 'string'
+    )).slice(-40)
+  } catch {
+    return []
+  }
+}
+
+function safeExternalUrl(value: string): string | null {
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null
+  } catch {
+    return null
+  }
 }
 
 interface AIPageContext {
@@ -40,7 +72,6 @@ function getPageContext(path: string): AIPageContext {
   const universityMatch = path.match(/^\/universities\/([0-9a-f-]{36})$/i)
   if (universityMatch) return { page: 'university', entityId: universityMatch[1] }
 
-  if (path.startsWith('/trajectory')) return { page: 'trajectory' }
   if (path.startsWith('/olympiads')) return { page: 'catalog' }
   if (path.startsWith('/calendar')) return { page: 'calendar' }
   if (path.startsWith('/universities')) return { page: 'universities' }
@@ -66,7 +97,6 @@ function buildUserContext(
 
 function getPageContextLabel(context: Pick<AIPageContext, 'page'>): string {
   const labels: Record<AIPageType, string> = {
-    trajectory: 'Моя траектория',
     catalog: 'Каталог олимпиад',
     olympiad: 'Карточка олимпиады',
     calendar: 'Календарь',
@@ -87,17 +117,38 @@ function getSourceStatusLabel(status?: string): string | null {
 
 export function AIPage() {
   const location = useLocation()
+  const navigate = useNavigate()
   const { session } = useAuth()
   const navigationState = location.state as NavigationState | null
   const sourcePath = navigationState?.sourcePath ?? '/ai'
+  const historyScope = session?.user?.id ? `user:${session.user.id}` : 'guest'
   const pageContext = useMemo(() => getPageContext(sourcePath), [sourcePath])
 
   const [profile, setProfile] = useState<CreateProfileInput | null>(getGuestProfile)
-  const [messages, setMessages] = useState<AIMessage[]>([])
-  const [question, setQuestion] = useState('')
+  const [messages, setMessages] = useState<AIMessage[]>(() => readAIHistory(historyScope))
+  const [loadedHistoryScope, setLoadedHistoryScope] = useState(historyScope)
+  const [question, setQuestion] = useState(() => navigationState?.initialQuestion ?? '')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [serviceStatus, setServiceStatus] = useState<AIServiceStatus | null>(null)
+
+  useEffect(() => {
+    setMessages(readAIHistory(historyScope))
+    setLoadedHistoryScope(historyScope)
+  }, [historyScope])
+
+  useEffect(() => {
+    if (loadedHistoryScope !== historyScope) return
+    try {
+      window.localStorage.setItem(getAIHistoryKey(historyScope), JSON.stringify(messages.slice(-40)))
+    } catch {
+      // Conversation remains available in memory when browser storage is unavailable.
+    }
+  }, [historyScope, loadedHistoryScope, messages])
+
+  useEffect(() => {
+    if (navigationState?.initialQuestion) setQuestion(navigationState.initialQuestion)
+  }, [navigationState?.initialQuestion])
 
   useEffect(() => {
     let active = true
@@ -156,8 +207,32 @@ export function AIPage() {
     setMessages((current) => [...current, userMessage])
     setQuestion('')
     setError(null)
-    setSending(true)
 
+    const explicitNavigation = /\b(открой|открыть|перейди|перейти|покажи страницу|покажи раздел|направь|перенаправь)\b/i.test(text)
+    const navigationTargets: Array<{ route: string; pattern: RegExp; title: string }> = [
+      { route: '/universities', pattern: /\b(вуз|вузы|университет|университеты|колледж|колледжи)\b/i, title: 'Каталог университетов' },
+      { route: '/olympiads', pattern: /\b(олимпиад|конкурс|соревнован)\w*/i, title: 'Каталог олимпиад' },
+      { route: '/calendar', pattern: /\b(календар|расписан|напоминан)\w*/i, title: 'Календарь' },
+      { route: '/professions', pattern: /\bпрофесси\w*/i, title: 'Каталог профессий' },
+      { route: '/directions', pattern: /\b(направлен|специальност)\w*/i, title: 'Направления обучения' },
+      { route: '/favorites', pattern: /\b(избранн|сохраненн)\w*/i, title: 'Избранное' },
+      { route: '/universities/compare', pattern: /\b(сравнен|сравнить)\w*\b.*\b(вуз|университет)|\b(вуз|университет)\w*.*\bсравн/i, title: 'Сравнение университетов' },
+      { route: '/profile', pattern: /\b(профил|анкета)\w*/i, title: 'Профиль' }
+    ]
+    const target = explicitNavigation ? navigationTargets.find((item) => item.pattern.test(text)) : undefined
+    if (target) {
+      const assistantMessage: AIMessage = {
+        id: `assistant-nav-${Date.now()}`,
+        role: 'assistant',
+        content: `Открываю раздел «${target.title}».`,
+        createdAt: new Date().toISOString()
+      }
+      setMessages((current) => [...current, assistantMessage])
+      navigate(target.route, { replace: false })
+      return
+    }
+
+    setSending(true)
     try {
       const response = await aiService.ask({
         question: text,
@@ -246,12 +321,14 @@ export function AIPage() {
                   <div className="ai-knowledge-notice">{message.notice}</div>
                 )}
                 {message.role === 'assistant' && Boolean(message.sources?.length) && (
-                  <div className="ai-sources">
-                    <span className="ai-sources-title">Источники</span>
-                    {message.sources?.map((source) => (
+                  <details className="ai-sources">
+                    <summary className="ai-sources-title">Источники ({message.sources?.length ?? 0})</summary>
+                    {message.sources?.map((source) => {
+                      const sourceUrl = safeExternalUrl(source.url)
+                      return sourceUrl ? (
                       <a
                         className="ai-source-link"
-                        href={source.url}
+                        href={sourceUrl}
                         key={`${source.url}-${source.title}`}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -264,8 +341,9 @@ export function AIPage() {
                         {source.kind === 'web' ? <small className="ai-source-external-label">Внешний поиск · проверь источник</small> : null}
                         <ExternalLink size={13} />
                       </a>
-                    ))}
-                  </div>
+                      ) : null
+                    })}
+                  </details>
                 )}
               </div>
             </article>

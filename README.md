@@ -1,20 +1,28 @@
-# Траектория в олимпиаду
+# Trajectory V2 — backend typecheck fix
 
-Персональная платформа для подготовки к олимпиадам и выбора образовательной траектории.
+Date: 2026-11-25
 
-- `frontend/` — React + TypeScript интерфейс.
-- `backend/` — Express API, AI-провайдеры и интеграции.
-- `shared/` — общие типы.
-- `backend/supabase/migrations/` — SQL-миграции базы данных.
+## What changed
 
-## Единый реестр университетов
+Fixed TypeScript typing in:
 
-Порядок установки и импорта государственных каталогов описан в [docs/UNIVERSITY_REGISTRY.md](docs/UNIVERSITY_REGISTRY.md). Перед импортом необходимо вручную применить миграцию `202611230001_university_registry.sql` в Supabase и локально задать Supabase Secret/Service Role key в `backend/.env`. Секретный ключ никогда не размещается во frontend, Vercel, Render или GitHub.
+- `backend/src/modules/ai/ai.service.ts`
+- `backend/src/modules/olympiads/olympiads.service.ts`
 
-## Разработка
+The extended Supabase SELECTs include year/list metadata. The legacy fallback SELECTs intentionally omit those columns while supporting a database that has not yet received the migration. TypeScript inferred the extended query's narrow row shape and rejected assigning the legacy query result.
+
+The service now explicitly normalizes both result variants to the application row interfaces (`OlympiadRow` and `SeasonRow`) using a narrow `unknown` bridge at the database boundary. Runtime behavior is unchanged: missing optional metadata remains absent and existing defaults/compatibility handling remain in place.
+
+## Apply
+
+Extract the fix ZIP into the project root (`trajectory-olympiad-v2-ready`) and allow the two files under `backend/src/modules/...` to be overwritten.
+
+Then run:
 
 ```powershell
-npm.cmd ci
+npm.cmd run typecheck
 npm.cmd run build
 npm.cmd test
 ```
+
+No database migration, API key, environment variable, or live Supabase change is required for this TypeScript fix.

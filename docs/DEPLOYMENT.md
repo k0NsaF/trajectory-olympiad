@@ -10,6 +10,17 @@
 
 Не создавай новую базу данных в Render. Проект уже использует Supabase.
 
+## Рабочий процесс Git и автоматические публикации
+
+- `trajectory-v2` — рабочая ветка для разработки и проверки изменений.
+- `main` — production-ветка; опубликованные сервисы должны отслеживать её.
+- GitHub Actions запускает `typecheck`, production build и тесты при push и Pull Request.
+- Render настроен на `main` и должен выполнять deploy только после успешных CI-проверок (`autoDeployTrigger: checksPass`).
+- Vercel использует `main` как production branch; push в `trajectory-v2` создаёт Preview, merge в `main` — Production deployment.
+
+Обычный цикл: внести изменения в `trajectory-v2` → push → дождаться GitHub Actions → открыть Pull Request в `main` → проверить Preview → merge. После успешных CI-проверок Render и Vercel обновляют production. Не редактируй файлы непосредственно в GitHub Web Editor, если параллельно работаешь с локальным клоном: сначала синхронизируй `git pull`.
+
+
 ## 0. Подготовка репозитория
 
 1. Создай пустой репозиторий GitHub. Не добавляй на GitHub README, License или .gitignore, если будешь загружать уже существующий проект.
@@ -78,7 +89,7 @@ Render Free засыпает после 15 минут без входящего 
    - `VITE_SUPABASE_PUBLISHABLE_KEY` — тот же Supabase Publishable key.
 6. Нажми Deploy. После успешной сборки скопируй production URL Vercel.
 
-`vercel.json` уже содержит SPA rewrite на `/index.html`, поэтому прямое открытие маршрутов React Router (например `/trajectory`, `/profile`, `/universities`) должно возвращать приложение, а не 404.
+`vercel.json` уже содержит SPA rewrite на `/index.html`, поэтому прямое открытие маршрутов React Router (например `/olympiads`, `/calendar`, `/universities`) должно возвращать приложение, а не 404.
 
 ## 3. Заверши CORS и Supabase Auth
 
@@ -88,12 +99,12 @@ Render Free засыпает после 15 минут без входящего 
    - Site URL: production URL Vercel.
    - Redirect URLs: добавь `https://имя-проекта.vercel.app/**`.
    - При необходимости отдельно добавь preview-домены Vercel.
-4. Проверь регистрацию, подтверждение email, вход, восстановление пароля и возврат на `/auth`.
+4. Проверь регистрацию, подтверждение email, вход, восстановление пароля и возврат на главную `/` после успешного входа.
 
 ## 4. Финальная проверка опубликованного приложения
 
 - Открой Vercel production URL в приватном окне.
-- Открой `/trajectory`, `/olympiads`, `/calendar`, `/universities`, `/achievements`, `/profile` напрямую в адресной строке.
+- Открой `/`, `/olympiads`, `/calendar`, `/universities`, `/universities/compare`, `/ai`, `/favorites`, `/achievements`, `/profile` напрямую в адресной строке.
 - Проверь, что каталог и справочники загружаются из Supabase.
 - Зарегистрируй тестового пользователя и проверь сохранение профиля, достижений и напоминаний.
 - Убедись, что запросы к `https://имя-сервиса.onrender.com/api/health` возвращают 200.

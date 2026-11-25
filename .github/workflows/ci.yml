@@ -1,0 +1,43 @@
+name: Trajectory CI
+
+on:
+  push:
+    branches:
+      - main
+      - trajectory-v2
+  pull_request:
+    branches:
+      - main
+      - trajectory-v2
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trajectory-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --include=dev
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Production build
+        run: npm run build
+
+      - name: Tests
+        run: npm test

@@ -1,9 +1,11 @@
 
-import { useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
   Award,
+  Bookmark,
+  CalendarPlus,
   CalendarDays,
   CheckCircle2,
   Clock3,
@@ -21,6 +23,9 @@ import { ErrorState } from '@/components/common/ErrorState'
 import { LoadingState } from '@/components/common/LoadingState'
 import { PageHeader } from '@/components/common/PageHeader'
 import { useAsyncData } from '@/hooks/useAsyncData'
+import { useAuth } from '@/app/providers'
+import { readFavorites, subscribeToFavorites, toggleFavorite } from '@/services/favorites.store'
+import { readCalendarOlympiadIds, subscribeToCalendarSelection, toggleCalendarOlympiad } from '@/services/calendar-selection.store'
 import { olympiadService } from '@/services/olympiad.service'
 
 type StageDateInput = {
@@ -195,6 +200,34 @@ function getStageIcon(type: string) {
 
 export function OlympiadDetailsPage() {
   const { id = '' } = useParams()
+  const { user } = useAuth()
+  const storageScope = user?.id ? `user:${user.id}` : 'guest'
+  const [isFavorite, setIsFavorite] = useState(() => readFavorites(storageScope).some((entry) => entry.kind === 'olympiad' && entry.id === id))
+  const [isInCalendar, setIsInCalendar] = useState(() => readCalendarOlympiadIds(storageScope).includes(id))
+
+  useEffect(() => {
+    const sync = () => {
+      setIsFavorite(readFavorites(storageScope).some((entry) => entry.kind === 'olympiad' && entry.id === id))
+      setIsInCalendar(readCalendarOlympiadIds(storageScope).includes(id))
+    }
+    sync()
+    const unsubscribeFavorites = subscribeToFavorites(storageScope, sync)
+    const unsubscribeCalendar = subscribeToCalendarSelection(storageScope, sync)
+    return () => {
+      unsubscribeFavorites()
+      unsubscribeCalendar()
+    }
+  }, [id, storageScope])
+
+  const handleFavorite = () => {
+    toggleFavorite(storageScope, 'olympiad', id)
+    setIsFavorite(readFavorites(storageScope).some((entry) => entry.kind === 'olympiad' && entry.id === id))
+  }
+
+  const handleCalendar = () => {
+    toggleCalendarOlympiad(storageScope, id)
+    setIsInCalendar(readCalendarOlympiadIds(storageScope).includes(id))
+  }
 
   const loadOlympiad = useCallback(
     () => olympiadService.getById(id),
@@ -289,6 +322,15 @@ export function OlympiadDetailsPage() {
         }
       />
 
+      <div className="olympiad-details-actions" aria-label="Действия с олимпиадой">
+        <button type="button" className={`olympiad-save-action${isFavorite ? ' is-active' : ''}`} onClick={handleFavorite} aria-pressed={isFavorite}>
+          <Bookmark size={16} />{isFavorite ? 'В избранном' : 'В избранное'}
+        </button>
+        <button type="button" className={`olympiad-save-action${isInCalendar ? ' is-active' : ''}`} onClick={handleCalendar} aria-pressed={isInCalendar}>
+          <CalendarPlus size={16} />{isInCalendar ? 'Убрать из календаря' : 'Добавить в календарь'}
+        </button>
+      </div>
+
       <section className="panel olympiad-summary-panel">
         <div className="olympiad-summary-header">
           <div>
@@ -299,12 +341,24 @@ export function OlympiadDetailsPage() {
             </div>
           </div>
 
-          {olympiad.level !== null && (
+          {olympiad.listType === 'school_olympiad' && olympiad.level !== null && (
             <div className="olympiad-level-badge">
               <Trophy size={17} />
               {LEVEL_LABELS[olympiad.level] ?? `${olympiad.level} уровень`}
             </div>
           )}
+        </div>
+
+        <div className={`olympiad-list-detail-note${olympiad.listType === 'intellectual_competition' ? ' is-competition' : ''}`}>
+          <Info size={17} />
+          <div>
+            <strong>{olympiad.listType === 'school_olympiad' ? 'Перечень олимпиад школьников Минобрнауки' : 'Перечень иных интеллектуальных и творческих конкурсов Минпросвещения'}</strong>
+            <p>{olympiad.listType === 'school_olympiad'
+              ? 'Уровень относится к официальному перечню олимпиад школьников. Конкретные особые права определяет каждый вуз своим локальным актом на соответствующий год и образовательную программу.'
+              : 'Включение в этот перечень само по себе не предоставляет особых прав при поступлении. Условия участия и возможные преимущества нужно проверять отдельно.'}</p>
+            {getSafeWebsiteUrl(olympiad.sourceDocumentUrl) && <a href={getSafeWebsiteUrl(olympiad.sourceDocumentUrl) ?? undefined} target="_blank" rel="noopener noreferrer">{olympiad.sourceDocumentTitle || 'Официальный документ перечня'} <ExternalLink size={13} /></a>}
+            {olympiad.sourceCheckedAt && <small>Последняя проверка записи: {formatDate(olympiad.sourceCheckedAt)}</small>}
+          </div>
         </div>
 
         <div className="olympiad-details-grid">
@@ -502,7 +556,7 @@ export function OlympiadDetailsPage() {
         )}
       </section>
 
-      <section className="panel olympiad-benefits-panel">
+      {olympiad.listType === 'school_olympiad' && <section className="panel olympiad-benefits-panel">
         <div className="olympiad-section-heading">
           <div>
             <span className="section-kicker">ПОСТУПЛЕНИЕ</span>
@@ -585,7 +639,7 @@ export function OlympiadDetailsPage() {
           Даже подтверждённые данные необходимо перепроверять по актуальным
           локальным актам вуза перед подачей документов.
         </p>
-      </section>
+      </section>}
 
       <section className="panel olympiad-participation-panel">
         <div className="olympiad-section-heading">

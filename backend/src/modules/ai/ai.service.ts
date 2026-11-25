@@ -10,6 +10,12 @@ interface OlympiadRow {
   name: string
   organizer: string
   level: number | null
+  list_type?: 'school_olympiad' | 'intellectual_competition' | null
+  official_list_number?: number | null
+  source_document_title?: string | null
+  source_document_url?: string | null
+  source_checked_at?: string | null
+  source_status?: 'official' | 'needs_review' | 'archived' | null
   subjects: string[]
   grades: number[]
   website: string | null
@@ -21,6 +27,13 @@ interface SeasonRow {
   olympiad_id: string
   academic_year: string
   grades: number[]
+  level?: number | null
+  list_type?: 'school_olympiad' | 'intellectual_competition' | null
+  official_list_number?: number | null
+  source_document_title?: string | null
+  source_document_url?: string | null
+  source_checked_at?: string | null
+  source_status?: 'official' | 'needs_review' | 'archived' | null
 }
 
 interface StageRow {
@@ -195,12 +208,7 @@ async function retrieveKnowledge(
   ].filter(Boolean).join(' ')
 
   const terms = extractTerms(`${input.question} ${historyText} ${profileText}`)
-  const [olympiadResult, universityResult, programResult, benefitResult] = await Promise.all([
-    supabase
-      .from('olympiads')
-      .select('id, name, organizer, level, subjects, grades, website, description')
-      .order('name', { ascending: true })
-      .limit(100),
+  const [universityResult, programResult, benefitResult] = await Promise.all([
     supabase
       .from('universities')
       .select('id, name, short_name, city, website, description')
@@ -218,7 +226,28 @@ async function retrieveKnowledge(
       .limit(500)
   ])
 
-  if (olympiadResult.error || universityResult.error || programResult.error || benefitResult.error) {
+  const extendedOlympiadResult = await supabase
+    .from('olympiads')
+    .select('id, name, organizer, level, list_type, official_list_number, source_document_title, source_document_url, source_checked_at, source_status, subjects, grades, website, description')
+    .order('name', { ascending: true })
+    .limit(100)
+
+  // Keep both the extended query and the legacy-schema fallback on one shared
+  // application type. The legacy query intentionally omits the new metadata columns.
+  let olympiadData: OlympiadRow[] | null = extendedOlympiadResult.data as unknown as OlympiadRow[] | null
+  let olympiadError = extendedOlympiadResult.error
+
+  if (olympiadError && /list_type|official_list_number|source_document|source_checked_at|source_status|schema cache|column .* does not exist/i.test(olympiadError.message)) {
+    const legacyOlympiadResult = await supabase
+      .from('olympiads')
+      .select('id, name, organizer, level, subjects, grades, website, description')
+      .order('name', { ascending: true })
+      .limit(100)
+    olympiadData = legacyOlympiadResult.data as unknown as OlympiadRow[] | null
+    olympiadError = legacyOlympiadResult.error
+  }
+
+  if (olympiadError || universityResult.error || programResult.error || benefitResult.error) {
     throw new AppError(
       'Не удалось получить справочные данные для ИИ-консультанта.',
       503,
@@ -226,7 +255,7 @@ async function retrieveKnowledge(
     )
   }
 
-  const olympiads = (olympiadResult.data ?? []) as OlympiadRow[]
+  const olympiads = (olympiadData ?? []) as unknown as OlympiadRow[]
   const universities = (universityResult.data ?? []) as UniversityRow[]
   const programs = (programResult.data ?? []) as ProgramRow[]
   const benefits = (benefitResult.data ?? []) as BenefitRow[]
@@ -311,25 +340,83 @@ async function retrieveKnowledge(
     })
     .filter((item) => item.score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 8)
 
-  const selectedOlympiadIdsForCalendar = rankedOlympiads
-    .slice(0, wantsCalendar ? 30 : 4)
-    .map((item) => item.row.id)
-  const seasonsResult = selectedOlympiadIdsForCalendar.length > 0
-    ? await supabase
+  const academicYearDate = new Date()
+  const academicYearStart = academicYearDate.getMonth() >= 8
+    ? academicYearDate.getFullYear()
+    : academicYearDate.getFullYear() - 1
+  const currentAcademicYear = `${academicYearStart}-${academicYearStart + 1}`
+  const seasonLookupIds = [...new Set(olympiads.map((row) => row.id))]
+  let seasonsData: SeasonRow[] | null = []
+  let seasonsError: (typeof extendedOlympiadResult.error) | null = null
+
+  if (seasonLookupIds.length > 0) {
+    const extendedSeasonResult = await supabase
       .from('olympiad_seasons')
-      .select('id, olympiad_id, academic_year, grades')
-      .in('olympiad_id', selectedOlympiadIdsForCalendar)
+      .select('id, olympiad_id, academic_year, grades, level, list_type, official_list_number, source_document_title, source_document_url, source_checked_at, source_status')
+      .in('olympiad_id', seasonLookupIds)
       .order('academic_year', { ascending: false })
-      .limit(40)
-    : { data: [], error: null }
+      .limit(500)
 
-  if (seasonsResult.error) {
+    seasonsData = extendedSeasonResult.data as unknown as SeasonRow[] | null
+    seasonsError = extendedSeasonResult.error
+  }
+
+  if (seasonsError && /level|list_type|official_list_number|source_document|source_checked_at|source_status|schema cache|column .* does not exist/i.test(seasonsError.message)) {
+    if (seasonLookupIds.length > 0) {
+      const legacySeasonResult = await supabase
+        .from('olympiad_seasons')
+        .select('id, olympiad_id, academic_year, grades')
+        .in('olympiad_id', seasonLookupIds)
+        .order('academic_year', { ascending: false })
+        .limit(500)
+
+      seasonsData = legacySeasonResult.data as unknown as SeasonRow[] | null
+      seasonsError = legacySeasonResult.error
+    } else {
+      seasonsData = []
+      seasonsError = null
+    }
+  }
+
+  if (seasonsError) {
     throw new AppError('Не удалось загрузить сезоны олимпиад для ИИ.', 503, 'AI_SEASONS_LOAD_FAILED')
   }
 
-  const seasons = (seasonsResult.data ?? []) as SeasonRow[]
+  const seasons = seasonsData ?? []
+  const seasonById = new Map(seasons.map((season) => [season.id, season]))
+  const seasonByOlympiadAndYear = new Map(
+    seasons.map((season) => [`${season.olympiad_id}:${season.academic_year}`, season])
+  )
+  const currentSeasonByOlympiad = new Map<string, SeasonRow>()
+  for (const season of seasons) {
+    if (season.academic_year === currentAcademicYear) {
+      currentSeasonByOlympiad.set(season.olympiad_id, season)
+    }
+  }
+  const getCurrentListType = (row: OlympiadRow) =>
+    currentSeasonByOlympiad.get(row.id)?.list_type ?? row.list_type ?? 'school_olympiad'
+  const getListTypeForAdmissionYear = (row: OlympiadRow, admissionYear: number) => {
+    const academicYear = `${admissionYear - 1}-${admissionYear}`
+    return seasonByOlympiadAndYear.get(`${row.id}:${academicYear}`)?.list_type
+      ?? row.list_type
+      ?? 'school_olympiad'
+  }
+  const getCurrentOlympiadRow = (row: OlympiadRow): OlympiadRow => {
+    const season = currentSeasonByOlympiad.get(row.id)
+    if (!season) return row
+    const hasYearMetadata = Object.prototype.hasOwnProperty.call(season, 'list_type')
+    return {
+      ...row,
+      level: hasYearMetadata ? (season.level ?? null) : (season.level ?? row.level),
+      list_type: season.list_type ?? row.list_type,
+      official_list_number: hasYearMetadata ? season.official_list_number : (season.official_list_number ?? row.official_list_number),
+      source_document_title: hasYearMetadata ? season.source_document_title : (season.source_document_title ?? row.source_document_title),
+      source_document_url: hasYearMetadata ? season.source_document_url : (season.source_document_url ?? row.source_document_url),
+      source_checked_at: hasYearMetadata ? season.source_checked_at : (season.source_checked_at ?? row.source_checked_at),
+      source_status: hasYearMetadata ? (season.source_status ?? 'needs_review') : (season.source_status ?? row.source_status)
+    }
+  }
   const seasonIds = seasons.map((season) => season.id)
   const stagesResult = seasonIds.length > 0
     ? await supabase
@@ -345,23 +432,36 @@ async function retrieveKnowledge(
   }
 
   const stages = (stagesResult.data ?? []) as StageRow[]
-  const seasonById = new Map(seasons.map((season) => [season.id, season]))
   const sources = new Map<string, KnowledgeSource>()
   const documents: string[] = []
   const today = new Date().toISOString().slice(0, 10)
 
-  for (const { row, score } of rankedOlympiads) {
+  for (const { row: originalRow, score } of rankedOlympiads) {
+    const row = getCurrentOlympiadRow(originalRow)
+    const isOtherCompetition = getCurrentListType(originalRow) === 'intellectual_competition'
+    const listLabel = isOtherCompetition
+      ? 'Иной интеллектуальный / творческий конкурс (перечень Минпросвещения)'
+      : 'Олимпиада школьников (перечень Минобрнауки)'
     documents.push([
-      `ОЛИМПИАДА: ${row.name}`,
+      `${isOtherCompetition ? 'КОНКУРС' : 'ОЛИМПИАДА ШКОЛЬНИКОВ'}: ${row.name}`,
+      `Категория перечня: ${listLabel}`,
       `Организатор: ${row.organizer}`,
-      `Уровень: ${row.level ?? 'не указан'}`,
+      `Уровень: ${!isOtherCompetition && row.level != null ? row.level : 'не применяется или не подтверждён'}`,
+      `Статус проверки записи: ${row.source_status ?? 'needs_review — требуется проверка'}`,
+      `Номер в официальном перечне: ${row.official_list_number ?? 'не указан'}`,
       `Предметы: ${toSubjectLabels(row.subjects).join(', ') || 'не указаны'}`,
       `Классы: ${row.grades.join(', ') || 'не указаны'}`,
       `Описание: ${row.description ?? 'нет описания в базе'}`,
+      `Ограничение: ${isOtherCompetition ? 'сам факт включения во второй перечень не подтверждает особые права при поступлении; проверять локальный акт конкретного вуза' : 'конкретные особые права определяет локальный акт конкретного вуза, программы и года'}`,
       `Релевантность поиска: ${score}`
     ].join('\n'))
-    addSource(sources, row.website ? {
-      title: `Официальная страница: ${row.name}`,
+    addSource(sources, row.source_document_url ? {
+      title: row.source_document_title || `Официальный перечень: ${row.name}`,
+      url: row.source_document_url,
+      kind: 'olympiad',
+      ...(row.source_status === 'official' ? { verificationStatus: 'official' as const } : {})
+    } : row.website ? {
+      title: `Страница мероприятия: ${row.name}`,
       url: row.website,
       kind: 'olympiad'
     } : null)
@@ -391,7 +491,9 @@ async function retrieveKnowledge(
     ].join('\n'))
   }
 
-  for (const { row, olympiad, university, program, score } of rankedBenefits) {
+  for (const { row, olympiad, university, program, score } of rankedBenefits
+    .filter((item) => !item.olympiad || getListTypeForAdmissionYear(item.olympiad, item.row.valid_year) !== 'intellectual_competition')
+    .slice(0, 8)) {
     documents.push([
       `УСЛОВИЕ ОЛИМПИАДНОЙ ЛЬГОТЫ (не трактовать без проверки статуса):`,
       `Олимпиада: ${olympiad?.name ?? row.olympiad_id}`,
@@ -485,6 +587,8 @@ function buildSystemPrompt(knowledge: RetrievedKnowledge): string {
     'Отвечай на русском языке, дружелюбно, ясно и по существу, обращайся на «ты».',
     'Сегодняшняя дата: ' + currentDate + '.',
     'Отделяй сведения из справочной базы Supabase, внешнего поиска и общие советы.',
+    'Строго различай перечень олимпиад школьников Минобрнауки и перечень иных интеллектуальных/творческих конкурсов Минпросвещения. Не объединяй их правовые последствия.',
+    'Мероприятие из перечня Минпросвещения не означает автоматически право на БВИ, 100 баллов или дополнительные баллы. Особые права проверяются по локальному акту конкретного вуза, программы и года.',
     'Используй предоставленные записи Supabase как источник конкретных сведений о датах, уровнях олимпиад, льготах, порогах ЕГЭ, классах и правилах конкретных вузов.',
     'ВНЕШНИЙ ПОИСК содержит только поисковые сниппеты и адреса страниц. Они помогают найти университеты и страницы программ, но не подтверждают официальность, аккредитацию, наличие бюджетных мест или действующие правила приёма.',
     'Не выдавай результаты внешнего поиска за официально проверенные данные. Рекомендуй открыть сайт и проверить сведения в приёмной комиссии или официальном документе. Никогда не делай вывод о льготах только по внешнему сниппету.',

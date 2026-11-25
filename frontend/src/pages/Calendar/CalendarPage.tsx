@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   Bell,
   CalendarDays,
@@ -23,7 +23,6 @@ import {
   type Reminder,
   type ReminderStatus,
   type ReminderType,
-  type CreateProfileInput
 } from '@trajectory/shared'
 
 import { EmptyState } from '@/components/common/EmptyState'
@@ -33,10 +32,7 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { useAuth } from '@/app/providers'
 import { olympiadService } from '@/services/olympiad.service'
 import { reminderService } from '@/services/reminder.service'
-import {
-  getAuthenticatedProfile,
-  getGuestProfile
-} from '@/services/profile.service'
+import { readCalendarOlympiadIds, subscribeToCalendarSelection } from '@/services/calendar-selection.store'
 
 import './calendar.css'
 
@@ -69,7 +65,8 @@ const STAGE_LABELS: Record<OlympiadStageType, string> = {
 interface CalendarEvent {
   id: string
   dateKey: string
-  kind: 'olympiad' | 'reminder'
+  kind: 'olympiad' | 'task' | 'reminder'
+  reminderType?: ReminderType
   title: string
   description?: string
   dateLabel: string
@@ -150,9 +147,10 @@ function getReminderDefaultTime(dateKey?: string): string {
 }
 
 export function CalendarPage() {
-  const { session } = useAuth()
-  const guestProfile = useMemo(() => getGuestProfile(), [])
-  const [profile, setProfile] = useState<CreateProfileInput | null>(() => guestProfile)
+  const { session, user } = useAuth()
+  const navigate = useNavigate()
+  const calendarScope = user?.id ? `user:${user.id}` : 'guest'
+  const [selectedOlympiadIds, setSelectedOlympiadIds] = useState<string[]>(() => readCalendarOlympiadIds(calendarScope))
   const [reminders, setReminders] = useState<Reminder[]>([])
   const [olympiads, setOlympiads] = useState<OlympiadWithStatus[]>([])
   const [loading, setLoading] = useState(true)
@@ -173,28 +171,12 @@ export function CalendarPage() {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
+
+
   useEffect(() => {
-    let active = true
-
-    if (!session?.access_token) {
-      setProfile(guestProfile)
-      return
-    }
-
-    void getAuthenticatedProfile(session.access_token)
-      .then((savedProfile) => {
-        if (active) setProfile(savedProfile ?? guestProfile)
-      })
-      .catch(() => {
-        if (active) setProfile(guestProfile)
-      })
-
-    return () => {
-      active = false
-    }
-  }, [session?.access_token, guestProfile])
-
-  const subjectKey = profile?.subjects?.join(',') ?? ''
+    setSelectedOlympiadIds(readCalendarOlympiadIds(calendarScope))
+    return subscribeToCalendarSelection(calendarScope, () => setSelectedOlympiadIds(readCalendarOlympiadIds(calendarScope)))
+  }, [calendarScope])
 
   useEffect(() => {
     let active = true
@@ -202,8 +184,8 @@ export function CalendarPage() {
     setError(null)
 
     Promise.all([
-      reminderService.getAll(),
-      olympiadService.getAll({ subjects: subjectKey ? subjectKey.split(',') : undefined })
+      session?.access_token ? reminderService.getAll() : Promise.resolve([] as Reminder[]),
+      olympiadService.getAll()
     ])
       .then(([loadedReminders, loadedOlympiads]) => {
         if (!active) return
@@ -220,7 +202,7 @@ export function CalendarPage() {
     return () => {
       active = false
     }
-  }, [subjectKey, reloadKey])
+  }, [reloadKey, session?.access_token])
 
   const reload = useCallback(() => setReloadKey((value) => value + 1), [])
 
@@ -234,6 +216,7 @@ export function CalendarPage() {
     }
 
     for (const olympiad of olympiads) {
+      if (!selectedOlympiadIds.includes(olympiad.id)) continue
       const subjectLabels = olympiad.subjects
         .map((id) => SUBJECTS.find((subject) => subject.id === id)?.label ?? id)
       for (const stage of olympiad.season?.stages ?? []) {
@@ -262,13 +245,14 @@ export function CalendarPage() {
       addEvent({
         id: `reminder-${reminder.id}`,
         dateKey,
-        kind: 'reminder',
+        kind: reminder.type === 'personal' ? 'task' : 'reminder',
+        reminderType: reminder.type,
         title: reminder.title,
         description: reminder.description,
         dateLabel: formatDayLabel(dateKey),
         timeLabel: `Время: ${formatTime(dueDate)}`,
         reminderStatus: reminder.status,
-        sortRank: 3
+        sortRank: reminder.type === 'personal' ? 3 : 4
       })
     }
 
@@ -277,7 +261,7 @@ export function CalendarPage() {
     }
 
     return events
-  }, [olympiads, reminders])
+  }, [olympiads, reminders, selectedOlympiadIds])
 
   const calendarDays = useMemo(() => {
     const year = viewDate.getFullYear()
@@ -325,6 +309,10 @@ export function CalendarPage() {
   }
 
   const openCreateForm = (dateKey?: string) => {
+    if (!session?.access_token) {
+      navigate('/auth?mode=register')
+      return
+    }
     setEditingId(null)
     setTitle('')
     setDescription('')
@@ -367,12 +355,13 @@ export function CalendarPage() {
 
     try {
       setSubmitting(true)
+      const effectiveNotifyDate = parsedNotifyDate ?? new Date(parsedDate.getTime() - 24 * 60 * 60 * 1000)
       const payload = {
         title: title.trim(),
         description: description.trim(),
         type,
         dueAt: parsedDate.toISOString(),
-        notifyAt: parsedNotifyDate ? parsedNotifyDate.toISOString() : null
+        notifyAt: effectiveNotifyDate.toISOString()
       }
 
       if (editingId) {
@@ -432,7 +421,7 @@ export function CalendarPage() {
         description="Следи за началом этапов олимпиад и добавляй личные события, чтобы ничего не пропустить."
         action={(
           <button type="button" className="primary-button calendar-add-button" onClick={() => formOpen ? resetForm() : openCreateForm(selectedDate ?? undefined)}>
-            <Plus size={17} /> Новое напоминание
+            <Plus size={17} /> {session?.access_token ? 'Новое напоминание' : 'Войти, чтобы добавить задачу'}
           </button>
         )}
       />
@@ -440,14 +429,16 @@ export function CalendarPage() {
       <section className="panel calendar-guide">
         <div className="calendar-guide-copy">
           <strong>Как пользоваться календарём</strong>
-          <p>Нажми на дату, чтобы посмотреть олимпиады и личные напоминания. Точки отмечают начало этапа или дату твоего события. Список внутри окна можно прокручивать, не сдвигая календарь.</p>
+          <p>Добавь интересующие олимпиады в календарь из каталога. Здесь будут отмечаться только выбранные тобой этапы, личные задачи и напоминания.</p>
         </div>
         <div className="calendar-legend">
-          <span><i className="calendar-legend-dot is-olympiad" /> Начало этапа олимпиады</span>
-          <span><i className="calendar-legend-dot is-reminder" /> Личное напоминание</span>
+          <span><i className="calendar-legend-dot is-olympiad" /> Этап олимпиады</span>
+          <span><i className="calendar-legend-dot is-task" /> Личная задача</span>
+          <span><i className="calendar-legend-dot is-reminder" /> Напоминание</span>
         </div>
+        <div className="calendar-selected-count">Выбрано олимпиад: <strong>{selectedOlympiadIds.length}</strong> · <Link to="/olympiads">Открыть каталог</Link></div>
         <div className="calendar-notification-note">
-          <Bell size={16} /> Время будущего уведомления можно задать при создании напоминания. Отправка push-уведомлений и подключение к MAX пока не подключены.
+          <Bell size={16} /> По умолчанию напоминание планируется за 1 день до события. Отправка уведомлений и подключение к MAX потребуют отдельной настройки серверной части.
         </div>
       </section>
 
@@ -492,14 +483,14 @@ export function CalendarPage() {
             </label>
 
             <label className="calendar-field calendar-field-wide">
-              <span>Когда отправить уведомление <small>(необязательно, для будущей функции)</small></span>
+              <span>Когда отправить уведомление</span>
               <input
                 type="datetime-local"
                 value={notifyAt}
                 max={dueAt || undefined}
                 onChange={(event) => setNotifyAt(event.target.value)}
               />
-              <small>Выбранное время сохранится, но само уведомление пока не отправляется.</small>
+              <small>Если не выбрать время, оно будет установлено за 1 день до события. Фактическая отправка включается при настройке уведомлений на сервере.</small>
             </label>
 
             <label className="calendar-field calendar-field-wide">
@@ -542,7 +533,7 @@ export function CalendarPage() {
         </div>
 
         {loading ? (
-          <LoadingState message="Загружаем олимпиады и напоминания..." />
+          <LoadingState message="Загружаем выбранные олимпиады и напоминания..." />
         ) : error ? (
           <ErrorState message={error} onRetry={reload} />
         ) : (
@@ -578,7 +569,7 @@ export function CalendarPage() {
                           {dayEvents.slice(0, 4).map((item) => (
                             <i
                               key={item.id}
-                              className={`calendar-day-dot ${item.kind === 'olympiad' ? 'is-olympiad' : item.reminderStatus === 'pending' ? 'is-reminder' : 'is-reminder-muted'}`}
+                              className={`calendar-day-dot ${item.kind === 'olympiad' ? 'is-olympiad' : item.kind === 'task' ? 'is-task' : item.reminderStatus === 'pending' ? 'is-reminder' : 'is-reminder-muted'}`}
                             />
                           ))}
                           {dayEvents.length > 4 && <small>+{dayEvents.length - 4}</small>}
@@ -599,7 +590,7 @@ export function CalendarPage() {
                             <p className="calendar-day-empty">На эту дату пока нет событий.</p>
                           ) : dayEvents.map((item) => (
                             <article className={`calendar-popover-event is-${item.kind}`} key={item.id}>
-                              <span className="calendar-popover-kind">{item.kind === 'olympiad' ? `Олимпиада · ${item.stageLabel}` : 'Личное напоминание'}</span>
+                              <span className="calendar-popover-kind">{item.kind === 'olympiad' ? `Олимпиада · ${item.stageLabel}` : item.kind === 'task' ? 'Личная задача' : `Напоминание · ${REMINDER_LABELS[item.reminderType ?? 'personal']}`}</span>
                               {item.kind === 'olympiad' && item.olympiadId ? (
                                 <Link className="calendar-popover-title" to={`/olympiads/${encodeURIComponent(item.olympiadId)}`}>{item.title}</Link>
                               ) : (
@@ -614,7 +605,7 @@ export function CalendarPage() {
                               {item.kind === 'olympiad' && item.olympiadId && (
                                 <Link className="calendar-popover-more" to={`/olympiads/${encodeURIComponent(item.olympiadId)}`}>Подробнее</Link>
                               )}
-                              {item.kind === 'reminder' && item.reminderStatus && (
+                              {item.kind !== 'olympiad' && item.reminderStatus && (
                                 <span className={`calendar-popover-status status-${item.reminderStatus}`}>{STATUS_LABELS[item.reminderStatus]}</span>
                               )}
                             </article>

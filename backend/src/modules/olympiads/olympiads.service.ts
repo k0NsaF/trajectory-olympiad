@@ -27,6 +27,12 @@ interface OlympiadRow {
   name: string
   organizer: string
   level: number | null
+  list_type?: 'school_olympiad' | 'intellectual_competition' | null
+  official_list_number?: number | null
+  source_document_title?: string | null
+  source_document_url?: string | null
+  source_checked_at?: string | null
+  source_status?: 'official' | 'needs_review' | 'archived' | null
   subjects: string[]
   grades: number[]
   website: string | null
@@ -38,6 +44,13 @@ interface SeasonRow {
   olympiad_id: string
   academic_year: string
   grades: number[]
+  level?: number | null
+  list_type?: 'school_olympiad' | 'intellectual_competition' | null
+  official_list_number?: number | null
+  source_document_title?: string | null
+  source_document_url?: string | null
+  source_checked_at?: string | null
+  source_status?: 'official' | 'needs_review' | 'archived' | null
 }
 
 interface StageRow {
@@ -118,6 +131,12 @@ interface OlympiadResult {
   name: string
   organizer: string
   level: number | null
+  listType: 'school_olympiad' | 'intellectual_competition'
+  officialListNumber?: number
+  sourceDocumentTitle?: string
+  sourceDocumentUrl?: string
+  sourceCheckedAt?: string
+  sourceStatus?: 'official' | 'needs_review' | 'archived'
   subjects: string[]
   grades: number[]
   website?: string
@@ -188,7 +207,7 @@ function normalizeRegion(value: string): string {
     .trim()
     .toLocaleLowerCase('ru')
     .replace(/[ё]/g, 'е')
-    .replace(/\\s+/g, ' ')
+    .replace(/\s+/g, ' ')
 }
 
 function isAvailableInRegion(
@@ -370,10 +389,24 @@ export async function getOlympiads(
   filters: OlympiadFiltersInput = {}
 
 ): Promise<OlympiadResult[]> {
-  const { data: olympiadData, error: olympiadError } = await supabase
+  const extendedSelect = 'id, name, organizer, level, list_type, official_list_number, source_document_title, source_document_url, source_checked_at, source_status, subjects, grades, website, description'
+  const legacySelect = 'id, name, organizer, level, subjects, grades, website, description'
+  const extendedOlympiadResult = await supabase
     .from('olympiads')
-    .select('id, name, organizer, level, subjects, grades, website, description')
+    .select(extendedSelect)
     .order('name', { ascending: true })
+  // The legacy fallback has a narrower SELECT; normalize it to OlympiadRow.
+  let olympiadData: OlympiadRow[] | null = extendedOlympiadResult.data as unknown as OlympiadRow[] | null
+  let olympiadError = extendedOlympiadResult.error
+
+  if (olympiadError && /list_type|official_list_number|source_document|source_checked_at|source_status|schema cache|column .* does not exist/i.test(olympiadError.message)) {
+    const legacyResult = await supabase
+      .from('olympiads')
+      .select(legacySelect)
+      .order('name', { ascending: true })
+    olympiadData = legacyResult.data as unknown as OlympiadRow[] | null
+    olympiadError = legacyResult.error
+  }
 
   if (olympiadError) {
     throw new AppError(
@@ -390,16 +423,28 @@ export async function getOlympiads(
   const benefitYear = filters.benefitYear ?? getNextAdmissionYear()
   const academicYear = getCurrentAcademicYear()
 
-  const [seasonResult, benefitsByOlympiad] = await Promise.all([
-    supabase
-      .from('olympiad_seasons')
-      .select('id, olympiad_id, academic_year, grades')
-      .in('olympiad_id', olympiadIds)
-      .eq('academic_year', academicYear),
-    getOfficialBenefits(supabase, olympiadIds, filters, benefitYear)
-  ])
+  const extendedSeasonSelect = 'id, olympiad_id, academic_year, grades, level, list_type, official_list_number, source_document_title, source_document_url, source_checked_at, source_status'
+  const legacySeasonSelect = 'id, olympiad_id, academic_year, grades'
+  const extendedSeasonResult = await supabase
+    .from('olympiad_seasons')
+    .select(extendedSeasonSelect)
+    .in('olympiad_id', olympiadIds)
+    .eq('academic_year', academicYear)
+  // Legacy rows omit year-specific metadata and are normalized to SeasonRow.
+  let seasonData: SeasonRow[] | null = extendedSeasonResult.data as unknown as SeasonRow[] | null
+  let seasonError = extendedSeasonResult.error
 
-  if (seasonResult.error) {
+  if (seasonError && /level|list_type|official_list_number|source_document|source_checked_at|source_status|schema cache|column .* does not exist/i.test(seasonError.message)) {
+    const legacySeasonResult = await supabase
+      .from('olympiad_seasons')
+      .select(legacySeasonSelect)
+      .in('olympiad_id', olympiadIds)
+      .eq('academic_year', academicYear)
+    seasonData = legacySeasonResult.data as unknown as SeasonRow[] | null
+    seasonError = legacySeasonResult.error
+  }
+
+  if (seasonError) {
     throw new AppError(
       'Не удалось загрузить сезоны олимпиад.',
       500,
@@ -407,7 +452,14 @@ export async function getOlympiads(
     )
   }
 
-  const seasons = (seasonResult.data ?? []) as SeasonRow[]
+  const seasons = (seasonData ?? []) as SeasonRow[]
+  const seasonByOlympiad = new Map(seasons.map((season) => [season.olympiad_id, season]))
+  const schoolOlympiadIds = olympiadRows
+    .filter((item) => (seasonByOlympiad.get(item.id)?.list_type ?? item.list_type) !== 'intellectual_competition')
+    .map((item) => item.id)
+  const benefitsByOlympiad = schoolOlympiadIds.length > 0
+    ? await getOfficialBenefits(supabase, schoolOlympiadIds, filters, benefitYear)
+    : new Map<string, OlympiadBenefitSummary[]>()
   const seasonIds = seasons.map((item) => item.id)
   let stages: StageRow[] = []
 
@@ -429,9 +481,6 @@ export async function getOlympiads(
     stages = (stageData ?? []) as StageRow[]
   }
 
-  const seasonByOlympiad = new Map(
-    seasons.map((season) => [season.olympiad_id, season])
-  )
   const stagesBySeason = new Map<string, StageRow[]>()
 
   for (const stage of stages) {
@@ -455,11 +504,25 @@ export async function getOlympiads(
         }
       : undefined
 
+    const hasYearMetadata = Boolean(season && Object.prototype.hasOwnProperty.call(season, 'list_type'))
+    const effectiveLevel = hasYearMetadata ? (season?.level ?? null) : olympiad.level
+    const effectiveListNumber = hasYearMetadata ? season?.official_list_number : olympiad.official_list_number
+    const effectiveSourceTitle = hasYearMetadata ? season?.source_document_title : olympiad.source_document_title
+    const effectiveSourceUrl = hasYearMetadata ? season?.source_document_url : olympiad.source_document_url
+    const effectiveSourceCheckedAt = hasYearMetadata ? season?.source_checked_at : olympiad.source_checked_at
+    const effectiveSourceStatus = hasYearMetadata ? (season?.source_status ?? 'needs_review') : olympiad.source_status
+
     return {
       id: olympiad.id,
       name: olympiad.name,
       organizer: olympiad.organizer,
-      level: olympiad.level,
+      level: effectiveLevel,
+      listType: (season?.list_type ?? olympiad.list_type) === 'intellectual_competition' ? 'intellectual_competition' : 'school_olympiad',
+      ...(effectiveListNumber != null ? { officialListNumber: effectiveListNumber } : {}),
+      ...(effectiveSourceTitle ? { sourceDocumentTitle: effectiveSourceTitle } : {}),
+      ...(effectiveSourceUrl ? { sourceDocumentUrl: effectiveSourceUrl } : {}),
+      ...(effectiveSourceCheckedAt ? { sourceCheckedAt: effectiveSourceCheckedAt } : {}),
+      ...(effectiveSourceStatus ? { sourceStatus: effectiveSourceStatus } : {}),
       subjects: olympiad.subjects ?? [],
       grades: mappedSeason?.grades ?? olympiad.grades ?? [],
       status: getOlympiadStatus(mappedStages),
@@ -478,6 +541,8 @@ export async function getOlympiads(
       : []
 
   return result.filter((olympiad) => {
+    if (filters.listType && olympiad.listType !== filters.listType) return false
+
     if (
       requestedSubjects.length > 0 &&
       !requestedSubjects.some((subject) => olympiad.subjects.includes(subject))

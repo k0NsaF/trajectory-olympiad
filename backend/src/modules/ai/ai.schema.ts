@@ -13,7 +13,6 @@ export const aiAskSchema = z.object({
     targetUniversityId: uuidSchema.optional(),
     targetProgramId: uuidSchema.optional(),
     page: z.enum([
-      'trajectory',
       'catalog',
       'olympiad',
       'calendar',

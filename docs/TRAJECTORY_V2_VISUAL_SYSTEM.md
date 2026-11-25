@@ -1,3 +1,5 @@
+> **Историческая визуальная концепция.** Ранее описанная тёмная рабочая тема не применяется к текущей публичной версии. Действующий интерфейс использует единую светлую оболочку; смотрите `frontend/src/app/PublicSiteLayout.tsx`, `frontend/src/styles/public-workspace-pages.css` и `docs/IMPLEMENTATION_STATUS_V2.md`.
+
 # Trajectory V2 — единая визуальная система
 
 ## Цель

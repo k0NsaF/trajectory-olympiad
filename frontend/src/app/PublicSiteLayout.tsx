@@ -1,11 +1,31 @@
 import { useState } from 'react'
-import { Link, Outlet } from 'react-router-dom'
-import { ArrowUpRight, Menu, Route, X } from 'lucide-react'
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { ArrowUpRight, Bookmark, CalendarDays, ChevronDown, LogOut, Menu, Route, Settings, Trophy, UserRound, X } from 'lucide-react'
 import { TRAJECTORY_LOGO_URL, TRAJECTORY_LOGO_MODE } from '@/app/brandAssets'
+import { useAuth } from '@/app/providers'
+import { authService } from '@/services/auth.service'
 
 export function PublicSiteLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [accountOpen, setAccountOpen] = useState(false)
+  const [signOutError, setSignOutError] = useState('')
+  const { user, loading: authLoading } = useAuth()
+  const location = useLocation()
+  const navigate = useNavigate()
   const closeMobileMenu = () => setMobileMenuOpen(false)
+  const aiState = { state: { sourcePath: location.pathname } }
+  const handleSignOut = async () => {
+    setSignOutError('')
+    try {
+      await authService.signOut()
+      setAccountOpen(false)
+      closeMobileMenu()
+      navigate('/', { replace: true })
+    } catch (cause) {
+      setSignOutError(cause instanceof Error ? cause.message : 'Не удалось выйти из аккаунта.')
+    }
+  }
 
   return (
     <div className="public-site">
@@ -36,27 +56,42 @@ export function PublicSiteLayout() {
 
           <nav className="public-nav" aria-label="Основная навигация">
             <div className="public-nav-group public-nav-left">
-              <Link to="/">Главная</Link>
               <Link to="/professions">Профессии</Link>
               <Link to="/directions">Направления</Link>
             </div>
-            <Link to="/olympiads" className="public-nav-olympiads" aria-label="Перейти к каталогу олимпиад">
-              Олимпиады
-            </Link>
+            <div className="public-nav-group public-nav-middle">
+              <Link to="/olympiads" className="public-nav-olympiads">Олимпиады</Link>
+              <Link to="/calendar">Календарь</Link>
+            </div>
             <div className="public-nav-group public-nav-right">
               <Link to="/universities">Университеты</Link>
-              <Link to="/ai">ИИ-помощник</Link>
+              <Link to="/ai" {...aiState}>ИИ-помощник</Link>
             </div>
           </nav>
 
           <div className="public-header-actions">
-            <Link to="/auth" className="public-login-link">
-              Войти
-            </Link>
-            <Link to="/auth?mode=register" className="public-button public-button-compact">
-              Начать путь
-              <ArrowUpRight size={16} />
-            </Link>
+            {!authLoading && user ? (
+              <div className="public-account-wrap">
+                <button type="button" className="public-account-trigger" aria-expanded={accountOpen} onClick={() => setAccountOpen((value) => !value)}>
+                  <span className="public-account-avatar"><UserRound size={17} /></span>
+                  <span>Аккаунт</span><ChevronDown size={15} />
+                </button>
+                {accountOpen && <div className="public-account-menu">
+                  <Link to="/profile" onClick={() => setAccountOpen(false)}><UserRound size={16} />Профиль</Link>
+                  <Link to="/favorites" onClick={() => setAccountOpen(false)}><Bookmark size={16} />Избранное</Link>
+                  <Link to="/calendar" onClick={() => setAccountOpen(false)}><CalendarDays size={16} />Календарь</Link>
+                  <Link to="/achievements" onClick={() => setAccountOpen(false)}><Trophy size={16} />Достижения</Link>
+                  <Link to="/settings" onClick={() => setAccountOpen(false)}><Settings size={16} />Настройки</Link>
+                  <button type="button" onClick={() => void handleSignOut()}><LogOut size={16} />Выйти</button>
+                  {signOutError && <small role="alert">{signOutError}</small>}
+                </div>}
+              </div>
+            ) : !authLoading ? (
+              <>
+                <Link to="/auth" className="public-login-link">Войти</Link>
+                <Link to="/auth?mode=register" className="public-button public-button-compact">Регистрация <ArrowUpRight size={16} /></Link>
+              </>
+            ) : null}
             <button
               type="button"
               className="public-menu-toggle"
@@ -75,24 +110,24 @@ export function PublicSiteLayout() {
               className="public-mobile-nav"
               aria-label="Мобильная навигация"
             >
-              <Link to="/" onClick={closeMobileMenu}>Главная</Link>
               <Link to="/professions" onClick={closeMobileMenu}>Профессии</Link>
               <Link to="/directions" onClick={closeMobileMenu}>Направления</Link>
               <Link to="/olympiads" className="public-mobile-olympiads" onClick={closeMobileMenu}>Олимпиады</Link>
+              <Link to="/calendar" onClick={closeMobileMenu}>Календарь</Link>
               <Link to="/universities" onClick={closeMobileMenu}>Университеты</Link>
-              <Link to="/ai" onClick={closeMobileMenu}>ИИ-помощник</Link>
+              <Link to="/ai" state={{ sourcePath: location.pathname }} onClick={closeMobileMenu}>ИИ-помощник</Link>
               <div className="public-mobile-nav-actions">
-                <Link to="/auth" className="public-login-link" onClick={closeMobileMenu}>
-                  Войти
-                </Link>
-                <Link
-                  to="/auth?mode=register"
-                  className="public-button"
-                  onClick={closeMobileMenu}
-                >
-                  Начать путь
-                  <ArrowUpRight size={16} />
-                </Link>
+                {user ? (<>
+                  <Link to="/profile" onClick={closeMobileMenu}>Профиль</Link>
+                  <Link to="/favorites" onClick={closeMobileMenu}>Избранное</Link>
+                  <Link to="/calendar" onClick={closeMobileMenu}>Календарь</Link>
+                  <Link to="/achievements" onClick={closeMobileMenu}>Достижения</Link>
+                  <Link to="/settings" onClick={closeMobileMenu}>Настройки</Link>
+                  <button type="button" className="public-login-link" onClick={() => void handleSignOut()}>Выйти из аккаунта</button>
+                </>) : (<>
+                  <Link to="/auth" className="public-login-link" onClick={closeMobileMenu}>Войти</Link>
+                  <Link to="/auth?mode=register" className="public-button" onClick={closeMobileMenu}>Регистрация <ArrowUpRight size={16} /></Link>
+                </>)}
               </div>
             </nav>
           )}
@@ -100,7 +135,7 @@ export function PublicSiteLayout() {
       </header>
 
       <main id="public-main" className="public-main">
-        <Outlet />
+        <Outlet context={{ searchQuery, setSearchQuery }} />
       </main>
 
       <footer className="public-footer">
@@ -115,7 +150,7 @@ export function PublicSiteLayout() {
               </>
             )}
           </Link>
-          <p>Образовательный маршрут школьника — шаг за шагом.</p>
+          <p>Олимпиады, университеты и инструменты для планирования поступления.</p>
           <Link to="/privacy" className="public-footer-privacy">Политика конфиденциальности</Link>
           <span className="public-footer-note">
             Справочная информация не заменяет официальные документы вузов и организаторов олимпиад.

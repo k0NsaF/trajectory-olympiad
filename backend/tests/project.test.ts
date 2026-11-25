@@ -34,7 +34,6 @@ import {
   createReminderSchema,
   updateReminderStatusSchema
 } from '../src/modules/reminders/reminders.schema.js'
-import { createTrajectorySchema } from '../src/modules/trajectory/trajectory.schema.js'
 
 const UNIVERSITY_ID = '10000000-0000-4000-8000-000000000001'
 const PROGRAM_ID = '50000000-0000-4000-8000-000000000001'
@@ -103,14 +102,6 @@ test('схемы данных: корректные сценарии и огра
         stageDeadlines: true,
         newsUpdates: true
       }
-    }).success, false)
-  })
-
-  await t.test('генератор принимает валидные входные данные и отклоняет некорректный класс', () => {
-    assert.equal(createTrajectorySchema.safeParse(validProfile()).success, true)
-    assert.equal(createTrajectorySchema.safeParse({
-      ...validProfile(),
-      grade: 12
     }).success, false)
   })
 
