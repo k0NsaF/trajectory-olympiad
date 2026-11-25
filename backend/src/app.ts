@@ -10,12 +10,12 @@ import { AppError } from './utils/AppError.js'
 import healthRouter from './routes/health.routes.js'
 import profilesRouter from './modules/profiles/profiles.routes.js'
 import olympiadsRouter from './modules/olympiads/olympiads.routes.js'
-import trajectoryRouter from './modules/trajectory/trajectory.routes.js'
 import universitiesRouter from './modules/universities/universities.routes.js'
 import benefitsRouter from './modules/benefits/benefits.routes.js'
 import achievementsRouter from './modules/achievements/achievements.routes.js'
 import remindersRouter from './modules/reminders/reminders.routes.js'
 import aiRouter from './modules/ai/ai.routes.js'
+import catalogRouter from './modules/catalog/catalog.routes.js'
 
 export const app = express()
 
@@ -62,12 +62,12 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }))
 app.use('/api', healthRouter)
 app.use('/api/profile', profilesRouter)
 app.use('/api/olympiads', olympiadsRouter)
-app.use('/api/trajectory', trajectoryRouter)
 app.use('/api/universities', universitiesRouter)
 app.use('/api/benefits', benefitsRouter)
 app.use('/api/achievements', achievementsRouter)
 app.use('/api/reminders', remindersRouter)
 app.use('/api/ai', aiRouter)
+app.use('/api/catalog', catalogRouter)
 
 app.use(notFound)
 app.use(errorHandler)

@@ -51,6 +51,10 @@ export interface University {
   admissionRulesUrl?: string
   admissionPlacesUrl?: string
   monitoringProfileUrl?: string
+  coverImageUrl?: string
+  coverImageSourceUrl?: string
+  coverImageLicense?: string
+  coverImageAlt?: string
   programs?: UniversityProgram[]
 }
 

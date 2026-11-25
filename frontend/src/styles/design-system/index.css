@@ -1,0 +1,910 @@
+﻿@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+@import './variables.css';
+@import './theme.css';
+
+/* Shared dark foundation. Accent color is selected by the page currently rendered. */
+html,
+body {
+  background: var(--trajectory-color-canvas);
+  color: var(--trajectory-color-text);
+  font-family: var(--trajectory-font-family);
+}
+
+body,
+button,
+input,
+textarea,
+select {
+  font-family: var(--trajectory-font-family);
+}
+
+button,
+input,
+textarea,
+select {
+  font-weight: var(--trajectory-font-weight-regular);
+}
+
+.app-shell.theme-dark {
+  --bg: var(--trajectory-color-canvas);
+  --bg-secondary: var(--trajectory-color-surface);
+  --card: var(--trajectory-color-surface);
+  --card-hover: var(--trajectory-color-surface-raised);
+  --surface: var(--trajectory-color-surface-raised);
+  --surface-hover: var(--trajectory-color-surface-raised);
+  --border: var(--trajectory-color-border);
+  --border-soft: rgba(221, 221, 221, 0.16);
+  --text-heading: var(--trajectory-color-text);
+  --text: var(--trajectory-color-text-secondary);
+  --text-muted: var(--trajectory-color-text-muted);
+  --text-subtle: var(--trajectory-color-text-muted);
+  --trajectory-page-accent: var(--trajectory-accent-red);
+  --trajectory-page-accent-foreground: #FFFFFF;
+  --accent: var(--trajectory-page-accent);
+  --accent-hover: var(--trajectory-page-accent);
+  --accent-soft: color-mix(in srgb, var(--trajectory-page-accent) 13%, #030303);
+  --purple: var(--trajectory-accent-sky);
+  --purple-soft: color-mix(in srgb, var(--trajectory-accent-sky) 12%, #030303);
+  --shadow: none;
+  --shadow-small: none;
+  --sidebar-bg: var(--trajectory-color-surface);
+  --header-bg: var(--trajectory-color-canvas);
+  --input-bg: var(--trajectory-color-surface-raised);
+  --track: var(--trajectory-color-border);
+  --grid-line: rgba(221, 221, 221, 0.10);
+  --content-width: var(--trajectory-content-width);
+  --header-height: 85px;
+  --radius-sm: var(--trajectory-radius-control);
+  --radius-md: var(--trajectory-radius-card);
+  --radius-lg: var(--trajectory-radius-card);
+  --radius-xl: var(--trajectory-radius-home-card);
+  color: var(--trajectory-color-text);
+  background: var(--trajectory-color-canvas);
+  font-family: var(--trajectory-font-family);
+}
+
+/* Page-level accent profiles from the supplied Postupi.online references. */
+.app-shell.theme-dark:has(.benefit-explorer),
+.app-shell.theme-dark:has(.university-comparison-page) {
+  --trajectory-page-accent: var(--trajectory-accent-yellow);
+  --trajectory-page-accent-foreground: #FFFFFF;
+}
+
+.app-shell.theme-dark:has(.benefit-filter-toolbar-detail) {
+  --trajectory-page-accent: var(--trajectory-accent-sky);
+  --trajectory-page-accent-foreground: #FFFFFF;
+}
+
+.app-shell.theme-dark:has(.catalog-page),
+.app-shell.theme-dark:has(.olympiad-details-page),
+.app-shell.theme-dark:has(.calendar-page),
+.app-shell.theme-dark:has(.ai-panel),
+.app-shell.theme-dark:has(.profile-overview-card),
+.app-shell.theme-dark:has(.welcome-card) {
+  --trajectory-page-accent: var(--trajectory-accent-red);
+  --trajectory-page-accent-foreground: #FFFFFF;
+}
+
+.app-shell.theme-dark .sidebar {
+  border-right-color: var(--trajectory-color-border);
+  background: var(--trajectory-color-surface);
+  box-shadow: none;
+}
+
+.app-shell.theme-dark .brand-mark {
+  border: 1px solid var(--trajectory-color-border);
+  border-radius: var(--trajectory-radius-control);
+  color: var(--trajectory-page-accent);
+  background: var(--trajectory-color-canvas);
+  box-shadow: none;
+}
+
+.app-shell.theme-dark .brand-text > span,
+.app-shell.theme-dark .breadcrumb strong {
+  color: var(--trajectory-color-text);
+  font-family: var(--trajectory-font-family);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.app-shell.theme-dark .brand-text small,
+.app-shell.theme-dark .sidebar-section-label,
+.app-shell.theme-dark .breadcrumb,
+.app-shell.theme-dark .sidebar-section-label {
+  color: var(--trajectory-color-text-muted);
+  font-family: var(--trajectory-font-family);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.app-shell.theme-dark .nav-item {
+  border-radius: var(--trajectory-radius-control);
+  color: var(--trajectory-color-text-secondary);
+  background: transparent;
+  box-shadow: none;
+}
+
+.app-shell.theme-dark .nav-item:hover,
+.app-shell.theme-dark .nav-item-active {
+  color: var(--trajectory-color-text);
+  border-color: var(--trajectory-color-border);
+  background: var(--trajectory-color-surface-raised);
+  box-shadow: none;
+}
+
+.app-shell.theme-dark .nav-item-active svg,
+.app-shell.theme-dark .nav-item-active .nav-active-indicator {
+  color: var(--trajectory-page-accent);
+  background: transparent;
+}
+
+.app-shell.theme-dark .topbar {
+  height: var(--header-height);
+  border-bottom: 1px solid var(--trajectory-color-border);
+  background: var(--trajectory-color-canvas);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.app-shell.theme-dark .search-box,
+.app-shell.theme-dark .icon-button,
+.app-shell.theme-dark .topbar-avatar {
+  border: 1px solid var(--trajectory-color-border);
+  border-radius: var(--trajectory-radius-control);
+  color: var(--trajectory-color-text-secondary);
+  background: var(--trajectory-color-surface);
+  box-shadow: none;
+}
+
+.app-shell.theme-dark .search-box:focus-within,
+.app-shell.theme-dark .icon-button:hover {
+  border-color: var(--trajectory-color-border-strong);
+  color: var(--trajectory-color-text);
+  background: var(--trajectory-color-surface-raised);
+  box-shadow: none;
+}
+
+.app-shell.theme-dark .topbar-avatar {
+  color: var(--trajectory-page-accent-foreground);
+  background: var(--trajectory-page-accent);
+}
+
+.app-shell.theme-dark .dashboard-container {
+  width: 100%;
+  max-width: var(--trajectory-content-width);
+  padding: 32px 32px 48px;
+}
+
+.app-shell.theme-dark .page-header {
+  margin-bottom: 32px;
+}
+
+.app-shell.theme-dark .page-header h1,
+.app-shell.theme-dark .welcome-section h1 {
+  color: var(--trajectory-color-text);
+  font-family: var(--trajectory-font-family);
+  font-size: clamp(28px, 3vw, 36px);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.12;
+}
+
+.app-shell.theme-dark .page-header p,
+.app-shell.theme-dark .welcome-section p {
+  color: var(--trajectory-color-text-secondary);
+  font-family: var(--trajectory-font-family);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.55;
+}
+
+.app-shell.theme-dark .section-kicker,
+.app-shell.theme-dark .eyebrow {
+  color: var(--trajectory-page-accent);
+  font-family: var(--trajectory-font-family);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.app-shell.theme-dark .panel,
+.app-shell.theme-dark .stat-card,
+.app-shell.theme-dark .university-compare-card,
+.app-shell.theme-dark .calendar-reminder-card {
+  border: 1px solid var(--trajectory-color-border);
+  border-radius: var(--trajectory-radius-card);
+  background: var(--trajectory-color-surface);
+  box-shadow: none;
+}
+
+.app-shell.theme-dark .panel {
+  padding: var(--trajectory-card-padding);
+}
+
+.app-shell.theme-dark .panel-heading h2,
+.app-shell.theme-dark .calendar-section-heading h2,
+.app-shell.theme-dark .olympiad-section-heading h2 {
+  color: var(--trajectory-color-text);
+  font-family: var(--trajectory-font-family);
+  font-size: 24px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.app-shell.theme-dark .primary-button,
+.app-shell.theme-dark button.primary-button {
+  border: 1px solid transparent;
+  border-radius: var(--trajectory-radius-control);
+  color: var(--trajectory-page-accent-foreground);
+  background: var(--trajectory-page-accent);
+  box-shadow: none;
+  font-family: var(--trajectory-font-family);
+  font-size: 15px;
+  font-weight: 700;
+  transform: none;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.app-shell.theme-dark .primary-button:hover,
+.app-shell.theme-dark button.primary-button:hover {
+  border-color: var(--trajectory-page-accent);
+  color: var(--trajectory-page-accent-foreground);
+  background: color-mix(in srgb, var(--trajectory-page-accent) 88%, #ffffff);
+  box-shadow: none;
+  transform: none;
+}
+
+.app-shell.theme-dark .secondary-button,
+.app-shell.theme-dark button.secondary-button {
+  border: 1px solid var(--trajectory-color-border);
+  border-radius: var(--trajectory-radius-control);
+  color: var(--trajectory-color-text);
+  background: var(--trajectory-color-surface);
+  box-shadow: none;
+  font-family: var(--trajectory-font-family);
+  font-weight: 400;
+  transform: none;
+}
+
+.app-shell.theme-dark .secondary-button:hover,
+.app-shell.theme-dark button.secondary-button:hover {
+  border-color: var(--trajectory-color-border-strong);
+  color: var(--trajectory-color-text);
+  background: var(--trajectory-color-surface-raised);
+  box-shadow: none;
+  transform: none;
+}
+
+.app-shell.theme-dark input,
+.app-shell.theme-dark textarea,
+.app-shell.theme-dark select,
+.app-shell.theme-dark .search-box input {
+  border-radius: var(--trajectory-radius-control);
+  font-family: var(--trajectory-font-family);
+}
+
+.app-shell.theme-dark input:not([type='checkbox']):not([type='radio']),
+.app-shell.theme-dark textarea,
+.app-shell.theme-dark select {
+  border-color: var(--trajectory-color-border);
+}
+
+.app-shell.theme-dark :focus-visible {
+  outline: 2px solid var(--trajectory-page-accent);
+  outline-offset: 2px;
+}
+
+.app-shell.theme-dark .page-empty-state,
+.app-shell.theme-dark .empty-state-icon {
+  border-radius: var(--trajectory-radius-card);
+  box-shadow: none;
+}
+
+.app-shell.theme-dark .mobile-overlay {
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: none;
+}
+
+/* Public pages share the dark neutral base; professions/directions override the accent locally. */
+.public-site {
+  --trajectory-page-accent: var(--trajectory-accent-red);
+  --trajectory-page-accent-foreground: #FFFFFF;
+  color: var(--trajectory-color-text);
+  background: var(--trajectory-color-canvas);
+  font-family: var(--trajectory-font-family);
+}
+
+.public-site .public-header {
+  min-height: 85px;
+  border-bottom: 1px solid var(--trajectory-color-border);
+  background: var(--trajectory-color-canvas);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.public-site .public-brand,
+.public-site .public-nav a,
+.public-site .public-mobile-nav a {
+  font-family: var(--trajectory-font-family);
+}
+
+.public-site .public-button,
+.public-site .public-login-link {
+  border-radius: var(--trajectory-radius-control);
+  font-family: var(--trajectory-font-family);
+}
+
+.public-site .public-button {
+  color: var(--trajectory-page-accent-foreground);
+  background: var(--trajectory-page-accent);
+  box-shadow: none;
+}
+
+.public-site .public-footer {
+  border-top: 1px solid var(--trajectory-color-border);
+  background: var(--trajectory-color-surface);
+  box-shadow: none;
+}
+
+/* Common page rhythm and remove the old blue/purple elevation language. */
+.app-shell.theme-dark .dashboard-container > * + * {
+  --trajectory-local-section-gap: var(--trajectory-section-gap);
+}
+
+.app-shell.theme-dark .welcome-card,
+.app-shell.theme-dark .profile-overview-card,
+.app-shell.theme-dark .ai-panel,
+.app-shell.theme-dark .olympiad-summary-panel,
+.app-shell.theme-dark .olympiad-stages-panel {
+  border-radius: var(--trajectory-radius-card);
+  box-shadow: none;
+}
+
+@media (max-width: 900px) {
+  .app-shell.theme-dark .dashboard-container {
+    padding: 24px 20px 40px;
+  }
+
+  .app-shell.theme-dark .topbar {
+    padding-inline: 20px;
+  }
+}
+
+@media (max-width: 560px) {
+  .app-shell.theme-dark .dashboard-container {
+    padding: 20px 16px 32px;
+  }
+
+  .app-shell.theme-dark .panel {
+    padding: 16px;
+  }
+
+  .public-site .public-header {
+    min-height: 72px;
+  }
+}
+
+/* TRAJECTORY SOFT LIGHT THEME — managed block v1 */
+:root {
+  color-scheme: light;
+  --trajectory-page-accent: var(--trajectory-accent-red);
+  --trajectory-page-accent-foreground: #FFFFFF;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  background: var(--trajectory-color-canvas);
+  color: var(--trajectory-color-text);
+  color-scheme: light;
+}
+
+body,
+button,
+input,
+textarea,
+select {
+  color-scheme: light;
+}
+
+.app-shell.theme-dark {
+  color: var(--trajectory-color-text);
+  background: var(--trajectory-color-canvas);
+  --border-soft: rgba(80, 58, 48, 0.10);
+  --accent-soft: color-mix(in srgb, var(--trajectory-page-accent) 12%, #FFFFFF);
+  --purple-soft: color-mix(in srgb, var(--trajectory-accent-blue) 10%, #FFFFFF);
+  --grid-line: rgba(80, 58, 48, 0.07);
+}
+
+/* Public navigation: readable dark text on a warm, light surface. */
+.public-site {
+  color: var(--trajectory-color-text);
+  background: var(--trajectory-color-canvas);
+  color-scheme: light;
+}
+
+.public-site .public-header {
+  border-bottom: 1px solid var(--trajectory-color-border);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 6px 24px rgba(48, 43, 41, 0.045);
+}
+
+.public-site .public-brand,
+.public-site .public-brand-copy strong,
+.public-site .public-login-link {
+  color: var(--trajectory-color-text);
+}
+
+.public-site .public-brand-copy small {
+  color: var(--trajectory-color-text-muted);
+}
+
+.public-site .public-brand-mark {
+  color: var(--trajectory-accent-red);
+  border-color: #E8D2CE;
+  background: var(--trajectory-accent-soft-red);
+}
+
+.public-site .public-nav a,
+.public-site .public-mobile-nav a {
+  color: var(--trajectory-color-text-secondary);
+  text-decoration: none;
+  transition: color 160ms ease, background-color 160ms ease;
+}
+
+.public-site .public-nav a:hover,
+.public-site .public-mobile-nav a:hover,
+.public-site .public-nav a:focus-visible,
+.public-site .public-mobile-nav a:focus-visible {
+  color: var(--trajectory-accent-red);
+}
+
+.public-site .public-login-link {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.public-site .public-login-link:hover {
+  color: var(--trajectory-accent-red);
+}
+
+.public-site .public-button,
+.public-site .public-button:visited {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 11px 18px;
+  border: 1px solid var(--trajectory-accent-red);
+  border-radius: var(--trajectory-radius-control);
+  color: #FFFFFF;
+  background: var(--trajectory-accent-red);
+  box-shadow: 0 5px 14px rgba(185, 74, 82, 0.16);
+  font-weight: 700;
+  text-decoration: none;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.public-site .public-button:hover {
+  border-color: #9F3E47;
+  color: #FFFFFF;
+  background: #9F3E47;
+  box-shadow: 0 7px 18px rgba(159, 62, 71, 0.20);
+  transform: translateY(-1px);
+}
+
+.public-site .public-button:focus-visible,
+.public-site .public-login-link:focus-visible,
+.public-site .public-nav a:focus-visible,
+.public-site .public-mobile-nav a:focus-visible,
+.public-site .public-menu-toggle:focus-visible,
+.public-site .public-text-link:focus-visible {
+  outline: 3px solid rgba(185, 74, 82, 0.35);
+  outline-offset: 3px;
+}
+
+/* The university link is intentionally rendered as a real secondary CTA. */
+.public-site .public-hero-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.public-site .public-hero-actions .public-text-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 10px 17px;
+  border: 1px solid #E4C2BE;
+  border-radius: var(--trajectory-radius-control);
+  color: #963B43;
+  background: var(--trajectory-accent-soft-red);
+  font-weight: 700;
+  line-height: 1.25;
+  text-decoration: none;
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.public-site .public-hero-actions .public-text-link:hover {
+  border-color: var(--trajectory-accent-red);
+  color: #FFFFFF;
+  background: var(--trajectory-accent-red);
+  transform: translateY(-1px);
+}
+
+.public-site .public-menu-toggle {
+  border: 1px solid var(--trajectory-color-border);
+  border-radius: var(--trajectory-radius-control);
+  color: var(--trajectory-color-text);
+  background: #FFFFFF;
+}
+
+.public-site .public-mobile-nav {
+  border: 1px solid var(--trajectory-color-border);
+  border-radius: 14px;
+  background: #FFFFFF;
+  box-shadow: 0 14px 36px rgba(48, 43, 41, 0.12);
+}
+
+.public-site .public-footer {
+  border-top: 1px solid var(--trajectory-color-border);
+  color: var(--trajectory-color-text-secondary);
+  background: #F1ECE7;
+}
+
+.public-site .public-footer-brand,
+.public-site .public-footer-brand strong {
+  color: var(--trajectory-color-text);
+}
+
+.public-site .public-footer-note {
+  color: var(--trajectory-color-text-muted);
+}
+
+/* Keep the homepage hero soft and readable instead of introducing another dark panel. */
+.public-site .public-hero {
+  color: var(--trajectory-color-text);
+  background: radial-gradient(ellipse at 78% 18%, rgba(249, 233, 230, 0.95) 0%, rgba(249, 233, 230, 0) 47%), var(--trajectory-color-canvas);
+}
+
+.public-site .public-hero h1,
+.public-site .public-hero h2,
+.public-site .public-route-card strong {
+  color: var(--trajectory-color-text);
+}
+
+.public-site .public-hero-description,
+.public-site .public-hero-footnote,
+.public-site .public-route-kicker {
+  color: var(--trajectory-color-text-secondary);
+}
+
+.public-site .public-route-card {
+  border: 1px solid var(--trajectory-color-border);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 18px 48px rgba(48, 43, 41, 0.08);
+}
+
+@media (max-width: 760px) {
+  .public-site .public-hero-actions {
+    align-items: stretch;
+  }
+
+  .public-site .public-hero-actions .public-button,
+  .public-site .public-hero-actions .public-text-link {
+    width: 100%;
+  }
+}
+/* Trajectory UI polish: flat composition, accessible auth controls, privacy page and logo. */
+:root,
+html {
+  color-scheme: light;
+}
+
+/* Remove decorative glow/elevation from buttons across public and app surfaces. */
+:where(.app-shell, .public-site, .auth-page) button {
+  box-shadow: none !important;
+  filter: none !important;
+  text-shadow: none !important;
+}
+
+:where(.app-shell, .public-site, .auth-page) button:hover {
+  box-shadow: none !important;
+  filter: none !important;
+  text-shadow: none !important;
+  transform: none !important;
+}
+
+:where(.app-shell, .public-site, .auth-page) :is(.primary-button, .secondary-button, .public-button, .public-login-link, .auth-submit, .auth-register-cta, .auth-tabs button) {
+  box-shadow: none !important;
+  filter: none !important;
+  text-shadow: none !important;
+}
+
+:where(.app-shell, .public-site, .auth-page) :is(.primary-button, .secondary-button, .public-button, .public-login-link, .auth-submit, .auth-register-cta, .auth-tabs button):hover {
+  box-shadow: none !important;
+  filter: none !important;
+  text-shadow: none !important;
+  transform: none !important;
+}
+
+:where(.app-shell, .public-site, .auth-page) :focus-visible {
+  outline: 2px solid #B94A52;
+  outline-offset: 3px;
+}
+
+/* Flatten actual nested surfaces instead of adding another card around each card. */
+.app-shell.theme-dark :is(.panel, .welcome-card, .profile-overview-card, .ai-panel, .olympiad-summary-panel)
+  :is(.panel, .stat-card, .calendar-reminder-card, .university-compare-card) {
+  border-color: transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.public-site :is(.catalog-detail-panel, .catalog-state-note) .catalog-entry-card {
+  border: 0;
+  border-bottom: 1px solid #E8E0DA;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Public logo supports either a compact symbol or a horizontal wordmark. */
+.public-brand-image {
+  display: block;
+  flex: 0 0 auto;
+  max-width: 42px;
+  max-height: 42px;
+  object-fit: contain;
+}
+.public-brand-image-wordmark {
+  width: min(176px, 28vw);
+  max-width: 176px;
+  max-height: 46px;
+}
+.public-brand-wordmark .public-brand-copy {
+  display: none;
+}
+.public-footer-image {
+  display: block;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+.public-footer-image-wordmark {
+  width: min(150px, 36vw);
+  height: 36px;
+}
+
+.public-footer-privacy {
+  display: inline-flex;
+  width: fit-content;
+  color: #625852;
+  font-size: 13px;
+  text-decoration: underline;
+  text-decoration-color: #CBBDB4;
+  text-underline-offset: 3px;
+}
+.public-footer-privacy:hover {
+  color: #9F3E47;
+}
+
+/* Auth screen: one calm surface, clearly separated tabs, no blue radial glow. */
+.auth-page.app-shell.theme-dark {
+  --bg: #F7F4F0;
+  --bg-secondary: #F7F4F0;
+  --card: #FFFFFF;
+  --border: #E3DAD3;
+  --border-soft: #E8E0DA;
+  --text-heading: #302B29;
+  --text: #403A37;
+  --text-muted: #756B65;
+  --text-subtle: #857B74;
+  --accent: #B94A52;
+  --accent-soft: #F9E9E6;
+  background: #F7F4F0 !important;
+  background-image: none !important;
+  color: #302B29;
+}
+.auth-page .auth-card {
+  border: 1px solid #E8E0DA;
+  border-radius: 18px;
+  background: #FFFFFF;
+  box-shadow: none !important;
+}
+.auth-page .auth-logo {
+  display: grid;
+  overflow: hidden;
+  place-items: center;
+  border: 1px solid #E8D4D0;
+  border-radius: 12px;
+  color: #B94A52;
+  background: #F9E9E6;
+  box-shadow: none !important;
+}
+.auth-page .auth-logo img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.auth-page .auth-logo-wordmark {
+  width: min(190px, 100%);
+  height: 48px;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+}
+.auth-page .auth-tabs {
+  gap: 8px;
+  padding: 5px;
+  border: 1px solid #E8E0DA;
+  border-radius: 12px;
+  background: #F7F4F0;
+}
+.auth-page .auth-tabs button {
+  min-height: 44px;
+  border: 1px solid #D4C9C1;
+  border-radius: 9px;
+  color: #403A37;
+  background: #FFFFFF;
+  font-size: 14px;
+  font-weight: 600;
+}
+.auth-page .auth-tabs button:hover:not(.auth-tab-active) {
+  border-color: #B94A52;
+  color: #8F3740;
+  background: #FFFFFF;
+}
+.auth-page .auth-tabs button.auth-tab-active {
+  border-color: #B94A52;
+  color: #FFFFFF;
+  background: #B94A52;
+  box-shadow: none !important;
+}
+.auth-page .auth-field > span {
+  color: #302B29;
+  font-size: 13px;
+}
+.auth-page .auth-input {
+  border-color: #D8CEC7;
+  border-radius: 9px;
+  color: #756B65;
+  background: #FFFFFF;
+}
+.auth-page .auth-input:focus-within {
+  border-color: #B94A52;
+  box-shadow: none !important;
+}
+.auth-page .auth-input input {
+  color: #302B29;
+  font-size: 14px;
+}
+.auth-page .auth-input input::placeholder {
+  color: #928780;
+}
+.auth-page .auth-submit {
+  min-height: 48px;
+  border: 1px solid #B94A52;
+  border-radius: 9px;
+  color: #FFFFFF;
+  background: #B94A52;
+  box-shadow: none !important;
+}
+.auth-page .auth-submit:hover:not(:disabled) {
+  border-color: #9F3E47;
+  color: #FFFFFF;
+  background: #9F3E47;
+}
+.auth-page .auth-register-cta {
+  min-height: 46px;
+  border: 1px solid #B94A52;
+  border-radius: 9px;
+  color: #963B44;
+  background: #FFFFFF;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: none !important;
+}
+.auth-page .auth-register-cta:hover {
+  border-color: #9F3E47;
+  color: #8F3740;
+  background: #F9E9E6;
+}
+.auth-page .auth-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top-color: #E8E0DA;
+}
+.auth-page .auth-footer span {
+  color: #756B65;
+  font-size: 12px;
+}
+.auth-privacy-link {
+  color: #963B44;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.auth-privacy-link:hover {
+  color: #742C34;
+}
+
+/* Privacy policy page: document-like rhythm, not nested cards. */
+.privacy-page {
+  min-height: 70vh;
+  padding: 36px 0 88px;
+  color: #302B29;
+  background: #F7F4F0;
+  font-family: Roboto, Arial, sans-serif;
+}
+.privacy-container {
+  width: min(900px, calc(100% - 48px));
+  margin: 0 auto;
+}
+.privacy-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #625852;
+  text-decoration: none;
+}
+.privacy-back-link:hover { color: #9F3E47; }
+.privacy-heading {
+  margin: 38px 0 28px;
+}
+.privacy-kicker {
+  color: #A4474E;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .1em;
+}
+.privacy-heading h1 {
+  margin: 10px 0 12px;
+  color: #302B29;
+  font-size: clamp(28px, 4vw, 40px);
+  line-height: 1.15;
+}
+.privacy-heading p,
+.privacy-section p {
+  color: #625852;
+  font-size: 15px;
+  line-height: 1.75;
+}
+.privacy-review-notice {
+  margin: 24px 0;
+  padding: 16px 18px;
+  border-left: 3px solid #B94A52;
+  background: #F9E9E6;
+  color: #302B29;
+}
+.privacy-review-notice strong { display: block; margin-bottom: 6px; }
+.privacy-review-notice p { margin: 0; color: #625852; line-height: 1.65; }
+.privacy-document-meta {
+  margin: 26px 0 10px;
+  color: #857B74;
+  font-size: 13px;
+}
+.privacy-section {
+  padding: 22px 0;
+  border-bottom: 1px solid #E8E0DA;
+}
+.privacy-section h2 {
+  margin: 0 0 10px;
+  color: #302B29;
+  font-size: 19px;
+  font-weight: 600;
+}
+.privacy-section p { margin: 8px 0 0; }
+@media (max-width: 640px) {
+  .privacy-page { padding: 26px 0 60px; }
+  .privacy-container { width: min(100% - 32px, 540px); }
+  .privacy-heading { margin-top: 28px; }
+}

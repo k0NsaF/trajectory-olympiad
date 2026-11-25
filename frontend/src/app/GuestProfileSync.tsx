@@ -3,6 +3,8 @@ import { useEffect, useRef } from 'react'
 
 import { useAuth } from '@/app/providers'
 import { syncGuestProfile } from '@/services/profile.service'
+import { migrateGuestFavoritesToUser } from '@/services/favorites.store'
+import { migrateGuestCalendarSelectionToUser } from '@/services/calendar-selection.store'
 
 export function GuestProfileSync() {
   const { session } = useAuth()
@@ -16,6 +18,11 @@ export function GuestProfileSync() {
     }
 
     lastAttemptedToken.current = accessToken
+    const userId = session?.user?.id
+    if (userId) {
+      migrateGuestFavoritesToUser(userId)
+      migrateGuestCalendarSelectionToUser(userId)
+    }
 
     void syncGuestProfile(accessToken).catch((error: unknown) => {
       lastAttemptedToken.current = null

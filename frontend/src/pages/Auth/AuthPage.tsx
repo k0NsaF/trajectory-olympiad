@@ -1,18 +1,21 @@
 
 import { useState, type FormEvent } from 'react'
 
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
   GraduationCap,
+  Eye,
+  EyeOff,
   LockKeyhole,
   Mail,
   UserRound
 } from 'lucide-react'
 
 import { useAuth } from '@/app/providers'
+import { TRAJECTORY_LOGO_URL, TRAJECTORY_LOGO_MODE } from '@/app/brandAssets'
 import { authService } from '@/services/auth.service'
 
 type AuthMode = 'login' | 'register' | 'reset' | 'new-password'
@@ -34,6 +37,7 @@ export function AuthPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPasswords, setShowPasswords] = useState(false)
 
   const [loading, setLoading] = useState(false)
   const [resending, setResending] = useState(false)
@@ -138,7 +142,7 @@ export function AuthPage() {
         })
 
         if (data.session) {
-          navigate('/trajectory', { replace: true })
+          navigate('/', { replace: true })
         } else {
           setNotice(
             'Аккаунт создан. Проверь электронную почту и перейди по ссылке подтверждения для завершения регистрации.'
@@ -157,7 +161,7 @@ export function AuthPage() {
         })
 
         if (data.session) {
-          navigate('/trajectory', { replace: true })
+          navigate('/', { replace: true })
         }
 
         return
@@ -214,7 +218,7 @@ export function AuthPage() {
 
   const pageDescription =
     mode === 'register'
-      ? 'Создай аккаунт, чтобы сохранять результаты и свою образовательную траекторию.'
+      ? 'Создай аккаунт, чтобы сохранять выбранные варианты и результаты.'
       : mode === 'reset'
         ? 'Укажи электронную почту, и мы отправим ссылку для восстановления доступа.'
         : mode === 'new-password'
@@ -223,7 +227,7 @@ export function AuthPage() {
 
   if (user && mode !== 'new-password') {
     return (
-      <main className="auth-page app-shell theme-dark">
+      <main className="auth-page app-shell theme-light">
         <section className="auth-card">
           <div className="auth-logo">
             <GraduationCap size={27} />
@@ -242,9 +246,9 @@ export function AuthPage() {
           <button
             type="button"
             className="primary-button auth-submit"
-            onClick={() => navigate('/trajectory')}
+            onClick={() => navigate('/')}
           >
-            Перейти к траектории
+            Вернуться на сайт
             <ArrowRight size={17} />
           </button>
 
@@ -283,10 +287,10 @@ export function AuthPage() {
   }
 
   return (
-    <main className="auth-page app-shell theme-dark">
+    <main className="auth-page app-shell theme-light">
       <section className="auth-card">
-        <div className="auth-logo">
-          <GraduationCap size={27} />
+        <div className={`auth-logo auth-logo-${TRAJECTORY_LOGO_MODE}`}>
+          {TRAJECTORY_LOGO_URL ? <img src={TRAJECTORY_LOGO_URL} alt="Trajectory" /> : <GraduationCap size={27} />}
         </div>
 
         <div className="auth-eyebrow">
@@ -382,7 +386,7 @@ export function AuthPage() {
               <div className="auth-input">
                 <LockKeyhole size={17} />
                 <input
-                  type="password"
+                  type={showPasswords ? 'text' : 'password'}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   placeholder="Не менее 8 символов"
@@ -395,6 +399,9 @@ export function AuthPage() {
                   maxLength={128}
                   required
                 />
+                <button type="button" className="auth-password-toggle" onClick={() => setShowPasswords((value) => !value)} aria-label={showPasswords ? 'Скрыть пароль' : 'Показать пароль'} aria-pressed={showPasswords}>
+                  {showPasswords ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
               </div>
             </label>
           )}
@@ -405,7 +412,7 @@ export function AuthPage() {
               <div className="auth-input">
                 <LockKeyhole size={17} />
                 <input
-                  type="password"
+                  type={showPasswords ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
                   placeholder="Повтори пароль"
@@ -414,6 +421,9 @@ export function AuthPage() {
                   maxLength={128}
                   required
                 />
+                <button type="button" className="auth-password-toggle" onClick={() => setShowPasswords((value) => !value)} aria-label={showPasswords ? 'Скрыть пароль' : 'Показать пароль'} aria-pressed={showPasswords}>
+                  {showPasswords ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
               </div>
             </label>
           )}
@@ -489,6 +499,7 @@ export function AuthPage() {
             Продолжая, ты соглашаешься использовать сервис
             в соответствии с его правилами.
           </span>
+          <Link to="/privacy" className="auth-privacy-link">Политика конфиденциальности</Link>
         </div>
       </section>
     </main>

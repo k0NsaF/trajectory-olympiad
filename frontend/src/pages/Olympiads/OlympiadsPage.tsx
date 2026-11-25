@@ -2,15 +2,17 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Award,
+  Bookmark,
   BookOpen,
   CalendarDays,
+  CalendarPlus,
   Check,
   ChevronDown,
   ChevronRight,
-  Clock3,
+  ExternalLink,
   GraduationCap,
+  Info,
   MapPin,
-  Monitor,
   Search,
   SlidersHorizontal,
   X
@@ -19,6 +21,7 @@ import {
 import {
   SUBJECTS,
   type OlympiadFormat,
+  type OlympiadListType,
   type OlympiadStatus,
   type OlympiadWithStatus
 } from '@trajectory/shared'
@@ -39,6 +42,8 @@ import {
   getGuestProfile
 } from '@/services/profile.service'
 import type { CreateProfileInput } from '@trajectory/shared'
+import { readFavorites, subscribeToFavorites, toggleFavorite } from '@/services/favorites.store'
+import { readCalendarOlympiadIds, subscribeToCalendarSelection, toggleCalendarOlympiad } from '@/services/calendar-selection.store'
 import './catalog.css'
 
 const LEVELS = [1, 2, 3, 4] as const
@@ -58,15 +63,19 @@ const STATUS_LABELS: Record<OlympiadStatus, string> = {
   unknown: 'Даты уточняются'
 }
 
-const FORMAT_LABELS: Record<OlympiadFormat, string> = {
-  online: 'Онлайн',
-  offline: 'Очно',
-  mixed: 'Смешанный'
-}
 
 type SortMode = 'date' | 'name' | 'level'
 type FilterStatus = OlympiadStatus | ''
 type FilterFormat = OlympiadFormat | ''
+type PeriodFilter = 'week' | 'month' | 'threeMonths' | 'all'
+type CollectionFilter = 'upcoming' | 'all' | 'closed'
+
+const PERIOD_LABELS: Record<PeriodFilter, string> = {
+  week: 'На этой неделе',
+  month: 'В этом месяце',
+  threeMonths: 'В ближайшие 3 месяца',
+  all: 'Без ограничения'
+}
 
 function parseLocalDate(value: string): Date | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
@@ -82,21 +91,12 @@ function getNextStageDate(olympiad: OlympiadWithStatus): number | null {
   today.setHours(0, 0, 0, 0)
 
   const timestamps = (olympiad.season?.stages ?? [])
-    .flatMap((stage) => [stage.startDate, stage.endDate])
-    .map(parseLocalDate)
+    .map((stage) => parseLocalDate(stage.startDate))
     .filter((date): date is Date => Boolean(date))
     .map((date) => date.getTime())
     .filter((timestamp) => timestamp >= today.getTime())
 
   return timestamps.length > 0 ? Math.min(...timestamps) : null
-}
-
-function formatDate(timestamp: number): string {
-  return new Intl.DateTimeFormat('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  }).format(new Date(timestamp))
 }
 
 function formatDateCompact(timestamp: number): string {
@@ -106,27 +106,42 @@ function formatDateCompact(timestamp: number): string {
   }).format(new Date(timestamp))
 }
 
-function getFormats(olympiad: OlympiadWithStatus): OlympiadFormat[] {
-  return [...new Set((olympiad.season?.stages ?? []).map((stage) => stage.format))]
-}
+function isInPeriod(olympiad: OlympiadWithStatus, period: PeriodFilter): boolean {
+  if (period === 'all') return true
 
-function getNextRegistration(olympiad: OlympiadWithStatus): string | null {
+  const nextDate = getNextStageDate(olympiad)
+  if (nextDate === null) return false
+
   const today = new Date()
   today.setHours(0, 0, 0, 0)
+  const target = new Date(nextDate)
 
-  const future = (olympiad.season?.stages ?? [])
-    .filter((stage) => stage.type === 'registration')
-    .map((stage) => parseLocalDate(stage.startDate))
-    .filter((date): date is Date => date !== null && date.getTime() >= today.getTime())
-    .sort((first, second) => first.getTime() - second.getTime())[0]
+  if (period === 'week') {
+    const weekStart = new Date(today)
+    weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7))
+    const weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekEnd.getDate() + 7)
+    return target >= today && target < weekEnd
+  }
 
-  return future ? formatDateCompact(future.getTime()) : null
+  if (period === 'month') {
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 1)
+    return target >= today && target < monthEnd
+  }
+
+  const threeMonthEnd = new Date(today)
+  threeMonthEnd.setMonth(threeMonthEnd.getMonth() + 3)
+  return target >= today && target < threeMonthEnd
 }
 
-function getBenefitLabel(rightType: string): string {
-  if (rightType === 'BVI') return 'БВИ'
-  if (rightType === '100_points') return '100 баллов'
-  return 'Доп. баллы'
+function safeHttpUrl(value?: string): string | null {
+  if (!value?.trim()) return null
+  try {
+    const url = new URL(value.trim())
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null
+  } catch {
+    return null
+  }
 }
 
 function getAdmissionYearForGrade(grade: number): number {
@@ -146,21 +161,38 @@ function toggleValue(values: string[], value: string): string[] {
 
 export function OlympiadsPage() {
   const { searchQuery, setSearchQuery } = useAppLayout()
-  const { session } = useAuth()
+  const { session, user } = useAuth()
+  const storageScope = user?.id ? `user:${user.id}` : 'guest'
+  const [favoriteIds, setFavoriteIds] = useState<string[]>(() => readFavorites(storageScope).filter((entry) => entry.kind === 'olympiad').map((entry) => entry.id))
+  const [calendarIds, setCalendarIds] = useState<string[]>(() => readCalendarOlympiadIds(storageScope))
 
-  const [profile, setProfile] = useState<CreateProfileInput | null>(() => getGuestProfile())
+  const guestProfile = useMemo(() => getGuestProfile(), [])
+  const [profile, setProfile] = useState<CreateProfileInput | null>(() => guestProfile)
   const [profileLoading, setProfileLoading] = useState(false)
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery)
-  const [subjects, setSubjects] = useState<string[]>([])
+  const [subjects, setSubjects] = useState<string[]>(() => guestProfile?.subjects ?? [])
   const [grade, setGrade] = useState('')
   const [level, setLevel] = useState('')
   const [status, setStatus] = useState<FilterStatus>('')
   const [format, setFormat] = useState<FilterFormat>('')
+  const [period, setPeriod] = useState<PeriodFilter>('all')
+  const [collection, setCollection] = useState<CollectionFilter>('upcoming')
+  const [listType, setListType] = useState<OlympiadListType>('school_olympiad')
   const [onlyWithBenefits, setOnlyWithBenefits] = useState(false)
   const [onlyTargetUniversity, setOnlyTargetUniversity] = useState(false)
   const [onlyMyRegion, setOnlyMyRegion] = useState(false)
-  const [sortBy, setSortBy] = useState<SortMode>('date')
+  const [sortBy, setSortBy] = useState<SortMode>('level')
   const [filtersOpen, setFiltersOpen] = useState(false)
+
+  useEffect(() => {
+    setFavoriteIds(readFavorites(storageScope).filter((entry) => entry.kind === 'olympiad').map((entry) => entry.id))
+    return subscribeToFavorites(storageScope, () => setFavoriteIds(readFavorites(storageScope).filter((entry) => entry.kind === 'olympiad').map((entry) => entry.id)))
+  }, [storageScope])
+
+  useEffect(() => {
+    setCalendarIds(readCalendarOlympiadIds(storageScope))
+    return subscribeToCalendarSelection(storageScope, () => setCalendarIds(readCalendarOlympiadIds(storageScope)))
+  }, [storageScope])
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(searchQuery), 300)
@@ -171,7 +203,8 @@ export function OlympiadsPage() {
     let active = true
 
     if (!session?.access_token) {
-      setProfile(getGuestProfile())
+      setProfile(guestProfile)
+      setSubjects(guestProfile?.subjects ?? [])
       setProfileLoading(false)
       return
     }
@@ -179,10 +212,16 @@ export function OlympiadsPage() {
     setProfileLoading(true)
     void getAuthenticatedProfile(session.access_token)
       .then((savedProfile) => {
-        if (active) setProfile(savedProfile ?? getGuestProfile())
+        if (!active) return
+        const nextProfile = savedProfile ?? guestProfile
+        setProfile(nextProfile)
+        setSubjects(nextProfile?.subjects ?? [])
       })
       .catch(() => {
-        if (active) setProfile(getGuestProfile())
+        if (active) {
+          setProfile(guestProfile)
+          setSubjects(guestProfile?.subjects ?? [])
+        }
       })
       .finally(() => {
         if (active) setProfileLoading(false)
@@ -191,19 +230,15 @@ export function OlympiadsPage() {
     return () => {
       active = false
     }
-  }, [session?.access_token])
+  }, [session?.access_token, guestProfile])
 
   useEffect(() => {
     if (profile?.grade) setGrade(String(profile.grade))
   }, [profile?.grade])
 
   const subjectKey = subjects.join(',')
-  const targetUniversityId = onlyTargetUniversity
-    ? profile?.targetUniversityId
-    : undefined
-  const targetProgramId = onlyTargetUniversity
-    ? profile?.targetProgramId
-    : undefined
+  const targetUniversityId = onlyTargetUniversity ? profile?.targetUniversityId : undefined
+  const targetProgramId = onlyTargetUniversity ? profile?.targetProgramId : undefined
   const targetRegion = onlyMyRegion ? profile?.region : undefined
   const admissionGrade = grade ? Number(grade) : profile?.grade ?? 11
   const benefitYear = getAdmissionYearForGrade(admissionGrade)
@@ -214,6 +249,7 @@ export function OlympiadsPage() {
       subjects: subjectKey ? subjectKey.split(',') : undefined,
       grade: grade ? Number(grade) : undefined,
       level: level ? Number(level) : undefined,
+      listType,
       status: status || undefined,
       format: format || undefined,
       region: targetRegion,
@@ -229,6 +265,7 @@ export function OlympiadsPage() {
     subjectKey,
     grade,
     level,
+    listType,
     status,
     format,
     targetRegion,
@@ -246,33 +283,43 @@ export function OlympiadsPage() {
     reload
   } = useAsyncData(loadOlympiads, [])
 
+  const collectionCounts = useMemo(() => ({
+    upcoming: (olympiads ?? []).filter((item) => item.status !== 'closed').length,
+    all: olympiads?.length ?? 0,
+    closed: (olympiads ?? []).filter((item) => item.status === 'closed').length
+  }), [olympiads])
+
   const visibleOlympiads = useMemo(() => {
-    const result = [...(olympiads ?? [])]
+    const result = (olympiads ?? []).filter((olympiad) => {
+      if (collection === 'upcoming' && olympiad.status === 'closed') return false
+      if (collection === 'closed' && olympiad.status !== 'closed') return false
+      return isInPeriod(olympiad, period)
+    })
 
     result.sort((first, second) => {
-      if (sortBy === 'name') {
-        return first.name.localeCompare(second.name, 'ru')
-      }
-
+      if (sortBy === 'name') return first.name.localeCompare(second.name, 'ru')
       if (sortBy === 'level') {
-        const firstLevel = first.level ?? Number.MAX_SAFE_INTEGER
-        const secondLevel = second.level ?? Number.MAX_SAFE_INTEGER
-        return firstLevel - secondLevel
+        const firstOfficial = first.sourceStatus === 'official' ? 0 : 1
+        const secondOfficial = second.sourceStatus === 'official' ? 0 : 1
+        if (firstOfficial !== secondOfficial) return firstOfficial - secondOfficial
+        if (firstOfficial === 0) {
+          const firstLevel = first.level ?? Number.MAX_SAFE_INTEGER
+          const secondLevel = second.level ?? Number.MAX_SAFE_INTEGER
+          if (firstLevel !== secondLevel) return firstLevel - secondLevel
+        }
+        return first.name.localeCompare(second.name, 'ru')
       }
 
       const firstDate = getNextStageDate(first)
       const secondDate = getNextStageDate(second)
-
-      if (firstDate === null && secondDate === null) {
-        return first.name.localeCompare(second.name, 'ru')
-      }
+      if (firstDate === null && secondDate === null) return first.name.localeCompare(second.name, 'ru')
       if (firstDate === null) return 1
       if (secondDate === null) return -1
       return firstDate - secondDate
     })
 
     return result
-  }, [olympiads, sortBy])
+  }, [olympiads, sortBy, collection, period])
 
   const activeFiltersCount = [
     subjects.length > 0,
@@ -280,37 +327,59 @@ export function OlympiadsPage() {
     Boolean(level),
     Boolean(status),
     Boolean(format),
+    period !== 'all',
+    collection !== 'upcoming',
     onlyWithBenefits,
     onlyTargetUniversity,
     onlyMyRegion
   ].filter(Boolean).length
 
-  const hasFilters = Boolean(
-    searchQuery.trim() || activeFiltersCount > 0 || sortBy !== 'date'
-  )
+  const hasFilters = Boolean(searchQuery.trim() || activeFiltersCount > 0 || sortBy !== 'level')
 
   const clearFilters = () => {
     setSearchQuery('')
-    setSubjects([])
+    setSubjects(profile?.subjects ?? [])
     setGrade(profile?.grade ? String(profile.grade) : '')
     setLevel('')
     setStatus('')
     setFormat('')
+    setPeriod('all')
+    setCollection('upcoming')
     setOnlyWithBenefits(false)
     setOnlyTargetUniversity(false)
     setOnlyMyRegion(false)
-    setSortBy('date')
+    setSortBy('level')
   }
 
   const closeFilters = () => setFiltersOpen(false)
+
+  const handleFavorite = (id: string) => {
+    toggleFavorite(storageScope, 'olympiad', id)
+    setFavoriteIds(readFavorites(storageScope).filter((entry) => entry.kind === 'olympiad').map((entry) => entry.id))
+  }
+
+  const handleCalendarSelection = (id: string) => {
+    toggleCalendarOlympiad(storageScope, id)
+    setCalendarIds(readCalendarOlympiadIds(storageScope))
+  }
 
   return (
     <div className="dashboard-container catalog-page">
       <PageHeader
         eyebrow="ВОЗМОЖНОСТИ ДЛЯ ТВОЕГО РОСТА"
-        title="Каталог олимпиад"
-        description="Найди соревнования по своим предметам, проверь сроки и узнай о подтверждённых льготах."
+        title={listType === 'school_olympiad' ? 'Каталог олимпиад школьников' : 'Иные интеллектуальные и творческие конкурсы'}
+        description={listType === 'school_olympiad' ? 'Подбирай олимпиады по предметам и классу, следи за этапами и проверяй условия поступления по документам выбранного вуза.' : 'Отдельный каталог интеллектуальных и творческих конкурсов из перечня Минпросвещения. Он помогает находить мероприятия, но сам по себе не подтверждает особые права при поступлении.'}
       />
+
+      <nav className="olympiad-list-tabs" aria-label="Официальные перечни мероприятий">
+        <button type="button" className={listType === 'school_olympiad' ? 'is-active' : ''} onClick={() => { setListType('school_olympiad'); setOnlyWithBenefits(false); setOnlyTargetUniversity(false); setLevel('') }} aria-pressed={listType === 'school_olympiad'}>Олимпиады школьников</button>
+        <button type="button" className={listType === 'intellectual_competition' ? 'is-active' : ''} onClick={() => { setListType('intellectual_competition'); setOnlyWithBenefits(false); setOnlyTargetUniversity(false); setLevel('') }} aria-pressed={listType === 'intellectual_competition'}>Иные интеллектуальные и творческие конкурсы</button>
+      </nav>
+      {listType === 'intellectual_competition' ? (
+        <div className="olympiad-list-legal-note"><Info size={16} />Это отдельный перечень Минпросвещения. Сам факт включения конкурса в него не предоставляет особых прав при поступлении в вуз.</div>
+      ) : (
+        <div className="olympiad-list-legal-note"><Info size={16} />Официальный перечень олимпиад школьников утверждается Минобрнауки. Уровень и включение каждой записи должны быть подтверждены документом; особые права устанавливает вуз в локальном акте для года и программы.</div>
+      )}
 
       <section className="panel catalog-panel catalog-panel-enhanced">
         <div className="catalog-search-row">
@@ -324,11 +393,7 @@ export function OlympiadsPage() {
               aria-label="Поиск олимпиад"
             />
             {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                aria-label="Очистить поиск"
-              >
+              <button type="button" onClick={() => setSearchQuery('')} aria-label="Очистить поиск">
                 <X size={16} />
               </button>
             )}
@@ -343,9 +408,7 @@ export function OlympiadsPage() {
           >
             <SlidersHorizontal size={17} />
             Фильтры
-            {activeFiltersCount > 0 && (
-              <span className="catalog-filter-count">{activeFiltersCount}</span>
-            )}
+            {activeFiltersCount > 0 && <span className="catalog-filter-count">{activeFiltersCount}</span>}
             <ChevronDown size={15} />
           </button>
         </div>
@@ -353,7 +416,7 @@ export function OlympiadsPage() {
         <div className="catalog-subject-filter">
           <div className="catalog-filter-heading">
             <strong>Предметы</strong>
-            <span>Можно выбрать несколько</span>
+            <span>{subjects.length ? 'Выбраны предметы из твоего профиля — можно изменить подбор' : 'Можно выбрать несколько'}</span>
           </div>
           <div className="catalog-chip-row">
             <button
@@ -382,33 +445,58 @@ export function OlympiadsPage() {
           </div>
         </div>
 
+        <div className="catalog-period-filter">
+          <div className="catalog-filter-heading">
+            <strong>Период проведения</strong>
+            <span>Выбери, насколько далеко смотреть</span>
+          </div>
+          <div className="catalog-chip-row catalog-period-chips">
+            {(Object.keys(PERIOD_LABELS) as PeriodFilter[]).map((value) => (
+              <button
+                type="button"
+                key={value}
+                className={`catalog-chip${period === value ? ' is-selected' : ''}`}
+                aria-pressed={period === value}
+                onClick={() => setPeriod(value)}
+              >
+                {PERIOD_LABELS[value]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="catalog-collection-tabs" role="group" aria-label="Разделы каталога">
+          <button type="button" className={collection === 'upcoming' ? 'is-active' : ''} onClick={() => { setCollection('upcoming'); setStatus('') }} aria-pressed={collection === 'upcoming'}>
+            Ближайшие <span>{collectionCounts.upcoming}</span>
+          </button>
+          <button type="button" className={collection === 'all' ? 'is-active' : ''} onClick={() => { setCollection('all'); setStatus('') }} aria-pressed={collection === 'all'}>
+            {listType === 'school_olympiad' ? 'Все олимпиады' : 'Все конкурсы'} <span>{collectionCounts.all}</span>
+          </button>
+          <button type="button" className={collection === 'closed' ? 'is-active' : ''} onClick={() => { setCollection('closed'); setStatus('') }} aria-pressed={collection === 'closed'}>
+            Регистрация завершена <span>{collectionCounts.closed}</span>
+          </button>
+        </div>
+        <p className="catalog-collection-note">В завершённом разделе собраны олимпиады, на которые регистрация уже закрыта, даже если отдельные этапы ещё впереди.</p>
+
         <div className="catalog-results-bar catalog-results-bar-enhanced">
           <div className="catalog-results-count">
-            Найдено олимпиад: <strong>{visibleOlympiads.length}</strong>
-            {profile?.region && (
-              <span className="catalog-profile-context">
-                <MapPin size={13} /> {profile.region}
-              </span>
-            )}
+            Найдено {listType === 'school_olympiad' ? 'олимпиад' : 'конкурсов'}: <strong>{visibleOlympiads.length}</strong>
+            {profile?.region && <span className="catalog-profile-context"><MapPin size={13} /> {profile.region}</span>}
             {profileLoading && <span className="catalog-profile-loading">Загружаем профиль…</span>}
           </div>
 
           <div className="catalog-results-actions">
             <label className="catalog-sort-select">
               <span>Сортировка</span>
-              <select
-                value={sortBy}
-                onChange={(event) => setSortBy(event.target.value as SortMode)}
-              >
+              <select value={sortBy} onChange={(event) => setSortBy(event.target.value as SortMode)}>
                 <option value="date">По ближайшим датам</option>
                 <option value="name">По названию</option>
-                <option value="level">По уровню</option>
+                <option value="level">Сначала проверенные записи, затем уровень</option>
               </select>
             </label>
             {hasFilters && (
               <button type="button" className="catalog-reset-button" onClick={clearFilters}>
-                <X size={14} />
-                Сбросить
+                <X size={14} /> Сбросить
               </button>
             )}
           </div>
@@ -446,7 +534,7 @@ export function OlympiadsPage() {
                   </div>
                 </div>
 
-                <div className="catalog-filter-group">
+                {listType === 'school_olympiad' && <div className="catalog-filter-group">
                   <div className="catalog-filter-heading"><strong>Уровень олимпиады</strong></div>
                   <div className="catalog-chip-row">
                     <button type="button" className={`catalog-chip${!level ? ' is-selected' : ''}`} onClick={() => setLevel('')} aria-pressed={!level}>Любой</button>
@@ -454,16 +542,21 @@ export function OlympiadsPage() {
                       <button key={item} type="button" className={`catalog-chip${level === String(item) ? ' is-selected' : ''}`} onClick={() => setLevel(String(item))} aria-pressed={level === String(item)}>{LEVEL_LABELS[item]}</button>
                     ))}
                   </div>
-                </div>
+                </div>}
 
                 <div className="catalog-filter-grid">
                   <label className="catalog-filter-select">
                     <span>Статус регистрации</span>
-                    <select value={status} onChange={(event) => setStatus(event.target.value as FilterStatus)}>
+                    <select value={status} onChange={(event) => {
+                      const nextStatus = event.target.value as FilterStatus
+                      setStatus(nextStatus)
+                      if (nextStatus === 'closed') setCollection('closed')
+                      else if (nextStatus) setCollection('all')
+                    }}>
                       <option value="">Любой статус</option>
                       <option value="eligible">Открыта</option>
                       <option value="upcoming">Скоро</option>
-                      <option value="closed">Закрыта</option>
+                      <option value="closed">Завершена</option>
                       <option value="unknown">Даты уточняются</option>
                     </select>
                   </label>
@@ -479,7 +572,7 @@ export function OlympiadsPage() {
                   </label>
                 </div>
 
-                <div className="catalog-filter-toggles">
+                {listType === 'school_olympiad' && <div className="catalog-filter-toggles">
                   <label className="catalog-filter-toggle">
                     <span className="catalog-filter-toggle-icon"><Award size={17} /></span>
                     <span><strong>Только с подтверждёнными льготами</strong><small>Учитываются только официальные условия на {benefitYear} год для {admissionGrade} класса</small></span>
@@ -497,7 +590,7 @@ export function OlympiadsPage() {
                     <span><strong>Учитывать мой регион</strong><small>{profile?.region ?? 'Регион не указан в профиле'}</small></span>
                     <input type="checkbox" checked={onlyMyRegion} disabled={!profile?.region} onChange={(event) => setOnlyMyRegion(event.target.checked)} />
                   </label>
-                </div>
+                </div>}
               </div>
 
               <div className="catalog-filter-sheet-footer">
@@ -513,8 +606,7 @@ export function OlympiadsPage() {
                   Сбросить фильтры
                 </button>
                 <button type="button" className="primary-button" onClick={closeFilters}>
-                  Показать результаты
-                  <ChevronRight size={16} />
+                  Показать результаты <ChevronRight size={16} />
                 </button>
               </div>
             </section>
@@ -529,67 +621,37 @@ export function OlympiadsPage() {
           <EmptyState
             icon={<BookOpen size={25} />}
             title="Пока ничего не нашли"
-            description="Попробуй изменить фильтры или класс. Можно сбросить условия поиска и посмотреть весь каталог."
+            description={listType === 'intellectual_competition' ? 'Записи второго перечня ещё не импортированы в базу. Мы не будем заполнять каталог вымышленными конкурсами: после загрузки официального реестра они появятся здесь отдельно.' : 'Попробуй изменить предметы, период или фильтры. Часть существующих записей ещё проходит сверку с официальными документами; это отмечено в карточках.'}
           />
         ) : (
           <div className="catalog-list catalog-list-enhanced">
             {visibleOlympiads.map((olympiad) => {
               const nextDate = getNextStageDate(olympiad)
-              const formats = getFormats(olympiad)
-              const nextRegistration = getNextRegistration(olympiad)
 
               return (
-                <article className="catalog-card catalog-card-enhanced" key={olympiad.id}>
-                  <div className="catalog-card-icon"><BookOpen size={22} /></div>
-
+                <article className="catalog-card catalog-card-enhanced olympiad-compact-card" key={olympiad.id}>
                   <div className="catalog-card-content">
-                    <div className="catalog-card-topline">
-                      <span className={`status-pill status-${olympiad.status}`}>
-                        {STATUS_LABELS[olympiad.status]}
-                      </span>
-                      <span className="catalog-level">
-                        {olympiad.level !== null ? LEVEL_LABELS[olympiad.level] : 'Уровень уточняется'}
-                      </span>
+                    <p className="catalog-organizer">{olympiad.organizer || 'Организатор уточняется'}</p>
+                    <h2><Link to={`/olympiads/${encodeURIComponent(olympiad.id)}`}>{olympiad.name}</Link></h2>
+                    <div className="olympiad-compact-meta">
+                      <span className={`status-pill status-${olympiad.status}`}>{STATUS_LABELS[olympiad.status]}</span>
+                      {olympiad.listType === 'school_olympiad' ? (
+                        <span className="catalog-level">{olympiad.level !== null ? (olympiad.sourceStatus === 'official' ? `Уровень ${LEVEL_LABELS[olympiad.level]}` : `Уровень ${LEVEL_LABELS[olympiad.level]} · проверяется`) : 'Уровень не указан'}</span>
+                      ) : <span className="catalog-level">Уровень не применяется</span>}
+                      {olympiad.officialListNumber != null && olympiad.sourceStatus === 'official' && <span>№ {olympiad.officialListNumber} в перечне</span>}
+                      <span className={`olympiad-source-status${olympiad.sourceStatus === 'official' ? ' is-official' : ''}`}>{olympiad.sourceStatus === 'official' ? 'Источник проверен' : 'Требует проверки'}</span>
+                      {olympiad.grades.length > 0 && <span>Классы: {olympiad.grades.join(', ')}</span>}
+                      {nextDate !== null && <span><CalendarDays size={14} /> Ближайший этап: {formatDateCompact(nextDate)}</span>}
                     </div>
-
-                    <h2>{olympiad.name}</h2>
-                    <p className="catalog-organizer">Организатор: {olympiad.organizer}</p>
-                    {olympiad.description && <p className="catalog-description">{olympiad.description}</p>}
-
-                    <div className="tag-list">
-                      {olympiad.subjects.map((id) => {
-                        const item = SUBJECTS.find((subjectItem) => subjectItem.id === id)
-                        return <span className="subject-tag" key={id}>{item?.label ?? id}</span>
-                      })}
+                    <div className="tag-list olympiad-compact-subjects">
+                      {olympiad.subjects.slice(0, 4).map((id) => <span className="subject-tag" key={id}>{SUBJECTS.find((item) => item.id === id)?.label ?? id}</span>)}
+                      {olympiad.subjects.length > 4 && <span className="subject-tag">+{olympiad.subjects.length - 4}</span>}
                     </div>
-
-                    <div className="catalog-card-facts">
-                      <span><GraduationCap size={14} /> Классы: {olympiad.grades.length ? olympiad.grades.join(', ') : 'уточняются'}</span>
-                      <span><Monitor size={14} /> {formats.length ? formats.map((item) => FORMAT_LABELS[item]).join(' / ') : 'Формат уточняется'}</span>
-                      {nextDate !== null && <span><CalendarDays size={14} /> Ближайший этап: {formatDate(nextDate)}</span>}
-                      {nextRegistration && <span><Clock3 size={14} /> Регистрация: {nextRegistration}</span>}
-                    </div>
-
-                    {olympiad.benefits.length > 0 ? (
-                      <div className="catalog-benefit-preview">
-                        <div className="catalog-benefit-preview-title"><Award size={15} /> Подтверждённые льготы на {olympiad.benefitYear} год</div>
-                        <div className="catalog-benefit-tags">
-                          {[...new Set(olympiad.benefits.map((benefit) => getBenefitLabel(benefit.rightType)))].map((label) => (
-                            <span className="catalog-benefit-tag" key={label}>{label}</span>
-                          ))}
-                          <span className="catalog-benefit-universities">{[...new Set(olympiad.benefits.map((benefit) => benefit.universityShortName))].join(', ')}</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="catalog-benefit-empty">Подтверждённые льготы на {olympiad.benefitYear} год пока не найдены</div>
-                    )}
-
-                    <div className="catalog-card-footer">
-                      <span className="catalog-card-season">{olympiad.season?.academicYear ?? 'Сезон не опубликован'}</span>
-                      <Link className="catalog-details-link" to={`/olympiads/${encodeURIComponent(olympiad.id)}`}>
-                        Подробнее об олимпиаде
-                        <ChevronRight size={16} />
-                      </Link>
+                    {safeHttpUrl(olympiad.sourceDocumentUrl) && <a className="olympiad-source-link" href={safeHttpUrl(olympiad.sourceDocumentUrl) ?? undefined} target="_blank" rel="noopener noreferrer">{olympiad.sourceDocumentTitle || 'Официальный документ перечня'} <ExternalLink size={12} /></a>}
+                    <div className="catalog-card-footer olympiad-compact-actions">
+                      <Link className="catalog-details-link" to={`/olympiads/${encodeURIComponent(olympiad.id)}`}>Подробности <ChevronRight size={16} /></Link>
+                      <button type="button" className={`olympiad-save-action${favoriteIds.includes(olympiad.id) ? ' is-active' : ''}`} onClick={() => handleFavorite(olympiad.id)} aria-pressed={favoriteIds.includes(olympiad.id)}><Bookmark size={15} />{favoriteIds.includes(olympiad.id) ? 'В избранном' : 'В избранное'}</button>
+                      <button type="button" className={`olympiad-save-action${calendarIds.includes(olympiad.id) ? ' is-active' : ''}`} onClick={() => handleCalendarSelection(olympiad.id)} aria-pressed={calendarIds.includes(olympiad.id)}><CalendarPlus size={15} />{calendarIds.includes(olympiad.id) ? 'В календаре' : 'В календарь'}</button>
                     </div>
                   </div>
                 </article>
@@ -600,7 +662,7 @@ export function OlympiadsPage() {
       </section>
 
       <p className="catalog-legal-note">
-        Информация о льготах носит справочный характер. Перед поступлением проверяй локальные акты выбранного вуза и официальные документы организаторов.
+        Сортировка выполняется по уровню официального перечня, а не по пользовательскому рейтингу: подтверждённого рейтинга в базе пока нет. Включение в перечень само по себе не гарантирует льготу. Особые права устанавливаются каждым вузом в локальном акте для конкретной программы и года.
       </p>
     </div>
   )

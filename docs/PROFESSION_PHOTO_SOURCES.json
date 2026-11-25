@@ -1,0 +1,64 @@
+{
+  "provider": "Pexels",
+  "license_page": "https://www.pexels.com/license/",
+  "license_checked": "2026-11-24",
+  "note": "Pexels states that photos/videos are free to use, attribution is not required; do not imply endorsement by identifiable people. Trajectory loads the selected originals from the Pexels CDN. Check the license page again before major redistribution or if content is changed by the photographer.",
+  "photos": [
+    {
+      "slug": "software-developer",
+      "label": "Разработчик ПО",
+      "photographer": "Zayed Hossain",
+      "source_page": "https://www.pexels.com/photo/developer-working-on-code-in-a-modern-office-36706460/",
+      "image_url": "https://images.pexels.com/photos/36706460/pexels-photo-36706460.jpeg?cs=srgb&dl=pexels-zayedhossain120-36706460.jpg&fm=jpg",
+      "fit": "contain subject; cover crop"
+    },
+    {
+      "slug": "data-analyst",
+      "label": "Аналитик данных",
+      "photographer": "RDNE Stock project",
+      "source_page": "https://www.pexels.com/photo/woman-working-with-documents-in-office-9034246/",
+      "image_url": "https://images.pexels.com/photos/9034246/pexels-photo-9034246.jpeg?cs=srgb&dl=pexels-rdne-9034246.jpg&fm=jpg",
+      "fit": "portrait; cover crop"
+    },
+    {
+      "slug": "cybersecurity-specialist",
+      "label": "Специалист по кибербезопасности",
+      "photographer": "cottonbro studio",
+      "source_page": "https://www.pexels.com/photo/woman-using-a-computer-5473298/",
+      "image_url": "https://images.pexels.com/photos/5473298/pexels-photo-5473298.jpeg?cs=srgb&dl=pexels-cottonbro-5473298.jpg&fm=jpg",
+      "fit": "IT specialist using multiple screens with code; cover crop"
+    },
+    {
+      "slug": "architect",
+      "label": "Архитектор",
+      "photographer": "Tima Miroshnichenko",
+      "source_page": "https://www.pexels.com/photo/man-person-people-creative-6615281/",
+      "image_url": "https://images.pexels.com/photos/6615281/pexels-photo-6615281.jpeg?cs=srgb&dl=pexels-tima-miroshnichenko-6615281.jpg&fm=jpg",
+      "fit": "model/architectural workspace; cover crop"
+    },
+    {
+      "slug": "economist",
+      "label": "Экономист",
+      "photographer": "AlphaTradeZone",
+      "source_page": "https://www.pexels.com/photo/man-working-on-a-computer-with-three-monitors-5833758/",
+      "image_url": "https://images.pexels.com/photos/5833758/pexels-photo-5833758.jpeg?cs=srgb&dl=pexels-alphatradezone-5833758.jpg&fm=jpg",
+      "fit": "financial charts and multi-monitor workstation; cover crop"
+    },
+    {
+      "slug": "lawyer",
+      "label": "Юрист",
+      "photographer": "Karola G",
+      "source_page": "https://www.pexels.com/photo/a-woman-reading-documents-while-sitting-at-the-desk-in-the-office-7875863/",
+      "image_url": "https://images.pexels.com/photos/7875863/pexels-photo-7875863.jpeg?cs=srgb&dl=pexels-karola-g-7875863.jpg&fm=jpg",
+      "fit": "legal documents / desk; cover crop"
+    },
+    {
+      "slug": "electronics-engineer",
+      "label": "Инженер-электронщик",
+      "photographer": "Willquezada",
+      "source_page": "https://www.pexels.com/photo/technician-at-work-11679113/",
+      "image_url": "https://images.pexels.com/photos/11679113/pexels-photo-11679113.jpeg?cs=srgb&dl=pexels-willquezada-904402-11679113.jpg&fm=jpg",
+      "fit": "circuit board close-up; cover crop"
+    }
+  ]
+}

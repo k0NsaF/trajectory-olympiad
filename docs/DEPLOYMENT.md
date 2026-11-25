@@ -10,37 +10,16 @@
 
 Не создавай новую базу данных в Render. Проект уже использует Supabase.
 
-## 0. Подготовка репозитория
+## Рабочий процесс Git и автоматические публикации
 
-1. Создай пустой репозиторий GitHub. Не добавляй на GitHub README, License или .gitignore, если будешь загружать уже существующий проект.
-2. Открой PowerShell в корневой папке проекта.
-3. Если Git ещё не инициализирован, выполни:
+- `trajectory-v2` — рабочая ветка для разработки и проверки изменений.
+- `main` — production-ветка; опубликованные сервисы должны отслеживать её.
+- GitHub Actions запускает `typecheck`, production build и тесты при push и Pull Request.
+- Render настроен на `main` и должен выполнять deploy только после успешных CI-проверок (`autoDeployTrigger: checksPass`).
+- Vercel использует `main` как production branch; push в `trajectory-v2` создаёт Preview, merge в `main` — Production deployment.
 
-```powershell
-git init
-git add .
-git status --short
-```
+Обычный цикл: внести изменения в `trajectory-v2` → push → дождаться GitHub Actions → открыть Pull Request в `main` → проверить Preview → merge. После успешных CI-проверок Render и Vercel обновляют production. Не редактируй файлы непосредственно в GitHub Web Editor, если параллельно работаешь с локальным клоном: сначала синхронизируй `git pull`.
 
-Перед коммитом убедись, что `backend/.env` и `frontend/.env` НЕ отображаются среди добавленных файлов. В проекте `.gitignore` исключает `.env` и `.env.*`.
-
-Если эти файлы когда-либо были добавлены в Git ранее, одного `.gitignore` недостаточно. Убери их из индекса:
-
-```powershell
-git rm --cached backend/.env frontend/.env
-```
-
-Затем проверь статус и отправь проект:
-
-```powershell
-git add .
-git commit -m "Prepare production deployment"
-git branch -M main
-git remote add origin https://github.com/USERNAME/REPOSITORY.git
-git push -u origin main
-```
-
-Замени `USERNAME/REPOSITORY` на адрес своего пустого репозитория. Если `origin` уже существует, вместо `git remote add origin` используй `git remote set-url origin ...`.
 
 ## 1. Разверни backend на Render
 
@@ -78,7 +57,7 @@ Render Free засыпает после 15 минут без входящего 
    - `VITE_SUPABASE_PUBLISHABLE_KEY` — тот же Supabase Publishable key.
 6. Нажми Deploy. После успешной сборки скопируй production URL Vercel.
 
-`vercel.json` уже содержит SPA rewrite на `/index.html`, поэтому прямое открытие маршрутов React Router (например `/trajectory`, `/profile`, `/universities`) должно возвращать приложение, а не 404.
+`vercel.json` уже содержит SPA rewrite на `/index.html`, поэтому прямое открытие маршрутов React Router (например `/olympiads`, `/calendar`, `/universities`) должно возвращать приложение, а не 404.
 
 ## 3. Заверши CORS и Supabase Auth
 
@@ -88,12 +67,12 @@ Render Free засыпает после 15 минут без входящего 
    - Site URL: production URL Vercel.
    - Redirect URLs: добавь `https://имя-проекта.vercel.app/**`.
    - При необходимости отдельно добавь preview-домены Vercel.
-4. Проверь регистрацию, подтверждение email, вход, восстановление пароля и возврат на `/auth`.
+4. Проверь регистрацию, подтверждение email, вход, восстановление пароля и возврат на главную `/` после успешного входа.
 
 ## 4. Финальная проверка опубликованного приложения
 
 - Открой Vercel production URL в приватном окне.
-- Открой `/trajectory`, `/olympiads`, `/calendar`, `/universities`, `/achievements`, `/profile` напрямую в адресной строке.
+- Открой `/`, `/olympiads`, `/calendar`, `/universities`, `/universities/compare`, `/ai`, `/favorites`, `/achievements`, `/profile` напрямую в адресной строке.
 - Проверь, что каталог и справочники загружаются из Supabase.
 - Зарегистрируй тестового пользователя и проверь сохранение профиля, достижений и напоминаний.
 - Убедись, что запросы к `https://имя-сервиса.onrender.com/api/health` возвращают 200.
@@ -128,3 +107,4 @@ Cloudflare Workers AI остаётся резервным провайдером
 ## Импорт единого реестра университетов
 
 Подробная инструкция по применению миграции, локальной настройке Supabase Secret key, dry-run и импорту государственных каталогов находится в [UNIVERSITY_REGISTRY.md](./UNIVERSITY_REGISTRY.md). Импорт запускается только локально; секретный ключ Supabase нельзя помещать во frontend, Vercel, Render или Git.
+Для проверки Preview-деплоя проверь, что `VITE_API_URL`, `VITE_SUPABASE_URL` и `VITE_SUPABASE_PUBLISHABLE_KEY` заданы также для окружения **Preview**. Backend должен разрешать точный Preview-origin в `FRONTEND_URL` (вместе с production-origin, через запятую). При создании нового Preview-домена проверь CORS ещё раз: не используй произвольный wildcard без отдельной настройки backend.

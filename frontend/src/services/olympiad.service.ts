@@ -1,5 +1,6 @@
 import type {
   OlympiadFormat,
+  OlympiadListType,
   OlympiadStatus,
   OlympiadWithStatus
 } from '@trajectory/shared'
@@ -12,6 +13,7 @@ export interface OlympiadFilters {
   subjects?: string[]
   grade?: number
   level?: number
+  listType?: OlympiadListType
   status?: OlympiadStatus
   format?: OlympiadFormat
   region?: string
@@ -40,6 +42,10 @@ function createQuery(filters: OlympiadFilters): string {
 
   if (filters.level !== undefined) {
     params.set('level', String(filters.level))
+  }
+
+  if (filters.listType) {
+    params.set('listType', filters.listType)
   }
 
   if (filters.status) {

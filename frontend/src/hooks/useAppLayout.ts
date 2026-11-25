@@ -1,7 +1,9 @@
-
 import { useOutletContext } from 'react-router-dom'
 
-import type { AppLayoutContext } from '@/app/AppLayout'
+export interface AppLayoutContext {
+  searchQuery: string
+  setSearchQuery: (value: string) => void
+}
 
 export function useAppLayout(): AppLayoutContext {
   return useOutletContext<AppLayoutContext>()

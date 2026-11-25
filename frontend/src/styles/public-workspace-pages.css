@@ -1,0 +1,922 @@
+/* Public visual system applied to retained catalogues and the AI page. */
+.public-site {
+  --public-ink: #302b29;
+  --public-paper: #ffffff;
+  --public-muted: #756b65;
+  --public-line: #e8e0d8;
+  --public-accent: #b94a52;
+  --public-soft: #f8eae6;
+  background: #f7f4f0;
+  color: var(--public-ink);
+}
+
+.public-site .public-main {
+  min-height: 65vh;
+  background: #f7f4f0;
+}
+
+.public-site .dashboard-container,
+.public-site .catalog-page,
+.public-site .universities-page,
+.public-site .university-comparison-page,
+.public-site .university-details-page {
+  width: min(1140px, calc(100% - 48px));
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 42px 0 64px;
+  color: var(--public-ink);
+}
+
+.public-site .page-header {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 13px;
+  margin: 0 auto 32px;
+  text-align: center;
+}
+
+.public-site .page-header-content {
+  width: min(100%, 820px);
+}
+
+.public-site .page-header .section-kicker,
+.public-site .page-header .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin: 0 auto;
+  color: #8f5548;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .13em;
+}
+
+.public-site .page-header h1 {
+  margin: 9px 0 0;
+  color: #302b29;
+  font-family: Manrope, Inter, sans-serif;
+  font-size: clamp(30px, 4vw, 43px);
+  font-weight: 800;
+  letter-spacing: -.045em;
+  line-height: 1.13;
+}
+
+.public-site .page-header p {
+  max-width: 750px;
+  margin: 11px auto 0;
+  color: #756b65;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.public-site .page-header-action {
+  justify-content: center;
+}
+
+.public-site .panel,
+.public-site .error-state,
+.public-site .university-compare-card,
+.public-site .university-placeholder {
+  border: 1px solid var(--public-line);
+  border-radius: 14px;
+  background: var(--public-paper);
+  box-shadow: 0 3px 14px rgba(48, 43, 41, .035);
+  color: var(--public-ink);
+}
+
+.public-site .panel {
+  padding: clamp(19px, 2.5vw, 28px);
+}
+
+.public-site .panel-heading h2,
+.public-site .university-compare-card-title h2,
+.public-site .university-detail-section-heading h2 {
+  color: var(--public-ink);
+  font-family: Manrope, Inter, sans-serif;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -.025em;
+}
+
+.public-site .panel-heading p,
+.public-site .university-description,
+.public-site .university-compare-toolbar-copy p {
+  color: var(--public-muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.public-site .section-kicker,
+.public-site .eyebrow {
+  color: #a7654d;
+}
+
+.public-site .primary-button,
+.public-site button.primary-button,
+.public-site .public-button {
+  border-color: transparent;
+  border-radius: 9px;
+  color: #fff;
+  background: #b94a52;
+  box-shadow: none;
+  font-weight: 750;
+}
+
+.public-site .primary-button:hover:not(:disabled),
+.public-site button.primary-button:hover:not(:disabled),
+.public-site .public-button:hover {
+  background: #9f3e46;
+  transform: translateY(-1px);
+}
+
+.public-site .secondary-button,
+.public-site button.secondary-button {
+  border: 1px solid var(--public-line);
+  border-radius: 9px;
+  color: var(--public-ink);
+  background: #fff;
+  box-shadow: none;
+}
+
+.public-site .secondary-button:hover:not(:disabled),
+.public-site button.secondary-button:hover:not(:disabled) {
+  border-color: #d8aaa0;
+  color: #9f3e46;
+  background: var(--public-soft);
+}
+
+.public-site input:not([type="checkbox"]):not([type="radio"]),
+.public-site textarea,
+.public-site select {
+  border-color: var(--public-line);
+  border-radius: 9px;
+  color: var(--public-ink);
+  background: #fff;
+  font-family: Inter, sans-serif;
+}
+
+.public-site input:focus,
+.public-site textarea:focus,
+.public-site select:focus {
+  border-color: #c77b70;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(185, 74, 82, .1);
+}
+
+/* Olympiad catalogue */
+.public-site .catalog-panel-enhanced {
+  overflow: visible;
+  border-radius: 14px;
+}
+
+.public-site .catalog-search-input,
+.public-site .catalog-filter-trigger {
+  min-height: 47px;
+  border-color: var(--public-line);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--public-muted);
+}
+
+.public-site .catalog-search-input input {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.public-site .catalog-filter-trigger:hover,
+.public-site .catalog-filter-trigger.is-active {
+  border-color: #d8aaa0;
+  color: #9f3e46;
+  background: var(--public-soft);
+}
+
+.public-site .catalog-chip {
+  border-color: var(--public-line);
+  border-radius: 999px;
+  color: var(--public-muted);
+  background: #faf8f5;
+}
+
+.public-site .catalog-chip.is-selected {
+  border-color: var(--public-accent);
+  color: #fff;
+  background: var(--public-accent);
+}
+
+.public-site .catalog-collection-tabs {
+  border-bottom-color: var(--public-line);
+}
+
+.public-site .catalog-collection-tabs button {
+  color: var(--public-muted);
+}
+
+.public-site .catalog-collection-tabs button.is-active {
+  border-color: #ead1c9;
+  color: #9f3e46;
+  background: var(--public-soft);
+}
+
+.public-site .catalog-list-enhanced {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 17px;
+  padding-top: 18px;
+}
+
+.public-site .catalog-card-enhanced {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 12px;
+  padding: 19px;
+  border: 1px solid var(--public-line);
+  border-radius: 13px;
+  background: #fff;
+  transition: border-color 170ms ease, box-shadow 170ms ease, transform 170ms ease;
+}
+
+.public-site .catalog-card-enhanced:hover {
+  transform: translateY(-2px);
+  border-color: #dfb9ac;
+  box-shadow: 0 10px 25px rgba(48, 43, 41, .06);
+}
+
+.public-site .catalog-card-enhanced .catalog-card-icon {
+  width: 43px;
+  height: 43px;
+  flex-basis: 43px;
+  border-radius: 12px;
+  color: #a7654d;
+  background: #f7eee7;
+}
+
+.public-site .catalog-card-enhanced h2 {
+  margin: 3px 0 0;
+  color: var(--public-ink);
+  font-family: Manrope, Inter, sans-serif;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.public-site .catalog-card-enhanced .catalog-organizer,
+.public-site .catalog-card-enhanced .catalog-description,
+.public-site .catalog-card-facts > span,
+.public-site .catalog-card-season {
+  color: var(--public-muted);
+}
+
+.public-site .catalog-benefit-preview {
+  border-color: #dce8dd;
+  border-radius: 10px;
+  background: #f1f6f0;
+}
+
+.public-site .catalog-benefit-empty {
+  color: var(--public-muted);
+}
+
+.public-site .catalog-card-enhanced .catalog-card-footer {
+  margin-top: auto;
+  padding-top: 13px;
+  border-top: 1px solid #f0ebe5;
+}
+
+.public-site .catalog-details-link,
+.public-site .back-link,
+.public-site .university-compare-card-footer a {
+  color: #b94a52;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.public-site .catalog-filter-overlay {
+  z-index: 140;
+  background: rgba(48, 43, 41, .35);
+}
+
+.public-site .catalog-filter-sheet {
+  border-color: var(--public-line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.public-site .catalog-filter-sheet-header h2,
+.public-site .catalog-filter-heading strong,
+.public-site .catalog-filter-toggle strong {
+  color: var(--public-ink);
+}
+
+.public-site .catalog-filter-sheet-footer {
+  background: #fff;
+}
+
+/* Universities: readable editorial cards with the data the API actually provides. */
+.public-site .universities-catalog-panel {
+  padding: clamp(19px, 2.5vw, 28px);
+}
+
+.public-site .universities-catalog-panel > .panel-heading {
+  margin-bottom: 18px;
+}
+
+.public-site .university-toolbar {
+  border-top-color: var(--public-line);
+  border-bottom-color: var(--public-line);
+}
+
+.public-site .university-toolbar-title,
+.public-site .university-toolbar-title strong {
+  color: var(--public-ink);
+}
+
+.public-site .university-toolbar-title svg,
+.public-site .university-programs-heading svg,
+.public-site .university-location svg {
+  color: #a7654d;
+}
+
+.public-site .university-filter-controls {
+  grid-template-columns: minmax(220px, 1fr) minmax(150px, 190px) minmax(150px, 190px);
+}
+
+.public-site .university-search-field,
+.public-site .university-select-field {
+  border-color: var(--public-line);
+  border-radius: 9px;
+  background: #fff;
+}
+
+.public-site .university-search-field input,
+.public-site .university-select-field select {
+  color: var(--public-ink);
+  background: transparent;
+  box-shadow: none;
+}
+
+.public-site .university-select-field option {
+  color: var(--public-ink);
+  background: #fff;
+}
+
+.public-site .university-results-bar,
+.public-site .university-results-bar strong {
+  color: var(--public-muted);
+}
+
+.public-site .university-results-bar strong {
+  color: var(--public-ink);
+}
+
+.public-site .university-reset-button {
+  border-color: var(--public-line);
+  border-radius: 8px;
+  color: var(--public-muted);
+}
+
+.public-site .university-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.public-site .university-card {
+  min-width: 0;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 20px;
+  border: 1px solid var(--public-line);
+  border-bottom: 1px solid var(--public-line);
+  border-radius: 13px;
+  background: #fff;
+  transition: border-color 170ms ease, box-shadow 170ms ease, transform 170ms ease;
+}
+
+.public-site .university-card:hover {
+  transform: translateY(-2px);
+  border-color: #dfb9ac;
+  box-shadow: 0 10px 25px rgba(48, 43, 41, .06);
+}
+
+.public-site .university-card-selected {
+  border-color: #c77b70;
+  box-shadow: 0 0 0 2px rgba(185, 74, 82, .08);
+}
+
+.public-site .university-card .university-emblem {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  margin: 0;
+  border: 1px solid #eee0d7;
+  border-radius: 12px;
+  color: #a7654d;
+  background: #f7eee7;
+}
+
+.public-site .university-short-name {
+  color: #a7654d;
+  font-size: 10px;
+}
+
+.public-site .university-card-content h3 {
+  margin: 5px 0 0;
+  color: var(--public-ink);
+  font-family: Manrope, Inter, sans-serif;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.public-site .university-location,
+.public-site .university-no-website {
+  color: var(--public-muted);
+  font-size: 11px;
+}
+
+.public-site .university-description {
+  margin: 10px 0;
+  font-size: 12px;
+}
+
+.public-site .university-programs {
+  margin-top: 14px;
+}
+
+.public-site .university-programs-heading,
+.public-site .university-programs-heading strong {
+  color: var(--public-ink);
+}
+
+.public-site .university-programs-heading span {
+  border-radius: 7px;
+  color: #9f3e46;
+  background: var(--public-soft);
+}
+
+.public-site .university-program-tag {
+  border: 1px solid #eee6df;
+  border-radius: 7px;
+  color: var(--public-ink);
+  background: #faf8f5;
+}
+
+.public-site .university-program-tag small {
+  color: var(--public-muted);
+}
+
+.public-site .university-card-actions {
+  align-items: center;
+  gap: 10px 14px;
+  margin-top: 16px;
+  padding-top: 13px;
+  border-top: 1px solid #f0ebe5;
+}
+
+.public-site .university-compare-button {
+  border-color: var(--public-line);
+  border-radius: 8px;
+  color: var(--public-muted);
+  background: #fff;
+}
+
+.public-site .university-compare-button-active {
+  border-color: var(--public-accent);
+  color: #fff;
+  background: var(--public-accent);
+}
+
+.public-site .university-benefits-active {
+  color: #9f3e46 !important;
+}
+
+.public-site .benefits-panel,
+.public-site .university-detail-summary,
+.public-site .university-detail-programs,
+.public-site .university-detail-benefits-panel {
+  border-color: var(--public-line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.public-site .university-detail-emblem,
+.public-site .university-detail-program-icon {
+  border-color: #eee0d7;
+  color: #a7654d;
+  background: #f7eee7;
+}
+
+.public-site .university-detail-warning,
+.public-site .university-data-note {
+  color: var(--public-muted);
+}
+
+.public-site .university-comparison-page {
+  gap: 18px;
+}
+
+.public-site .university-compare-toolbar,
+.public-site .university-compare-filters,
+.public-site .university-compare-card {
+  border-color: var(--public-line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 3px 14px rgba(48, 43, 41, .035);
+}
+
+.public-site .university-compare-toolbar-copy > strong,
+.public-site .university-compare-card-title h2,
+.public-site .university-compare-summary-item strong {
+  color: var(--public-ink);
+}
+
+.public-site .university-compare-chip {
+  border-color: var(--public-line);
+  color: var(--public-ink);
+  background: #faf8f5;
+}
+
+.public-site .university-compare-card-mark {
+  border-color: #eee0d7;
+  color: #a7654d;
+  background: #f7eee7;
+}
+
+.public-site .university-compare-summary-item,
+.public-site .university-compare-benefit {
+  border-color: var(--public-line);
+  border-radius: 10px;
+  background: #faf8f5;
+}
+
+.public-site .university-comparison-bar {
+  border-color: var(--public-line);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .97);
+}
+
+/* AI remains a public tool, not an item in a private dashboard. */
+.public-site .ai-panel {
+  min-height: 620px;
+  border-color: var(--public-line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 3px 14px rgba(48, 43, 41, .035);
+}
+
+.public-site .ai-intro {
+  border-bottom-color: var(--public-line);
+}
+
+.public-site .ai-avatar,
+.public-site .ai-message-avatar,
+.public-site .ai-welcome-icon {
+  border-radius: 12px;
+  color: #a7654d;
+  background: #f7eee7;
+}
+
+.public-site .ai-intro strong,
+.public-site .ai-welcome h2,
+.public-site .ai-message-body > strong {
+  color: var(--public-ink);
+}
+
+.public-site .ai-intro > div:last-child > span,
+.public-site .ai-welcome p,
+.public-site .ai-disclaimer {
+  color: var(--public-muted);
+}
+
+.public-site .ai-context-pill,
+.public-site .ai-suggestions button {
+  border-color: var(--public-line);
+  color: var(--public-muted);
+  background: #faf8f5;
+}
+
+.public-site .ai-message-body {
+  border-color: var(--public-line);
+}
+
+.public-site .ai-input-form textarea {
+  border-color: var(--public-line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+/* Auth is intentionally retained and uses the same warm public palette. */
+.auth-page.app-shell.theme-light {
+  min-height: 100vh;
+  color: #302b29;
+  background: #f7f4f0;
+}
+
+.auth-page.app-shell.theme-light .auth-card {
+  border-color: #e8e0d8;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 28px rgba(48, 43, 41, .06);
+}
+
+.auth-page.app-shell.theme-light .auth-logo {
+  border: 1px solid #eee0d7;
+  border-radius: 12px;
+  background: #f7eee7;
+  box-shadow: none;
+}
+
+.auth-page.app-shell.theme-light .auth-eyebrow,
+.auth-page.app-shell.theme-light .auth-forgot,
+.auth-page.app-shell.theme-light .auth-privacy-link {
+  color: #a7654d;
+}
+
+.auth-page.app-shell.theme-light .auth-card > h1,
+.auth-page.app-shell.theme-light .auth-field > span {
+  color: #302b29;
+}
+
+.auth-page.app-shell.theme-light .auth-description,
+.auth-page.app-shell.theme-light .auth-footer {
+  color: #756b65;
+}
+
+.auth-page.app-shell.theme-light .auth-input {
+  border-color: #e8e0d8;
+  border-radius: 9px;
+  background: #fff;
+}
+
+.auth-page.app-shell.theme-light .auth-input:focus-within {
+  border-color: #c77b70;
+}
+
+.auth-page.app-shell.theme-light .auth-tabs {
+  background: #f7f4f0;
+}
+
+.auth-page.app-shell.theme-light .auth-tabs button.auth-tab-active {
+  border-color: #e8e0d8;
+  color: #302b29;
+  background: #fff;
+  box-shadow: none;
+}
+
+.auth-page.app-shell.theme-light .primary-button.auth-submit {
+  color: #fff;
+  background: #b94a52;
+}
+
+.auth-page.app-shell.theme-light .auth-register-cta {
+  border-color: #ead6ce;
+  border-radius: 9px;
+  color: #9f3e46;
+  background: #fbf3ef;
+}
+
+@media (max-width: 760px) {
+  .public-site .dashboard-container,
+  .public-site .catalog-page,
+  .public-site .universities-page,
+  .public-site .university-comparison-page,
+  .public-site .university-details-page {
+    width: min(100% - 32px, 560px);
+    padding: 28px 0 48px;
+  }
+
+  .public-site .page-header {
+    align-items: flex-start;
+    text-align: left;
+    margin-bottom: 22px;
+  }
+
+  .public-site .page-header .section-kicker,
+  .public-site .page-header .eyebrow {
+    margin-left: 0;
+  }
+
+  .public-site .page-header p {
+    margin-left: 0;
+    font-size: 13px;
+  }
+
+  .public-site .catalog-list-enhanced,
+  .public-site .university-list {
+    grid-template-columns: 1fr;
+  }
+
+  .public-site .catalog-search-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .public-site .catalog-filter-trigger {
+    width: 100%;
+  }
+
+  .public-site .university-filter-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .public-site .university-card {
+    padding: 16px;
+  }
+
+  .public-site .university-card-heading {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .public-site .university-card-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .public-site .ai-panel {
+    min-height: 560px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .public-site .university-card,
+  .public-site .catalog-card-enhanced {
+    transition: none;
+  }
+}
+/* Header and account navigation: single horizontal public shell. */
+.public-header-actions { position: relative; }
+.public-account-wrap { position: relative; }
+.public-account-trigger { display: inline-flex; align-items: center; gap: 8px; min-height: 42px; padding: 5px 11px 5px 6px; border: 1px solid var(--public-line, #e8e0d8); border-radius: 999px; background: #fff; color: #302b29; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.public-account-avatar { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 50%; background: #f8eae6; color: #a53e47; }
+.public-account-menu { position: absolute; z-index: 50; top: calc(100% + 10px); right: 0; display: grid; min-width: 205px; padding: 7px; border: 1px solid #e8e0d8; border-radius: 14px; background: #fff; box-shadow: 0 16px 40px rgb(48 43 41 / 14%); }
+.public-account-menu a, .public-account-menu button { display: flex; align-items: center; gap: 10px; min-height: 39px; padding: 8px 10px; border: 0; border-radius: 9px; background: transparent; color: #302b29; font: inherit; font-size: 13px; text-align: left; text-decoration: none; cursor: pointer; }
+.public-account-menu a:hover, .public-account-menu button:hover { background: #f8f4f0; color: #a53e47; }
+.public-account-menu small { padding: 6px 9px; color: #a53e47; overflow-wrap: anywhere; }
+.public-nav-middle { display: contents; }
+.public-header .public-nav { gap: clamp(14px, 1.7vw, 25px); }
+.public-header .public-nav-group { gap: clamp(12px, 1.5vw, 22px); }
+.public-mobile-nav-actions button { border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+@media (max-width: 1050px) {
+  .public-header .public-nav { gap: 11px; }
+  .public-header .public-nav-group { gap: 11px; }
+  .public-account-trigger > span:not(.public-account-avatar) { display: none; }
+}
+@media (max-width: 860px) {
+  .public-account-menu { display: none; }
+}
+
+/* Prevent password controls from inheriting decorative overlays or losing focus. */
+.auth-page .auth-input { position: relative; display: flex; align-items: center; min-width: 0; }
+.auth-page .auth-input input { position: relative; z-index: 1; min-width: 0; flex: 1 1 auto; color: #302b29; caret-color: #b94a52; -webkit-text-fill-color: #302b29; pointer-events: auto; user-select: text; }
+.auth-page .auth-input input::placeholder { color: #9a8f88; -webkit-text-fill-color: #9a8f88; opacity: 1; }
+.auth-password-toggle { position: relative; z-index: 2; display: inline-grid; width: 36px; height: 36px; flex: 0 0 36px; place-items: center; border: 0; border-radius: 8px; background: transparent; color: #756b65; cursor: pointer; }
+.auth-password-toggle:hover, .auth-password-toggle:focus-visible { background: #f8eae6; color: #a53e47; outline: none; }
+
+/* Single-surface list cards: no nested card inside another card. */
+.university-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.university-card { display: grid; grid-template-columns: minmax(180px, 250px) minmax(0, 1fr); gap: 20px; align-items: stretch; padding: 14px; border: 1px solid #e8e0d8; border-radius: 16px; background: #fff; box-shadow: none; }
+.university-emblem { display: grid; min-height: 170px; place-items: center; overflow: hidden; border-radius: 11px; background: #f5f0ea; color: #a78f81; }
+.university-card-content { min-width: 0; }
+.university-card-content .university-programs { display: none; }
+.university-card-content .university-card-heading h3 { margin: 5px 0 8px; }
+.university-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; margin-top: 17px; }
+.university-card-actions .university-compare-button { display: none; }
+.university-comparison-inline { margin-top: 28px; }
+@media (max-width: 700px) {
+  .university-card { grid-template-columns: 1fr; gap: 12px; }
+  .university-emblem { min-height: 150px; }
+}
+
+.favorites-page { padding-bottom: 48px; }
+.favorites-storage-note { margin: -12px 0 20px; color: #756b65; font-size: 13px; }
+.favorites-content { display: grid; gap: 24px; }
+.favorites-section { padding: 22px; border: 1px solid #e8e0d8; border-radius: 16px; background: #fff; }
+.favorites-section h2 { display: flex; align-items: center; gap: 10px; margin: 0 0 16px; color: #302b29; font-size: 19px; }
+.favorites-section h2 span { color: #8b7f77; font-size: 13px; }
+.favorites-list { display: grid; }
+.favorite-row { display: flex; align-items: center; gap: 13px; padding: 13px 0; border-top: 1px solid #eee8e2; }
+.favorite-row:first-child { border-top: 0; }
+.favorite-row-icon { display: grid; width: 42px; height: 42px; flex: 0 0 42px; place-items: center; border-radius: 11px; background: #f8eae6; color: #a53e47; }
+.favorite-row-content { display: grid; min-width: 0; flex: 1; gap: 4px; }
+.favorite-row-content a { color: #302b29; font-size: 14px; font-weight: 750; text-decoration: none; }
+.favorite-row-content a:hover { color: #a53e47; }
+.favorite-row-content small, .favorites-empty-hint { color: #756b65; }
+.favorite-row > button { display: grid; width: 34px; height: 34px; place-items: center; border: 0; border-radius: 8px; background: transparent; color: #756b65; cursor: pointer; }
+.favorite-row > button:hover { background: #f8eae6; color: #a53e47; }
+
+
+/* Trajectory V2 — catalog, legal-source, and account refinements. */
+.public-site .university-catalog-controls,
+.public-site .university-catalog-results,
+.public-site .university-comparison-inline,
+.public-site .favorites-section,
+.public-site .calendar-guide,
+.public-site .olympiad-summary-panel,
+.public-site .olympiad-stages-panel,
+.public-site .olympiad-benefits-panel,
+.public-site .olympiad-participation-panel {
+  color: #302b29;
+}
+.public-site .university-catalog-controls {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #e8e0d8;
+  border-radius: 14px;
+  background: #fff;
+}
+.public-site .university-search-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 50px;
+  padding: 0 14px;
+  border: 1px solid #e2d9d1;
+  border-radius: 10px;
+  color: #756b65;
+  background: #fff;
+}
+.public-site .university-search-field input {
+  width: 100%; min-width: 0; border: 0; outline: 0; background: transparent;
+  color: #302b29; caret-color: #b94a52; font: inherit;
+}
+.public-site .university-search-field input::placeholder { color: #91857d; opacity: 1; }
+.public-site .university-filter-controls { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; }
+.public-site .university-select-field select {
+  width: 100%; min-height: 42px; padding: 8px 30px 8px 10px; border: 1px solid #e8e0d8;
+  border-radius: 9px; background: #fff; color: #302b29; font: inherit; font-size: 12px;
+}
+.public-site .university-card { min-height: 190px; }
+.public-site .university-card .university-photo-slot { min-height: 180px; text-decoration: none; }
+.public-site .university-photo-slot img { display: block; width: 100%; height: 100%; min-height: 180px; object-fit: cover; }
+.public-site .university-photo-placeholder { display: flex; min-height: 180px; width: 100%; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 15px; color: #897b72; text-align: center; }
+.public-site .university-photo-placeholder small { max-width: 220px; color: #756b65; font-size: 11px; line-height: 1.45; }
+.public-site .university-card-heading h2 { margin: 5px 0 8px; font-size: clamp(16px, 1.6vw, 19px); line-height: 1.35; }
+.public-site .university-card-heading h2 a { color: #302b29; text-decoration: none; }
+.public-site .university-card-heading h2 a:hover { color: #a53e47; }
+.public-site .university-card-meta { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+.public-site .university-card-meta > span { padding: 4px 8px; border-radius: 999px; color: #756b65; background: #f7f4f0; font-size: 11px; }
+.public-site .university-favorite-button,
+.public-site .olympiad-save-action {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 34px;
+  padding: 7px 10px; border: 1px solid #e8e0d8; border-radius: 8px; background: #fff;
+  color: #625750; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.public-site .university-favorite-button.is-active,
+.public-site .olympiad-save-action.is-active { border-color: #e7c7c0; background: #fbf0ed; color: #a53e47; }
+.public-site .university-photo-source,
+.public-site .university-detail-photo-source { display: inline-flex; align-items: center; gap: 5px; color: #8a675b; font-size: 11px; text-decoration: none; }
+.public-site .university-comparison-inline { padding: 22px; border: 1px solid #e8e0d8; border-radius: 14px; background: #fff; }
+.public-site .university-comparison-inline-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.public-site .university-comparison-inline-heading h2 { margin: 5px 0; color: #302b29; font-size: 20px; }
+.public-site .university-comparison-inline-heading p { margin: 0; color: #756b65; font-size: 13px; }
+.public-site .university-comparison-empty { display: flex; align-items: center; gap: 8px; margin: 18px 0 0; color: #756b65; font-size: 13px; }
+.public-site .university-comparison-selected-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.public-site .university-comparison-selected-list > span { display: inline-flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 8px; background: #f7f4f0; color: #302b29; font-size: 12px; }
+.public-site .university-comparison-selected-list button { border: 0; background: transparent; color: #756b65; cursor: pointer; }
+.public-site .university-data-note { display: flex; align-items: flex-start; gap: 8px; margin-top: 18px; color: #756b65; font-size: 12px; line-height: 1.55; }
+.public-site .university-detail-emblem { overflow: hidden; }
+.public-site .university-detail-emblem img { width: 100%; height: 100%; min-height: 130px; object-fit: cover; }
+.public-site .university-detail-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.public-site .university-detail-action-note { color: #756b65; font-size: 12px; }
+.public-site .olympiad-list-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
+.public-site .olympiad-list-tabs button { min-height: 40px; padding: 9px 14px; border: 1px solid #e8e0d8; border-radius: 999px; background: #fff; color: #625750; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.public-site .olympiad-list-tabs button.is-active { border-color: #b94a52; background: #fbf0ed; color: #9f3e46; }
+.public-site .olympiad-list-legal-note { display: flex; align-items: flex-start; gap: 9px; margin: 0 0 16px; padding: 12px 14px; border: 1px solid #e8e0d8; border-radius: 10px; background: #faf8f5; color: #625750; font-size: 12px; line-height: 1.55; }
+.public-site .olympiad-list-legal-note svg { flex: 0 0 auto; margin-top: 2px; color: #a7654d; }
+.public-site .olympiad-compact-card { padding: 17px 19px; border: 1px solid #e8e0d8; border-radius: 13px; background: #fff; box-shadow: none; }
+.public-site .olympiad-compact-card h2 { margin: 7px 0 10px; font-size: clamp(17px, 1.8vw, 21px); line-height: 1.35; }
+.public-site .olympiad-compact-card h2 a { color: #302b29; text-decoration: none; }
+.public-site .olympiad-compact-card h2 a:hover { color: #a53e47; }
+.public-site .olympiad-compact-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 7px 12px; color: #756b65; font-size: 11px; }
+.public-site .olympiad-compact-meta > span { display: inline-flex; align-items: center; gap: 4px; }
+.public-site .olympiad-source-status { padding: 4px 7px; border-radius: 999px; background: #fff3df; color: #845d22; font-size: 10px; font-weight: 700; }
+.public-site .olympiad-source-status.is-official { background: #eaf4ed; color: #38664a; }
+.public-site .olympiad-compact-subjects { margin-top: 10px; }
+.public-site .olympiad-source-link { display: inline-flex; align-items: center; gap: 5px; margin-top: 9px; color: #8a675b; font-size: 11px; text-decoration: none; }
+.public-site .olympiad-compact-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 13px; padding-top: 12px; border-top: 1px solid #eee8e2; }
+.public-site .olympiad-details-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: -8px 0 18px; }
+.public-site .olympiad-list-detail-note { display: flex; align-items: flex-start; gap: 11px; margin: 16px 0 20px; padding: 14px; border: 1px solid #e7ddd5; border-radius: 10px; background: #faf7f3; color: #625750; }
+.public-site .olympiad-list-detail-note > svg { flex: 0 0 auto; margin-top: 2px; color: #a7654d; }
+.public-site .olympiad-list-detail-note strong { color: #302b29; font-size: 13px; }
+.public-site .olympiad-list-detail-note p { margin: 5px 0; color: #625750; font-size: 12px; line-height: 1.55; }
+.public-site .olympiad-list-detail-note a { display: inline-flex; align-items: center; gap: 5px; color: #9f3e46; font-size: 12px; text-decoration: none; }
+.public-site .olympiad-list-detail-note small { display: block; margin-top: 5px; color: #8c8179; font-size: 10px; }
+.public-site .olympiad-details-actions .olympiad-save-action { min-height: 40px; padding-inline: 13px; }
+.public-site .ai-sources { margin-top: 12px; padding-top: 9px; border-top: 1px solid #eee8e2; }
+.public-site .ai-sources-title { width: fit-content; color: #8a675b; font-size: 12px; font-weight: 750; cursor: pointer; }
+.public-site .ai-sources .ai-source-link { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+@media (max-width: 1000px) {
+  .public-site .university-filter-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .public-site .university-comparison-inline-heading { align-items: flex-start; flex-direction: column; }
+  .public-site .university-card { grid-template-columns: 1fr; }
+  .public-site .university-card .university-photo-slot,
+  .public-site .university-photo-slot img { min-height: 160px; max-height: 190px; }
+  .public-site .university-filter-controls { grid-template-columns: 1fr; }
+  .public-site .olympiad-compact-actions { align-items: flex-start; }
+}

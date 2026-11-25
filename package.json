@@ -2,7 +2,7 @@
   "name": "trajectory-olympiad",
   "version": "1.0.0",
   "private": true,
-  "description": "Персональная траектория школьника к олимпиадам и поступлению в вуз",
+  "description": "Информационная платформа для школьников об олимпиадах и поступлении в университеты",
   "workspaces": [
     "frontend",
     "backend",

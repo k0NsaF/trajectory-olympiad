@@ -23,6 +23,10 @@ interface UniversityRow {
   minobrnauki_rules_url: string | null
   minobrnauki_places_url: string | null
   miccedu_profile_url: string | null
+  cover_image_url?: string | null
+  cover_image_source_url?: string | null
+  cover_image_license?: string | null
+  cover_image_alt?: string | null
 }
 
 interface ProgramRow {
@@ -59,6 +63,10 @@ interface UniversityResult {
   admissionRulesUrl?: string
   admissionPlacesUrl?: string
   monitoringProfileUrl?: string
+  coverImageUrl?: string
+  coverImageSourceUrl?: string
+  coverImageLicense?: string
+  coverImageAlt?: string
   programs: UniversityProgramResult[]
 }
 
@@ -81,8 +89,14 @@ const UNIVERSITY_SELECT = [
   'minobrnauki_admission_url',
   'minobrnauki_rules_url',
   'minobrnauki_places_url',
-  'miccedu_profile_url'
+  'miccedu_profile_url',
+  'cover_image_url',
+  'cover_image_source_url',
+  'cover_image_license',
+  'cover_image_alt'
 ].join(', ')
+
+const LEGACY_UNIVERSITY_SELECT = UNIVERSITY_SELECT.split(', ').filter((column) => !column.startsWith('cover_image_')).join(', ')
 
 const PAGE_SIZE = 1000
 const PROGRAM_UNIVERSITY_CHUNK_SIZE = 150
@@ -120,6 +134,10 @@ function mapUniversity(
     ...(row.minobrnauki_rules_url ? { admissionRulesUrl: row.minobrnauki_rules_url } : {}),
     ...(row.minobrnauki_places_url ? { admissionPlacesUrl: row.minobrnauki_places_url } : {}),
     ...(row.miccedu_profile_url ? { monitoringProfileUrl: row.miccedu_profile_url } : {}),
+    ...(row.cover_image_url ? { coverImageUrl: row.cover_image_url } : {}),
+    ...(row.cover_image_source_url ? { coverImageSourceUrl: row.cover_image_source_url } : {}),
+    ...(row.cover_image_license ? { coverImageLicense: row.cover_image_license } : {}),
+    ...(row.cover_image_alt ? { coverImageAlt: row.cover_image_alt } : {}),
     programs: programs.map(mapProgram)
   }
 }
@@ -145,7 +163,20 @@ async function loadAllUniversities(
       query = query.ilike('city', `%${filters.city}%`)
     }
 
-    const { data, error } = await query
+    let { data, error } = await query
+
+    if (error && /cover_image_(url|source_url|license|alt)|column .* does not exist|schema cache/i.test(error.message)) {
+      let legacyQuery = supabase
+        .from('universities')
+        .select(LEGACY_UNIVERSITY_SELECT)
+        .order('name', { ascending: true })
+        .range(from, from + PAGE_SIZE - 1)
+      if (filters.search) legacyQuery = legacyQuery.ilike('name', `%${filters.search}%`)
+      if (filters.city) legacyQuery = legacyQuery.ilike('city', `%${filters.city}%`)
+      const legacyResult = await legacyQuery
+      data = legacyResult.data
+      error = legacyResult.error
+    }
 
     if (error) {
       throw new AppError(
@@ -220,11 +251,21 @@ export async function getUniversityById(
   supabase: SupabaseClient,
   id: string
 ): Promise<UniversityResult> {
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('universities')
     .select(UNIVERSITY_SELECT)
     .eq('id', id)
     .maybeSingle()
+
+  if (error && /cover_image_(url|source_url|license|alt)|column .* does not exist|schema cache/i.test(error.message)) {
+    const legacyResult = await supabase
+      .from('universities')
+      .select(LEGACY_UNIVERSITY_SELECT)
+      .eq('id', id)
+      .maybeSingle()
+    data = legacyResult.data
+    error = legacyResult.error
+  }
 
   if (error) {
     throw new AppError(

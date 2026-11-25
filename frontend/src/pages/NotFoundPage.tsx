@@ -10,14 +10,14 @@ export function NotFoundPage() {
       </div>
 
       <span className="section-kicker">СТРАНИЦА НЕ НАЙДЕНА</span>
-      <h1>Кажется, мы сбились с траектории</h1>
+      <h1>Такой страницы пока нет</h1>
       <p>
-        Такой страницы не существует или она была перемещена.
+        Проверь адрес или вернись на главную страницу Trajectory.
       </p>
 
-      <Link to="/trajectory" className="primary-button">
+      <Link to="/" className="primary-button">
         <ArrowLeft size={16} />
-        Вернуться на главную
+        На главную
       </Link>
     </div>
   )

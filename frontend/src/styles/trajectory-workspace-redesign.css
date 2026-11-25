@@ -1,0 +1,927 @@
+/* Trajectory internal workspace redesign — scoped to .app-shell only. */
+.app-shell {
+  --workspace-content: 1480px;
+  --workspace-space: clamp(20px, 3.1vw, 46px);
+  min-height: 100vh;
+  font-family: var(--font-body, Inter, sans-serif);
+}
+
+/* Sidebar: calmer hierarchy, the same Trajectory identity and a clickable photo mark. */
+.app-shell .sidebar {
+  width: var(--sidebar-width, 258px);
+  padding: 22px 15px 18px;
+  border-right: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--sidebar-bg) 0%, var(--bg-secondary) 100%);
+  box-shadow: 8px 0 32px rgba(38, 52, 47, 0.035);
+}
+
+.app-shell .brand {
+  min-height: 78px;
+  gap: 10px;
+  padding: 0 5px 17px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.app-shell .workspace-brand {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 11px;
+  color: var(--text-heading);
+  text-decoration: none;
+}
+
+.app-shell .workspace-brand:focus-visible {
+  border-radius: 12px;
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.app-shell .brand-mark.brand-mark-image {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  flex: 0 0 54px;
+  place-items: center;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  border-radius: 13px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.app-shell .brand-mark-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+
+.app-shell .brand-text {
+  min-width: 0;
+  gap: 5px;
+}
+
+.app-shell .brand-text > span {
+  color: var(--text-heading);
+  font-family: var(--font-heading, Manrope, Inter, sans-serif);
+  font-size: 16px;
+  font-weight: 850;
+  letter-spacing: .075em;
+  line-height: 1.05;
+}
+
+.app-shell .brand-text small {
+  color: var(--text-muted);
+  font-size: 8px;
+  font-weight: 750;
+  letter-spacing: .085em;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.app-shell .sidebar-section-label {
+  margin: 27px 9px 12px;
+  color: var(--text-subtle);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+
+.app-shell .navigation {
+  gap: 6px;
+}
+
+.app-shell .nav-item {
+  min-height: 47px;
+  gap: 12px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.app-shell .nav-item > svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  color: var(--text-subtle);
+  transition: color var(--transition), transform var(--transition);
+}
+
+.app-shell .nav-item:hover > svg,
+.app-shell .nav-item-active > svg {
+  color: var(--accent-hover);
+}
+
+.app-shell .nav-item:hover {
+  transform: translateX(2px);
+}
+
+.app-shell .nav-item-active,
+.app-shell .nav-item-active:hover {
+  border-color: color-mix(in srgb, var(--accent) 20%, var(--border));
+  color: var(--text-heading);
+  background: linear-gradient(100deg, var(--accent-soft), color-mix(in srgb, var(--accent-soft) 40%, var(--card)));
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.app-shell .nav-active-indicator {
+  display: none;
+}
+
+.app-shell .sidebar-bottom {
+  gap: 10px;
+  padding-top: 13px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.app-shell .profile-mini {
+  min-height: 62px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  padding: 9px;
+}
+
+.app-shell .profile-mini:hover {
+  border-color: var(--border);
+  background: var(--surface-hover);
+}
+
+/* Topbar: lighter and more spacious, retaining the existing actions. */
+.app-shell .topbar {
+  height: 72px;
+  padding: 0 var(--workspace-space);
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--header-bg);
+  box-shadow: 0 5px 24px rgba(38, 52, 47, .025);
+  backdrop-filter: blur(18px);
+}
+
+.app-shell .breadcrumb {
+  gap: 9px;
+  color: var(--text-subtle);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.app-shell .breadcrumb strong {
+  color: var(--text-heading);
+  font-family: var(--font-heading, Manrope, Inter, sans-serif);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.app-shell .search-box {
+  width: min(330px, 27vw);
+  height: 40px;
+  gap: 9px;
+  padding: 0 13px;
+  border-radius: 999px;
+  background: var(--input-bg);
+}
+
+.app-shell .search-box kbd {
+  border-radius: 6px;
+  padding: 3px 6px;
+  font-size: 9px;
+}
+
+.app-shell .topbar-actions {
+  gap: 10px;
+}
+
+.app-shell .topbar-avatar {
+  width: 37px;
+  height: 37px;
+  flex-basis: 37px;
+  font-size: 12px;
+}
+
+/* Shared page rhythm: typography and whitespace closer to the refreshed public pages. */
+.app-shell .dashboard-container,
+.app-shell .page-content {
+  width: 100%;
+  max-width: var(--workspace-content);
+  margin-inline: auto;
+  padding: 36px var(--workspace-space) 42px;
+}
+
+.app-shell .page-header {
+  align-items: flex-end;
+  gap: 24px;
+  margin-bottom: 25px;
+}
+
+.app-shell .page-header .section-kicker,
+.app-shell .page-header .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 25px;
+  padding: 5px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+  border-radius: 999px;
+  color: var(--accent-hover);
+  background: var(--accent-soft);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .12em;
+}
+
+.app-shell .page-header h1 {
+  margin: 12px 0 0;
+  color: var(--text-heading);
+  font-family: var(--font-heading, Manrope, Inter, sans-serif);
+  font-size: clamp(29px, 3vw, 39px);
+  font-weight: 850;
+  letter-spacing: -.045em;
+  line-height: 1.1;
+}
+
+.app-shell .page-header p {
+  max-width: 760px;
+  margin: 10px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.app-shell .page-header-action {
+  align-items: center;
+}
+
+/* Panels and cards: clean surfaces, warm borders, restrained shadows. */
+.app-shell .panel,
+.app-shell .stat-card,
+.app-shell .welcome-date,
+.app-shell .trajectory-progress,
+.app-shell .university-placeholder,
+.app-shell .error-state {
+  border: 1px solid var(--border);
+  border-radius: 19px;
+  background: var(--card);
+  box-shadow: 0 8px 28px rgba(38, 52, 47, .045);
+}
+
+.app-shell .panel {
+  padding: clamp(18px, 2.1vw, 27px);
+}
+
+.app-shell .panel-heading h2,
+.app-shell .panel-heading h3,
+.app-shell .calendar-section-heading h2 {
+  color: var(--text-heading);
+  font-family: var(--font-heading, Manrope, Inter, sans-serif);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -.025em;
+}
+
+.app-shell .panel-heading p,
+.app-shell .panel > p {
+  color: var(--text-muted);
+  line-height: 1.65;
+}
+
+.app-shell .stat-card {
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+}
+
+.app-shell .stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 13px 32px rgba(38, 52, 47, .075);
+}
+
+/* Buttons and form controls follow one visual language across every workspace route. */
+.app-shell .primary-button,
+.app-shell button.primary-button {
+  min-height: 42px;
+  padding: 0 19px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: #fff;
+  background: linear-gradient(110deg, #d96d49, #bd5738);
+  box-shadow: 0 6px 16px rgba(185, 87, 56, .15);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.app-shell .primary-button:hover:not(:disabled),
+.app-shell button.primary-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: linear-gradient(110deg, #e17a56, #c85f40);
+  box-shadow: 0 9px 22px rgba(185, 87, 56, .2);
+}
+
+.app-shell .secondary-button,
+.app-shell button.secondary-button {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  background: var(--card);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.app-shell .secondary-button:hover:not(:disabled),
+.app-shell button.secondary-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+  color: var(--accent-hover);
+  background: var(--accent-soft);
+}
+
+.app-shell input:not([type="checkbox"]):not([type="radio"]),
+.app-shell textarea,
+.app-shell select {
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  color: var(--text-heading);
+  background: var(--input-bg);
+  font-family: var(--font-body, Inter, sans-serif);
+  font-size: 12px;
+}
+
+.app-shell input:focus,
+.app-shell textarea:focus,
+.app-shell select:focus {
+  border-color: var(--accent);
+  outline: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 13%, transparent);
+}
+
+/* Olympiad catalogue: search first, clear filters, legible cards and official benefits. */
+.app-shell .catalog-page {
+  gap: 22px;
+}
+
+.app-shell .catalog-panel-enhanced {
+  padding: clamp(18px, 2.2vw, 28px);
+  border-radius: 20px;
+}
+
+.app-shell .catalog-search-input,
+.app-shell .catalog-filter-trigger {
+  min-height: 46px;
+  border-radius: 12px;
+}
+
+.app-shell .catalog-chip {
+  min-height: 34px;
+  padding-inline: 12px;
+  border-radius: 999px;
+  font-size: 10px;
+}
+
+.app-shell .catalog-chip.is-selected {
+  border-color: var(--accent);
+  color: #fff;
+  background: var(--accent);
+}
+
+.app-shell .catalog-card-enhanced {
+  padding: 22px 0;
+}
+
+.app-shell .catalog-card-enhanced h2 {
+  color: var(--text-heading);
+  font-family: var(--font-heading, Manrope, Inter, sans-serif);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+}
+
+.app-shell .catalog-card-enhanced .catalog-organizer,
+.app-shell .catalog-description,
+.app-shell .catalog-card-facts > span {
+  color: var(--text-muted);
+}
+
+.app-shell .catalog-details-link {
+  color: var(--accent-hover);
+  font-weight: 800;
+}
+
+.app-shell .catalog-benefit-preview {
+  border-color: color-mix(in srgb, var(--success) 24%, var(--border));
+  border-radius: 13px;
+  background: var(--success-soft);
+}
+
+/* Calendar and personal reminders. */
+.app-shell .calendar-page {
+  gap: 22px;
+}
+
+.app-shell .calendar-page .panel {
+  border-radius: 20px;
+}
+
+.app-shell .calendar-reminder-card {
+  padding-block: 18px;
+  border-bottom-color: var(--border-soft);
+}
+
+.app-shell .calendar-reminder-content h3 {
+  color: var(--text-heading);
+  font-family: var(--font-heading, Manrope, Inter, sans-serif);
+  font-size: 14px;
+}
+
+.app-shell .calendar-filter-button {
+  min-height: 36px;
+  border-radius: 999px;
+  font-size: 10px;
+}
+
+.app-shell .calendar-filter-button.is-active {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+  color: var(--accent-hover);
+  background: var(--accent-soft);
+}
+
+/* Preserve visual contrast in both themes and keep mobile navigation usable. */
+.app-shell.theme-dark .sidebar {
+  box-shadow: 8px 0 32px rgba(0, 0, 0, .12);
+}
+
+.app-shell.theme-dark .stat-card:hover {
+  box-shadow: 0 13px 32px rgba(0, 0, 0, .18);
+}
+
+@media (max-width: 900px) {
+  .app-shell .topbar {
+    height: 68px;
+    padding-inline: 20px;
+  }
+
+  .app-shell .dashboard-container,
+  .app-shell .page-content {
+    padding: 28px 22px 36px;
+  }
+
+  .app-shell .brand-mark.brand-mark-image {
+    width: 50px;
+    height: 50px;
+    flex-basis: 50px;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-shell .topbar {
+    padding-inline: 15px;
+  }
+
+  .app-shell .breadcrumb > span,
+  .app-shell .breadcrumb > svg {
+    display: none;
+  }
+
+  .app-shell .search-box {
+    width: min(45vw, 190px);
+  }
+
+  .app-shell .dashboard-container,
+  .app-shell .page-content {
+    padding: 24px 16px 32px;
+  }
+
+  .app-shell .page-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 19px;
+  }
+
+  .app-shell .page-header h1 {
+    font-size: clamp(27px, 8vw, 34px);
+  }
+
+  .app-shell .page-header-action,
+  .app-shell .page-header-action > * {
+    width: 100%;
+  }
+
+  .app-shell .panel {
+    padding: 17px;
+    border-radius: 17px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .nav-item,
+  .app-shell .stat-card,
+  .app-shell .primary-button {
+    transition: none !important;
+  }
+}
+
+/* Trajectory V2 horizontal workspace navigation */
+.app-shell {
+  --workspace-nav-offset: 78px;
+}
+
+/* The former left sidebar becomes the primary horizontal workspace header. */
+.app-shell .sidebar {
+  position: sticky;
+  z-index: 40;
+  inset: auto;
+  top: 0;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 78px;
+  height: auto;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(12px, 1.6vw, 24px);
+  padding: 10px clamp(18px, 3.1vw, 46px);
+  overflow: visible;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: var(--header-bg);
+  box-shadow: 0 6px 24px rgba(38, 52, 47, .045);
+  transform: none;
+  backdrop-filter: blur(18px);
+}
+
+.app-shell .brand {
+  width: auto;
+  min-width: 0;
+  min-height: 52px;
+  flex: 0 0 auto;
+  gap: 9px;
+  padding: 0;
+  border: 0;
+}
+
+.app-shell .brand-mark.brand-mark-image {
+  width: 43px;
+  height: 43px;
+  flex-basis: 43px;
+  border-radius: 11px;
+}
+
+.app-shell .brand-text > span {
+  font-size: 14px;
+  letter-spacing: .055em;
+}
+
+.app-shell .brand-text small {
+  font-size: 7px;
+  letter-spacing: .07em;
+  white-space: nowrap;
+}
+
+.app-shell .sidebar-section-label,
+.app-shell .sidebar-close {
+  display: none !important;
+}
+
+.app-shell .navigation {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0;
+  scrollbar-width: none;
+}
+
+.app-shell .navigation::-webkit-scrollbar {
+  display: none;
+}
+
+.app-shell .nav-item {
+  width: auto;
+  min-width: max-content;
+  min-height: 39px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  transform: none;
+}
+
+.app-shell .nav-item > svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+}
+
+.app-shell .nav-item:hover {
+  transform: none;
+}
+
+.app-shell .nav-item-active,
+.app-shell .nav-item-active:hover {
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--border));
+  color: var(--accent-hover);
+  background: var(--accent-soft);
+  box-shadow: none;
+}
+
+.app-shell .nav-active-indicator {
+  display: none;
+}
+
+.app-shell .sidebar-bottom {
+  display: flex;
+  min-width: 0;
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.app-shell .sidebar-bottom > .nav-item {
+  min-height: 37px;
+  gap: 6px;
+  padding-inline: 9px;
+}
+
+.app-shell .sidebar-account-actions {
+  display: flex;
+  width: auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.app-shell .profile-mini {
+  width: auto;
+  min-width: 0;
+  min-height: 38px;
+  flex: 0 1 auto;
+  gap: 7px;
+  padding: 2px 4px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+}
+
+.app-shell .profile-mini-info {
+  min-width: 0;
+  max-width: 112px;
+  flex: 0 1 112px;
+  gap: 2px;
+}
+
+.app-shell .profile-mini-info strong,
+.app-shell .profile-mini-info span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell .profile-mini-info strong {
+  font-size: 10px;
+}
+
+.app-shell .profile-mini-info span {
+  font-size: 9px;
+}
+
+.app-shell .sidebar-account-action,
+.app-shell .sidebar-account-action.secondary-button {
+  width: auto;
+  min-height: 36px;
+  margin: 0;
+  padding: 0 10px;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.app-shell .sidebar-auth-error {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  width: max-content;
+  max-width: min(300px, 80vw);
+  box-shadow: var(--shadow-small);
+}
+
+.app-shell .main-content {
+  min-width: 0;
+  margin-left: 0;
+  padding-bottom: 0;
+}
+
+.app-shell .topbar {
+  position: sticky;
+  z-index: 25;
+  top: var(--workspace-nav-offset);
+  height: 62px;
+  padding-inline: clamp(18px, 3.1vw, 46px);
+}
+
+.app-shell .mobile-menu-button,
+.app-shell .mobile-overlay,
+.app-shell .mobile-bottom-nav {
+  display: none !important;
+}
+
+/* On medium screens, keep the brand and account actions on row one, tabs on row two. */
+@media (max-width: 1450px) {
+  .app-shell {
+    --workspace-nav-offset: 116px;
+  }
+
+  .app-shell .sidebar {
+    flex-wrap: wrap;
+    gap: 5px 16px;
+    padding: 8px clamp(18px, 3vw, 40px) 0;
+  }
+
+  .app-shell .brand {
+    order: 0;
+    min-height: 51px;
+    flex: 0 0 auto;
+  }
+
+  .app-shell .sidebar-bottom {
+    order: 1;
+    margin-left: auto;
+  }
+
+  .app-shell .navigation {
+    order: 2;
+    width: 100%;
+    min-height: 42px;
+    flex: 1 0 100%;
+    justify-content: flex-start;
+    padding: 0 0 7px;
+    border-top: 1px solid var(--border-soft);
+  }
+}
+
+@media (max-width: 700px) {
+  .app-shell {
+    --workspace-nav-offset: 102px;
+  }
+
+  .app-shell .sidebar {
+    z-index: 40;
+    gap: 4px 10px;
+    padding: 7px 12px 0;
+    box-shadow: 0 5px 18px rgba(38, 52, 47, .05);
+  }
+
+  .app-shell .brand {
+    min-height: 44px;
+    gap: 7px;
+  }
+
+  .app-shell .brand-mark.brand-mark-image {
+    width: 36px;
+    height: 36px;
+    flex-basis: 36px;
+  }
+
+  .app-shell .brand-text > span {
+    font-size: 12px;
+  }
+
+  .app-shell .brand-text small {
+    font-size: 6px;
+  }
+
+  .app-shell .sidebar-bottom {
+    gap: 3px;
+  }
+
+  .app-shell .sidebar-bottom > .nav-item,
+  .app-shell .sidebar-account-action,
+  .app-shell .sidebar-account-action.secondary-button {
+    width: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    justify-content: center;
+    gap: 0;
+    padding: 0;
+    font-size: 0;
+  }
+
+  .app-shell .sidebar-bottom > .nav-item span,
+  .app-shell .sidebar-account-action:not(.profile-mini) {
+    white-space: nowrap;
+  }
+
+  .app-shell .sidebar-bottom > .nav-item svg,
+  .app-shell .sidebar-account-action svg {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+  }
+
+  .app-shell .profile-mini {
+    width: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .app-shell .profile-mini-info,
+  .app-shell .profile-mini > svg {
+    display: none;
+  }
+
+  .app-shell .profile-mini .avatar {
+    width: 30px;
+    height: 30px;
+    flex-basis: 30px;
+  }
+
+  .app-shell .navigation {
+    min-height: 40px;
+    gap: 3px;
+    padding-bottom: 6px;
+  }
+
+  .app-shell .nav-item {
+    min-height: 34px;
+    gap: 5px;
+    padding-inline: 9px;
+    font-size: 9px;
+  }
+
+  .app-shell .nav-item > svg {
+    width: 14px;
+    height: 14px;
+    flex-basis: 14px;
+  }
+
+  .app-shell .main-content {
+    padding-bottom: 0;
+  }
+
+  .app-shell .topbar {
+    height: 56px;
+    padding-inline: 12px;
+  }
+
+  .app-shell .topbar-actions {
+    gap: 4px;
+  }
+
+  .app-shell .search-box {
+    width: min(38vw, 170px);
+    height: 35px;
+    justify-content: flex-start;
+    padding: 0 8px;
+    border-color: var(--border);
+    background: var(--input-bg);
+  }
+
+  .app-shell .search-box input {
+    display: block;
+    font-size: 10px;
+  }
+
+  .app-shell .search-box kbd {
+    display: none;
+  }
+
+  .app-shell .topbar-avatar {
+    width: 30px;
+    height: 30px;
+    flex-basis: 30px;
+  }
+}
+
+@media (max-width: 390px) {
+  .app-shell .brand-text small {
+    display: none;
+  }
+
+  .app-shell .topbar .breadcrumb strong {
+    max-width: 112px;
+  }
+
+  .app-shell .search-box {
+    width: 34vw;
+  }
+}

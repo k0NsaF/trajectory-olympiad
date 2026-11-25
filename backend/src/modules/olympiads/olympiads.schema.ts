@@ -10,6 +10,7 @@ export const olympiadFiltersSchema = z.object({
   ).optional(),
   grade: z.coerce.number().int().min(7).max(11).optional(),
   level: z.coerce.number().int().min(1).max(4).optional(),
+  listType: z.enum(['school_olympiad', 'intellectual_competition']).optional(),
   status: z.enum(['eligible', 'upcoming', 'closed', 'unknown']).optional(),
   format: z.enum(['online', 'offline', 'mixed']).optional(),
   region: z.string().trim().min(2).max(120).optional(),

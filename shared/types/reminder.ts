@@ -17,6 +17,8 @@ export interface Reminder {
   type: ReminderType
   status: ReminderStatus
   dueAt: string
+  /** Planned notification time. Stored for future push/MAX integration; not sent yet. */
+  notifyAt?: string
   createdAt: string
 }
 
@@ -25,6 +27,7 @@ export interface CreateReminderInput {
   description?: string
   type: ReminderType
   dueAt: string
+  notifyAt?: string | null
 }
 
 export interface UpdateReminderInput {
@@ -32,4 +35,5 @@ export interface UpdateReminderInput {
   description?: string
   type?: ReminderType
   dueAt?: string
+  notifyAt?: string | null
 }

@@ -1,12 +1,14 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
+  Bookmark,
   BookOpen,
   Building2,
   CalendarDays,
   ExternalLink,
   GraduationCap,
+  GitCompareArrows,
   Info,
   MapPin,
   ShieldCheck,
@@ -25,6 +27,9 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { PageHeader } from '@/components/common/PageHeader'
 import { useAsyncData } from '@/hooks/useAsyncData'
 import { universityService } from '@/services/university.service'
+import { useAuth } from '@/app/providers'
+import { isFavorite, subscribeToFavorites, toggleFavorite } from '@/services/favorites.store'
+import { readComparisonSelections, readComparisonUniversityIds, subscribeToComparisonChanges, writeComparisonUniversityIds } from '@/services/university-comparison.store'
 import {
   getBenefitVerificationClass,
   getBenefitVerificationLabel,
@@ -420,6 +425,37 @@ function UniversityBenefits({
 
 export function UniversityDetailsPage() {
   const { id = '' } = useParams()
+  const { user } = useAuth()
+  const favoriteScope = user?.id ? `user:${user.id}` : 'guest'
+  const [favorited, setFavorited] = useState(() => isFavorite(favoriteScope, 'university', id))
+  const [comparisonIds, setComparisonIds] = useState<string[]>(readComparisonUniversityIds)
+  const [comparisonNotice, setComparisonNotice] = useState('')
+
+  useEffect(() => {
+    setFavorited(isFavorite(favoriteScope, 'university', id))
+    return subscribeToFavorites(favoriteScope, () => setFavorited(isFavorite(favoriteScope, 'university', id)))
+  }, [favoriteScope, id])
+
+  useEffect(() => subscribeToComparisonChanges(() => setComparisonIds(readComparisonUniversityIds())), [])
+
+  const handleFavorite = () => {
+    const next = toggleFavorite(favoriteScope, 'university', id)
+    setFavorited(next)
+  }
+
+  const handleComparison = () => {
+    const current = readComparisonUniversityIds()
+    if (current.includes(id)) {
+      writeComparisonUniversityIds(current.filter((item) => item !== id))
+      setComparisonNotice('Университет удалён из сравнения.')
+    } else if (readComparisonSelections().length >= 5) {
+      setComparisonNotice('Можно сравнить не более пяти университетов.')
+    } else {
+      writeComparisonUniversityIds([...current, id])
+      setComparisonNotice('Университет добавлен в список сравнения.')
+    }
+    setComparisonIds(readComparisonUniversityIds())
+  }
 
   const loadUniversity = useCallback(
     () => universityService.getById(id),
@@ -461,6 +497,10 @@ export function UniversityDetailsPage() {
 
   const websiteUrl = getSafeUrl(university.website)
   const programs = university.programs ?? []
+  const rawCoverImageUrl = getSafeUrl(university.coverImageUrl)
+  const coverImageSourceUrl = getSafeUrl(university.coverImageSourceUrl)
+  const coverImageUrl = rawCoverImageUrl && coverImageSourceUrl && university.coverImageLicense?.trim() ? rawCoverImageUrl : null
+  const isInComparison = comparisonIds.includes(university.id)
 
   return (
     <div className="dashboard-container university-details-page">
@@ -494,7 +534,7 @@ export function UniversityDetailsPage() {
       <section className="panel university-detail-summary">
         <div className="university-detail-identity">
           <div className="university-detail-emblem">
-            <GraduationCap size={34} />
+            {coverImageUrl ? <img src={coverImageUrl} alt={university.coverImageAlt || `Фотография ${university.shortName || university.name}`} /> : <GraduationCap size={34} />}
           </div>
 
           <div>
@@ -507,6 +547,12 @@ export function UniversityDetailsPage() {
               {university.city}
             </span>
           </div>
+        </div>
+
+        <div className="university-detail-actions">
+          <button type="button" className="secondary-button" onClick={handleComparison} aria-pressed={isInComparison}><GitCompareArrows size={16} />{isInComparison ? 'Убрать из сравнения' : 'Добавить в сравнение'}</button>
+          <button type="button" className={`university-favorite-button${favorited ? ' is-active' : ''}`} onClick={handleFavorite} aria-pressed={favorited}><Bookmark size={15} />{favorited ? 'В избранном' : 'В избранное'}</button>
+          {comparisonNotice && <span className="university-detail-action-note" role="status">{comparisonNotice}</span>}
         </div>
 
         <div className="university-detail-facts">
@@ -528,6 +574,10 @@ export function UniversityDetailsPage() {
             </div>
           </div>
         </div>
+
+        {coverImageUrl && coverImageSourceUrl && (
+          <a className="university-detail-photo-source" href={coverImageSourceUrl} target="_blank" rel="noopener noreferrer">Источник фотографии · {university.coverImageLicense} <ExternalLink size={13} /></a>
+        )}
 
         {websiteUrl && (
           <a
