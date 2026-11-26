@@ -1,21 +1,31 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import {
+  ArrowDown,
+  ArrowUp,
   BookOpen,
+  CalendarDays,
   Check,
   ChevronDown,
+  Clock3,
   Code2,
   FlaskConical,
   GraduationCap,
   MapPin,
+  Plus,
   Save,
   Settings2,
+  Target,
   UserRound,
   X
 } from 'lucide-react'
 
 import type {
   CreateProfileInput,
+  EducationLevel,
+  PreparationLevel,
+  ProfileSnapshot,
+  SubjectPreparation,
   University,
   UserGrade
 } from '@trajectory/shared'
@@ -41,6 +51,25 @@ interface ProfileFormState {
   subjects: SubjectId[]
   targetUniversityId: string
   targetProgramId: string
+  weeklyStudyHours: string
+  targetAdmissionYear: string
+  targetEducationLevel: EducationLevel | ''
+  subjectPreparation: Partial<Record<SubjectId, PreparationLevel>>
+  alternativeUniversityIds: string[]
+  alternativeUniversityToAdd: string
+}
+
+type ProfileSource = {
+  grade?: number
+  region?: string
+  subjects?: string[]
+  targetUniversityId?: string
+  targetProgramId?: string
+  weeklyStudyHours?: number
+  targetAdmissionYear?: number
+  targetEducationLevel?: EducationLevel
+  subjectPreparation?: SubjectPreparation[]
+  alternativeUniversityIds?: string[]
 }
 
 const EMPTY_FORM: ProfileFormState = {
@@ -48,24 +77,48 @@ const EMPTY_FORM: ProfileFormState = {
   region: '',
   subjects: [],
   targetUniversityId: '',
-  targetProgramId: ''
+  targetProgramId: '',
+  weeklyStudyHours: '',
+  targetAdmissionYear: '',
+  targetEducationLevel: '',
+  subjectPreparation: {},
+  alternativeUniversityIds: [],
+  alternativeUniversityToAdd: ''
 }
+
+const PREPARATION_LEVEL_OPTIONS: { value: PreparationLevel; label: string }[] = [
+  { value: 'beginner', label: 'Начальный' },
+  { value: 'medium', label: 'Средний' },
+  { value: 'advanced', label: 'Продвинутый' }
+]
+
+const EDUCATION_LEVEL_OPTIONS: { value: EducationLevel; label: string }[] = [
+  { value: 'bachelor', label: 'Бакалавриат' },
+  { value: 'specialist', label: 'Специалитет' },
+  { value: 'master', label: 'Магистратура' }
+]
 
 function isGrade(value: unknown): value is UserGrade {
   return value === 7 || value === 8 || value === 9 || value === 10 || value === 11
 }
 
-function toProfileInput(value: {
-  grade?: number
-  region?: string
-  subjects?: string[]
-  targetUniversityId?: string
-  targetProgramId?: string
-} | null): CreateProfileInput | null {
+function isSubjectId(value: unknown): value is SubjectId {
+  return SUBJECTS.some((subject) => subject.id === value)
+}
+
+function isPreparationLevel(value: unknown): value is PreparationLevel {
+  return value === 'beginner' || value === 'medium' || value === 'advanced'
+}
+
+function isEducationLevel(value: unknown): value is EducationLevel {
+  return value === 'bachelor' || value === 'specialist' || value === 'master'
+}
+
+function toProfileInput(value: ProfileSource | ProfileSnapshot | null): CreateProfileInput | null {
   if (
     !value ||
     !isGrade(value.grade) ||
-    !value.region ||
+    typeof value.region !== 'string' ||
     value.region.trim().length < 2 ||
     !Array.isArray(value.subjects) ||
     value.subjects.length === 0
@@ -73,32 +126,70 @@ function toProfileInput(value: {
     return null
   }
 
-  const validSubjects = value.subjects.filter((subject): subject is SubjectId =>
-    SUBJECTS.some((item) => item.id === subject)
-  )
-
+  const validSubjects = [...new Set(value.subjects.filter(isSubjectId))]
   if (validSubjects.length === 0) return null
+
+  const preparationBySubject = new Map<SubjectId, PreparationLevel>()
+  for (const item of value.subjectPreparation ?? []) {
+    if (isSubjectId(item.subjectId) && isPreparationLevel(item.preparationLevel)) {
+      preparationBySubject.set(item.subjectId, item.preparationLevel)
+    }
+  }
+
+  const alternativeUniversityIds = [...new Set(value.alternativeUniversityIds ?? [])]
+    .filter((id) => typeof id === 'string' && id.length > 0 && id !== value.targetUniversityId)
+    .slice(0, 3)
 
   return {
     grade: value.grade,
     region: value.region,
     subjects: validSubjects,
     ...(value.targetUniversityId ? { targetUniversityId: value.targetUniversityId } : {}),
-    ...(value.targetProgramId ? { targetProgramId: value.targetProgramId } : {})
+    ...(value.targetProgramId && value.targetUniversityId
+      ? { targetProgramId: value.targetProgramId }
+      : {}),
+    ...(typeof value.weeklyStudyHours === 'number' && Number.isInteger(value.weeklyStudyHours) && value.weeklyStudyHours >= 1 && value.weeklyStudyHours <= 40
+      ? { weeklyStudyHours: value.weeklyStudyHours }
+      : {}),
+    ...(typeof value.targetAdmissionYear === 'number' && Number.isInteger(value.targetAdmissionYear) && value.targetAdmissionYear >= 2026 && value.targetAdmissionYear <= 2100
+      ? { targetAdmissionYear: value.targetAdmissionYear }
+      : {}),
+    ...(isEducationLevel(value.targetEducationLevel)
+      ? { targetEducationLevel: value.targetEducationLevel }
+      : {}),
+    subjectPreparation: validSubjects.map((subjectId) => ({
+      subjectId,
+      preparationLevel: preparationBySubject.get(subjectId) ?? 'medium'
+    })),
+    alternativeUniversityIds
   }
 }
 
 function toForm(profile: CreateProfileInput | null): ProfileFormState {
   if (!profile) return EMPTY_FORM
 
+  const subjectPreparation: Partial<Record<SubjectId, PreparationLevel>> = {}
+  for (const subjectId of profile.subjects) {
+    if (isSubjectId(subjectId)) {
+      const saved = profile.subjectPreparation?.find((item) => item.subjectId === subjectId)
+      subjectPreparation[subjectId] = saved?.preparationLevel ?? 'medium'
+    }
+  }
+
   return {
     grade: String(profile.grade),
     region: profile.region,
-    subjects: profile.subjects.filter((subject): subject is SubjectId =>
-      SUBJECTS.some((item) => item.id === subject)
-    ),
+    subjects: profile.subjects.filter(isSubjectId),
     targetUniversityId: profile.targetUniversityId ?? '',
-    targetProgramId: profile.targetProgramId ?? ''
+    targetProgramId: profile.targetProgramId ?? '',
+    weeklyStudyHours: profile.weeklyStudyHours?.toString() ?? '',
+    targetAdmissionYear: profile.targetAdmissionYear?.toString() ?? '',
+    targetEducationLevel: profile.targetEducationLevel ?? '',
+    subjectPreparation,
+    alternativeUniversityIds: (profile.alternativeUniversityIds ?? [])
+      .filter((id) => id !== profile.targetUniversityId)
+      .slice(0, 3),
+    alternativeUniversityToAdd: ''
   }
 }
 
@@ -106,6 +197,11 @@ function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean)
   if (parts.length === 0) return 'У'
   return parts.slice(0, 2).map((part) => part[0]?.toLocaleUpperCase('ru-RU') ?? '').join('')
+}
+
+function getUniversityLabel(university: University | undefined, fallbackId: string): string {
+  if (!university) return `Вуз (${fallbackId.slice(0, 8)}…)`
+  return university.shortName || university.name
 }
 
 export function ProfilePage() {
@@ -123,16 +219,28 @@ export function ProfilePage() {
   const selectedUniversity = universities.find(
     (university) => university.id === form.targetUniversityId
   )
-  const selectedProgram = selectedUniversity?.programs?.find(
-    (program) => program.id === form.targetProgramId
+
+  const profileUniversity = universities.find(
+    (university) => university.id === profile?.targetUniversityId
+  )
+  const profileProgram = profileUniversity?.programs?.find(
+    (program) => program.id === profile?.targetProgramId
   )
   const profileName =
     (typeof user?.user_metadata?.full_name === 'string' && user.user_metadata.full_name.trim()) ||
     'Мой профиль'
+
   const subjectNames = useMemo(() => {
     const ids = new Set(profile?.subjects ?? [])
     return SUBJECTS.filter((subject) => ids.has(subject.id))
   }, [profile])
+
+  const availableAlternativeUniversities = useMemo(() => {
+    const selected = new Set(form.alternativeUniversityIds)
+    return universities.filter((university) =>
+      university.id !== form.targetUniversityId && !selected.has(university.id)
+    )
+  }, [universities, form.targetUniversityId, form.alternativeUniversityIds])
 
   useEffect(() => {
     if (authLoading) return
@@ -194,13 +302,63 @@ export function ProfilePage() {
   }
 
   const toggleSubject = (subjectId: SubjectId) => {
+    setForm((current) => {
+      const selected = current.subjects.includes(subjectId)
+      const nextPreparation = { ...current.subjectPreparation }
+
+      if (selected) {
+        delete nextPreparation[subjectId]
+      } else {
+        nextPreparation[subjectId] = 'medium'
+      }
+
+      return {
+        ...current,
+        subjects: selected
+          ? current.subjects.filter((item) => item !== subjectId)
+          : [...current.subjects, subjectId],
+        subjectPreparation: nextPreparation
+      }
+    })
+    setError(null)
+    setMessage(null)
+  }
+
+  const addAlternativeUniversity = () => {
+    const universityId = form.alternativeUniversityToAdd
+    if (!universityId) return
+
+    if (form.alternativeUniversityIds.length >= 3) {
+      setError('Можно добавить не более трёх альтернативных вузов.')
+      return
+    }
+    if (universityId === form.targetUniversityId || form.alternativeUniversityIds.includes(universityId)) {
+      setError('Этот вуз уже выбран как основной или альтернативный.')
+      return
+    }
+
     setForm((current) => ({
       ...current,
-      subjects: current.subjects.includes(subjectId)
-        ? current.subjects.filter((item) => item !== subjectId)
-        : [...current.subjects, subjectId]
+      alternativeUniversityIds: [...current.alternativeUniversityIds, universityId],
+      alternativeUniversityToAdd: ''
     }))
     setError(null)
+    setMessage(null)
+  }
+
+  const removeAlternativeUniversity = (universityId: string) => {
+    updateForm(
+      'alternativeUniversityIds',
+      form.alternativeUniversityIds.filter((id) => id !== universityId)
+    )
+  }
+
+  const moveAlternativeUniversity = (index: number, direction: -1 | 1) => {
+    const next = [...form.alternativeUniversityIds]
+    const targetIndex = index + direction
+    if (targetIndex < 0 || targetIndex >= next.length) return
+    ;[next[index], next[targetIndex]] = [next[targetIndex], next[index]]
+    updateForm('alternativeUniversityIds', next)
   }
 
   const handleCancel = () => {
@@ -229,6 +387,41 @@ export function ProfilePage() {
       return
     }
 
+    const weeklyStudyHours = form.weeklyStudyHours.trim() === ''
+      ? undefined
+      : Number(form.weeklyStudyHours)
+    if (
+      weeklyStudyHours !== undefined &&
+      (!Number.isInteger(weeklyStudyHours) || weeklyStudyHours < 1 || weeklyStudyHours > 40)
+    ) {
+      setError('Недельная нагрузка должна быть целым числом от 1 до 40 часов.')
+      return
+    }
+
+    const targetAdmissionYear = form.targetAdmissionYear.trim() === ''
+      ? undefined
+      : Number(form.targetAdmissionYear)
+    if (
+      targetAdmissionYear !== undefined &&
+      (!Number.isInteger(targetAdmissionYear) || targetAdmissionYear < 2026 || targetAdmissionYear > 2100)
+    ) {
+      setError('Укажи год поступления от 2026 до 2100.')
+      return
+    }
+
+    if (form.targetProgramId && !form.targetUniversityId) {
+      setError('Сначала выбери основной университет для направления.')
+      return
+    }
+    if (form.alternativeUniversityIds.length > 3) {
+      setError('Можно выбрать не более трёх альтернативных вузов.')
+      return
+    }
+    if (form.alternativeUniversityIds.includes(form.targetUniversityId)) {
+      setError('Основной вуз не может одновременно быть альтернативным.')
+      return
+    }
+
     const nextProfile: CreateProfileInput = {
       grade: numericGrade,
       region: form.region.trim(),
@@ -236,7 +429,17 @@ export function ProfilePage() {
       ...(form.targetUniversityId ? { targetUniversityId: form.targetUniversityId } : {}),
       ...(form.targetUniversityId && form.targetProgramId
         ? { targetProgramId: form.targetProgramId }
-        : {})
+        : {}),
+      ...(weeklyStudyHours !== undefined ? { weeklyStudyHours } : {}),
+      ...(targetAdmissionYear !== undefined ? { targetAdmissionYear } : {}),
+      ...(form.targetEducationLevel
+        ? { targetEducationLevel: form.targetEducationLevel }
+        : {}),
+      subjectPreparation: form.subjects.map((subjectId) => ({
+        subjectId,
+        preparationLevel: form.subjectPreparation[subjectId] ?? 'medium'
+      })),
+      alternativeUniversityIds: form.alternativeUniversityIds
     }
 
     setSaving(true)
@@ -265,9 +468,8 @@ export function ProfilePage() {
     return <div className="dashboard-container"><LoadingState message="Загружаем профиль..." /></div>
   }
 
-  const selectedUniversityName = universities.find(
-    (university) => university.id === profile?.targetUniversityId
-  )?.name
+  const subjectPreparationForProfile = (profile?.subjectPreparation ?? [])
+    .filter((item) => subjectNames.some((subject) => subject.id === item.subjectId))
 
   return (
     <div className="dashboard-container">
@@ -323,12 +525,47 @@ export function ProfilePage() {
               </div>
             </div>
             <div className="profile-overview-item">
-              <span><GraduationCap size={16} />Целевой вуз</span>
-              <strong>{selectedUniversityName ?? 'Пока не выбран'}</strong>
+              <span><GraduationCap size={16} />Основной вуз</span>
+              <strong>{profile.targetUniversityId ? getUniversityLabel(profileUniversity, profile.targetUniversityId) : 'Пока не выбран'}</strong>
             </div>
             <div className="profile-overview-item">
-              <span><ChevronDown size={16} />Направление</span>
-              <strong>{selectedProgram?.name ?? 'Пока не выбрано'}</strong>
+              <span><ChevronDown size={16} />Направление / программа</span>
+              <strong>{profileProgram?.name ?? (profile.targetProgramId ? 'Программа выбрана' : 'Пока не выбрано')}</strong>
+            </div>
+            <div className="profile-overview-item">
+              <span><Clock3 size={16} />Нагрузка в неделю</span>
+              <strong>{profile.weeklyStudyHours ? `${profile.weeklyStudyHours} ч` : 'Не указана'}</strong>
+            </div>
+            <div className="profile-overview-item">
+              <span><CalendarDays size={16} />Год поступления</span>
+              <strong>{profile.targetAdmissionYear ?? 'Не указан'}</strong>
+            </div>
+            <div className="profile-overview-item">
+              <span><Target size={16} />Уровень образования</span>
+              <strong>{EDUCATION_LEVEL_OPTIONS.find((item) => item.value === profile.targetEducationLevel)?.label ?? 'Не выбран'}</strong>
+            </div>
+            <div className="profile-overview-item profile-overview-wide">
+              <span><GraduationCap size={16} />Альтернативные вузы</span>
+              {profile.alternativeUniversityIds?.length ? (
+                <div className="profile-subject-tags">
+                  {profile.alternativeUniversityIds.map((id) => (
+                    <span key={id}>{getUniversityLabel(universities.find((item) => item.id === id), id)}</span>
+                  ))}
+                </div>
+              ) : <strong>Пока не выбраны</strong>}
+            </div>
+            <div className="profile-overview-item profile-overview-wide">
+              <span><BookOpen size={16} />Уровень подготовки по предметам</span>
+              {subjectPreparationForProfile.length ? (
+                <div className="profile-preparation-tags">
+                  {subjectPreparationForProfile.map((item) => (
+                    <span key={item.subjectId}>
+                      {SUBJECTS.find((subject) => subject.id === item.subjectId)?.label ?? item.subjectId}
+                      <strong>{PREPARATION_LEVEL_OPTIONS.find((option) => option.value === item.preparationLevel)?.label}</strong>
+                    </span>
+                  ))}
+                </div>
+              ) : <strong>Средний уровень будет использован по умолчанию</strong>}
             </div>
           </div>
         </section>
@@ -339,7 +576,7 @@ export function ProfilePage() {
           <div className="profile-editor-title">
             <div>
               <h2>{profile ? 'Редактирование профиля' : 'Заполни профиль'}</h2>
-              <p>Эти данные используются для персонального подбора олимпиад.</p>
+              <p>Эти данные помогут построить персональный план подготовки и поступления.</p>
             </div>
             <div className="profile-editor-icon"><UserRound size={21} /></div>
           </div>
@@ -371,7 +608,8 @@ export function ProfilePage() {
                 onChange={(event) => setForm((current) => ({
                   ...current,
                   targetUniversityId: event.target.value,
-                  targetProgramId: ''
+                  targetProgramId: '',
+                  alternativeUniversityIds: current.alternativeUniversityIds.filter((id) => id !== event.target.value)
                 }))}
               >
                 <option value="">Пока не выбрал</option>
@@ -400,11 +638,60 @@ export function ProfilePage() {
             </label>
           </div>
 
-          <div className="profile-subject-section">
+          <section className="profile-planning-section">
+            <div className="profile-section-heading">
+              <div>
+                <h3>Цель поступления</h3>
+                <p>Задай ориентиры, чтобы план учитывал сроки и выбранный формат обучения.</p>
+              </div>
+            </div>
+            <div className="profile-planning-grid">
+              <label className="profile-form-field">
+                <span>Год поступления <small>Необязательно</small></span>
+                <input
+                  type="number"
+                  min={2026}
+                  max={2100}
+                  step={1}
+                  inputMode="numeric"
+                  placeholder="Например, 2029"
+                  value={form.targetAdmissionYear}
+                  onChange={(event) => updateForm('targetAdmissionYear', event.target.value)}
+                />
+              </label>
+              <label className="profile-form-field">
+                <span>Уровень образования <small>Необязательно</small></span>
+                <select
+                  value={form.targetEducationLevel}
+                  onChange={(event) => updateForm('targetEducationLevel', event.target.value as EducationLevel | '')}
+                >
+                  <option value="">Пока не определился</option>
+                  {EDUCATION_LEVEL_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="profile-form-field">
+                <span>Часов на подготовку в неделю <small>От 1 до 40</small></span>
+                <input
+                  type="number"
+                  min={1}
+                  max={40}
+                  step={1}
+                  inputMode="numeric"
+                  placeholder="Например, 8"
+                  value={form.weeklyStudyHours}
+                  onChange={(event) => updateForm('weeklyStudyHours', event.target.value)}
+                />
+              </label>
+            </div>
+          </section>
+
+          <section className="profile-subject-section">
             <div className="profile-section-heading">
               <div>
                 <h3>Интересующие предметы</h3>
-                <p>Выбери один или несколько предметов.</p>
+                <p>Выбери один или несколько предметов для подбора олимпиад и подготовки.</p>
               </div>
               <span>{form.subjects.length} выбрано</span>
             </div>
@@ -431,7 +718,109 @@ export function ProfilePage() {
                 )
               })}
             </div>
-          </div>
+          </section>
+
+          <section className="profile-planning-section">
+            <div className="profile-section-heading">
+              <div>
+                <h3>Уровень подготовки</h3>
+                <p>Укажи текущий уровень по каждому выбранному предмету. По умолчанию — средний.</p>
+              </div>
+            </div>
+            {form.subjects.length ? (
+              <div className="profile-preparation-list">
+                {form.subjects.map((subjectId) => (
+                  <label className="profile-preparation-row" key={subjectId}>
+                    <span>{SUBJECTS.find((subject) => subject.id === subjectId)?.label ?? subjectId}</span>
+                    <select
+                      value={form.subjectPreparation[subjectId] ?? 'medium'}
+                      onChange={(event) => updateForm('subjectPreparation', {
+                        ...form.subjectPreparation,
+                        [subjectId]: event.target.value as PreparationLevel
+                      })}
+                    >
+                      {PREPARATION_LEVEL_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <p className="profile-section-empty">Сначала выбери предметы в предыдущем блоке.</p>
+            )}
+          </section>
+
+          <section className="profile-planning-section">
+            <div className="profile-section-heading">
+              <div>
+                <h3>Альтернативные вузы</h3>
+                <p>Добавь до трёх запасных вариантов. Порядок в списке задаёт приоритет.</p>
+              </div>
+              <span>{form.alternativeUniversityIds.length} / 3</span>
+            </div>
+
+            <div className="profile-alternative-add">
+              <label className="profile-form-field">
+                <span>Добавить университет</span>
+                <select
+                  value={form.alternativeUniversityToAdd}
+                  onChange={(event) => updateForm('alternativeUniversityToAdd', event.target.value)}
+                  disabled={form.alternativeUniversityIds.length >= 3 || availableAlternativeUniversities.length === 0}
+                >
+                  <option value="">Выбери вуз из списка</option>
+                  {availableAlternativeUniversities.map((university) => (
+                    <option key={university.id} value={university.id}>
+                      {university.shortName} — {university.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                className="secondary-button profile-alternative-add-button"
+                onClick={addAlternativeUniversity}
+                disabled={!form.alternativeUniversityToAdd || form.alternativeUniversityIds.length >= 3}
+              >
+                <Plus size={16} /> Добавить
+              </button>
+            </div>
+
+            {form.alternativeUniversityIds.length ? (
+              <ol className="profile-alternative-list">
+                {form.alternativeUniversityIds.map((id, index) => (
+                  <li key={id}>
+                    <span className="profile-alternative-priority">{index + 1}</span>
+                    <strong>{getUniversityLabel(universities.find((item) => item.id === id), id)}</strong>
+                    <div className="profile-alternative-actions">
+                      <button
+                        type="button"
+                        className="profile-icon-button"
+                        aria-label={`Поднять ${getUniversityLabel(universities.find((item) => item.id === id), id)} выше`}
+                        onClick={() => moveAlternativeUniversity(index, -1)}
+                        disabled={index === 0}
+                      ><ArrowUp size={15} /></button>
+                      <button
+                        type="button"
+                        className="profile-icon-button"
+                        aria-label={`Опустить ${getUniversityLabel(universities.find((item) => item.id === id), id)} ниже`}
+                        onClick={() => moveAlternativeUniversity(index, 1)}
+                        disabled={index === form.alternativeUniversityIds.length - 1}
+                      ><ArrowDown size={15} /></button>
+                      <button
+                        type="button"
+                        className="profile-icon-button is-remove"
+                        aria-label={`Удалить ${getUniversityLabel(universities.find((item) => item.id === id), id)}`}
+                        onClick={() => removeAlternativeUniversity(id)}
+                      ><X size={15} /></button>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="profile-section-empty">Запасные вузы пока не выбраны.</p>
+            )}
+          </section>
 
           <div className="profile-editor-actions">
             {profile && (
