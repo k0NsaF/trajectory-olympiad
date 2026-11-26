@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+﻿import type { SupabaseClient } from '@supabase/supabase-js'
 
 import { AppError } from '../../utils/AppError.js'
 import type { UniversityQuery } from './universities.schema.js'
@@ -106,19 +106,20 @@ const PROGRAM_UNIVERSITY_CHUNK_SIZE = 150
 function cleanCityCandidate(value: string | null | undefined): string {
   return (value ?? '')
     .replace(/\b\d{5,6}\b/g, ' ')
-    .replace(/^\s*(?:г(?:ород)?\.?\s*)/i, '')
+    .replace(/^\s*(?:г\.\s*|г\s+|город(?:\.|\s+))/iu, '')
     .replace(/[.,;]+$/g, '')
     .replace(/\s+/g, ' ')
     .trim()
 }
 
 function resolveUniversityCity(city: string | null, address: string | null): string {
-  const explicitMatches = [...(address ?? '').matchAll(/(?:^|[,;]\s*)г(?:ород)?\.?\s*([^,;]+)/giu)]
-  const fromAddress = cleanCityCandidate(explicitMatches.at(-1)?.[1])
-  if (fromAddress && !/^(?:не указан|неизвестно)$/i.test(fromAddress)) return fromAddress
-
+  // Prefer the structured university city; address strings can mention branch locations too.
   const fromCity = cleanCityCandidate(city)
   if (fromCity && !/(?:область|край|республик|автономн(?:ый|ая) округ)/i.test(fromCity) && !/^(?:не указан|неизвестно)$/i.test(fromCity)) return fromCity
+
+  const explicitMatches = [...(address ?? '').matchAll(/(?:^|[,;]\s*)г(?:ород)?\.?\s*([^,;]+)/giu)]
+  const fromAddress = cleanCityCandidate(explicitMatches[0]?.[1])
+  if (fromAddress && !/^(?:не указан|неизвестно)$/i.test(fromAddress)) return fromAddress
   return 'Город не указан'
 }
 
@@ -169,15 +170,19 @@ async function loadAllUniversities(
 ): Promise<UniversityRow[]> {
   const universities: UniversityRow[] = []
 
-  for (let from = 0; ; from += PAGE_SIZE) {
+  const pageSize = filters.limit ?? PAGE_SIZE
+  const searchTerm = filters.search?.replace(/[^\p{L}\p{N}\s.-]/gu, ' ').replace(/\s+/gu, ' ').trim()
+  if (filters.search && !searchTerm) return []
+
+  for (let from = 0; ; from += pageSize) {
     let query = supabase
       .from('universities')
       .select(UNIVERSITY_SELECT)
       .order('name', { ascending: true })
-      .range(from, from + PAGE_SIZE - 1)
+      .range(from, from + pageSize - 1)
 
-    if (filters.search) {
-      query = query.ilike('name', `%${filters.search}%`)
+    if (searchTerm) {
+      query = query.or(`name.ilike.%${searchTerm}%,short_name.ilike.%${searchTerm}%`)
     }
 
     if (filters.city) {
@@ -191,8 +196,8 @@ async function loadAllUniversities(
         .from('universities')
         .select(LEGACY_UNIVERSITY_SELECT)
         .order('name', { ascending: true })
-        .range(from, from + PAGE_SIZE - 1)
-      if (filters.search) legacyQuery = legacyQuery.ilike('name', `%${filters.search}%`)
+        .range(from, from + pageSize - 1)
+      if (searchTerm) legacyQuery = legacyQuery.or(`name.ilike.%${searchTerm}%,short_name.ilike.%${searchTerm}%`)
       if (filters.city) legacyQuery = legacyQuery.ilike('city', `%${filters.city}%`)
       const legacyResult = await legacyQuery
       data = legacyResult.data
@@ -209,7 +214,7 @@ async function loadAllUniversities(
 
     const page = (data ?? []) as unknown as UniversityRow[]
     universities.push(...page)
-    if (page.length < PAGE_SIZE) break
+    if (filters.limit !== undefined || page.length < pageSize) break
   }
 
   return universities

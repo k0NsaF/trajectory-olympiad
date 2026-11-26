@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 import { AppError } from '../../utils/AppError.js'
+import { createSupabaseServiceClient } from '../../config/supabase.js'
 import type {
   SaveProfileInput,
   SaveProfilePreferencesInput
@@ -203,35 +204,8 @@ export async function saveProfile(
   email?: string,
   fullName?: string
 ): Promise<ProfileResult> {
-  const { data, error } = await supabase
-    .from('profiles')
-    .upsert(
-      {
-        id: userId,
-        ...(email ? { email } : {}),
-        ...(fullName ? { full_name: fullName } : {}),
-        grade: input.grade,
-        region: input.region,
-        subjects: input.subjects,
-        target_university_id: input.targetUniversityId ?? null,
-        target_program_id: input.targetProgramId ?? null,
-        onboarding_completed: true,
-        updated_at: new Date().toISOString()
-      },
-      { onConflict: 'id' }
-    )
-    .select('id')
-    .single()
-
-  if (error || !data) {
-    throw new AppError(
-      'Не удалось сохранить профиль пользователя.',
-      500,
-      'PROFILE_SAVE_FAILED'
-    )
-  }
-
-  // Keep old clients backward compatible: omitted planning fields are preserved.
+  // The profile row and its planning preferences must be committed together.
+  // Missing optional planning keys preserve values saved by older clients.
   const planningPreferences: Record<string, unknown> = {}
 
   if (input.weeklyStudyHours !== undefined) {
@@ -250,19 +224,32 @@ export async function saveProfile(
     planningPreferences.alternativeUniversityIds = input.alternativeUniversityIds
   }
 
-  if (Object.keys(planningPreferences).length > 0) {
-    const { error: planningError } = await supabase.rpc(
-      'save_profile_planning_preferences',
-      { p_preferences: planningPreferences }
-    )
+  const profilePayload = {
+    grade: input.grade,
+    region: input.region,
+    subjects: input.subjects,
+    targetUniversityId: input.targetUniversityId ?? null,
+    targetProgramId: input.targetProgramId ?? null
+  }
 
-    if (planningError) {
-      throw new AppError(
-        'Основной профиль сохранён, но дополнительные настройки подготовки обновить не удалось.',
-        500,
-        'PROFILE_PLANNING_SAVE_FAILED'
-      )
-    }
+  // This narrowly scoped RPC is executable only by the backend service role.
+  // The caller's userId/email/name come from the already verified Supabase Auth
+  // user attached by authenticate middleware, never from req.body.
+  const serviceSupabase = createSupabaseServiceClient()
+  const { error } = await serviceSupabase.rpc('save_profile_bundle', {
+    p_user_id: userId,
+    p_email: email ?? null,
+    p_full_name: fullName ?? null,
+    p_profile: profilePayload,
+    p_preferences: planningPreferences
+  })
+
+  if (error) {
+    throw new AppError(
+      'Не удалось атомарно сохранить профиль и настройки персональной траектории.',
+      500,
+      'PROFILE_SAVE_FAILED'
+    )
   }
 
   const savedProfile = await getProfile(supabase, userId)
@@ -304,19 +291,17 @@ export async function saveProfilePreferences(
   userId: string,
   input: SaveProfilePreferencesInput
 ): Promise<ProfilePreferencesResult> {
+  // Authenticated clients have column-level UPDATE permission only for these
+  // display preferences. The database trigger owns updated_at.
   const { data, error } = await supabase
     .from('profiles')
-    .upsert(
-      {
-        id: userId,
-        theme_preference: input.themePreference,
-        notification_preferences: input.notificationPreferences,
-        updated_at: new Date().toISOString()
-      },
-      { onConflict: 'id' }
-    )
+    .update({
+      theme_preference: input.themePreference,
+      notification_preferences: input.notificationPreferences
+    })
+    .eq('id', userId)
     .select('theme_preference, notification_preferences')
-    .single()
+    .maybeSingle()
 
   if (error || !data) {
     throw new AppError(

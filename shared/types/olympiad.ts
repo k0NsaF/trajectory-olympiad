@@ -54,6 +54,35 @@ export interface OlympiadSeason {
   stages: OlympiadStage[]
 }
 
+export type OlympiadScheduleKind = 'registration' | 'stage'
+export type OlympiadDateParseStatus = 'exact' | 'range' | 'inferred_year' | 'unknown'
+export type OlympiadDateSemantics = 'event' | 'period' | 'deadline' | 'mixed' | 'unknown'
+
+export interface OlympiadProfileSummary {
+  id: string
+  profileName: string
+  level: 1 | 2 | 3
+  subjects: string[]
+  sourceSubjects: string
+}
+
+export interface OlympiadScheduleItem {
+  id: string
+  kind: OlympiadScheduleKind
+  stageName: string
+  whenText: string
+  isConfirmed: boolean
+  checkedOn?: string
+  organizerUrl: string
+  startDate?: string
+  endDate?: string
+  dateParseStatus: OlympiadDateParseStatus
+  dateSemantics: OlympiadDateSemantics
+  startTime?: string
+  endTime?: string
+  timeZone?: string
+}
+
 export interface OlympiadBenefitSummary {
   id: string
   universityId: string
@@ -77,4 +106,6 @@ export interface OlympiadWithStatus extends Olympiad {
   season?: OlympiadSeason
   benefitYear: number
   benefits: OlympiadBenefitSummary[]
+  profiles: OlympiadProfileSummary[]
+  scheduleItems: OlympiadScheduleItem[]
 }

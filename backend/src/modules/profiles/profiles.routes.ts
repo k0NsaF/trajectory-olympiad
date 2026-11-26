@@ -64,16 +64,15 @@ router.put(
     try {
       const { userId, supabase } = getAuthContext(req)
 
-      const fullName =
-        typeof req.user?.user_metadata?.full_name === 'string'
-          ? req.user.user_metadata.full_name
-          : undefined
-
+      const user = req.user
+      const fullName = typeof user?.user_metadata?.full_name === 'string'
+        ? user.user_metadata.full_name
+        : undefined
       const profile = await saveProfile(
         supabase,
         userId,
         req.body,
-        req.user?.email,
+        user?.email,
         fullName
       )
 

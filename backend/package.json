@@ -8,8 +8,9 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/project.test.ts && node --test tests/university-registry-parser.test.mjs",
-    "registry:import": "node scripts/import-university-registry.mjs"
+    "test": "tsx --test tests/project.test.ts tests/trajectory-engine.test.ts tests/trajectory-api.test.ts tests/trajectory-rate-limit.test.ts tests/supabase-service-fetch.test.ts && node --test tests/university-registry-parser.test.mjs tests/olympiad-schedule-parser.test.mjs",
+    "registry:import": "node scripts/import-university-registry.mjs",
+    "olympiads:import": "node scripts/import-olympiad-season.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.0",

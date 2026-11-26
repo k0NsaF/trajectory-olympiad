@@ -42,6 +42,7 @@ import {
   saveGuestProfile
 } from '@/services/profile.service'
 import { universityService } from '@/services/university.service'
+import { UniversityAutocomplete } from '@/components/universities/UniversityAutocomplete'
 
 import './profile-settings.css'
 
@@ -97,6 +98,100 @@ const EDUCATION_LEVEL_OPTIONS: { value: EducationLevel; label: string }[] = [
   { value: 'specialist', label: 'Специалитет' },
   { value: 'master', label: 'Магистратура' }
 ]
+
+const REGION_OPTIONS = [
+  "Амурская область",
+  "Архангельская область",
+  "Астраханская область",
+  "Белгородская область",
+  "Брянская область",
+  "Владимирская область",
+  "Волгоградская область",
+  "Вологодская область",
+  "Воронежская область",
+  "Запорожская область",
+  "Ивановская область",
+  "Иркутская область",
+  "Калининградская область",
+  "Калужская область",
+  "Кемеровская область — Кузбасс",
+  "Кировская область",
+  "Костромская область",
+  "Курганская область",
+  "Курская область",
+  "Ленинградская область",
+  "Липецкая область",
+  "Магаданская область",
+  "Московская область",
+  "Мурманская область",
+  "Нижегородская область",
+  "Новгородская область",
+  "Новосибирская область",
+  "Омская область",
+  "Оренбургская область",
+  "Орловская область",
+  "Пензенская область",
+  "Пермский край",
+  "Приморский край",
+  "Псковская область",
+  "Республика Адыгея (Адыгея)",
+  "Республика Алтай",
+  "Республика Башкортостан",
+  "Республика Бурятия",
+  "Республика Дагестан",
+  "Республика Ингушетия",
+  "Республика Калмыкия",
+  "Республика Карелия",
+  "Республика Коми",
+  "Республика Крым",
+  "Республика Марий Эл",
+  "Республика Мордовия",
+  "Республика Саха (Якутия)",
+  "Республика Северная Осетия — Алания",
+  "Республика Татарстан (Татарстан)",
+  "Республика Тыва",
+  "Республика Хакасия",
+  "Ростовская область",
+  "Рязанская область",
+  "Самарская область",
+  "Санкт-Петербург",
+  "Саратовская область",
+  "Сахалинская область",
+  "Свердловская область",
+  "Севастополь",
+  "Смоленская область",
+  "Ставропольский край",
+  "Тамбовская область",
+  "Тверская область",
+  "Томская область",
+  "Тульская область",
+  "Тюменская область",
+  "Удмуртская Республика",
+  "Ульяновская область",
+  "Хабаровский край",
+  "Ханты-Мансийский автономный округ — Югра",
+  "Челябинская область",
+  "Чеченская Республика",
+  "Чувашская Республика — Чувашия",
+  "Чукотский автономный округ",
+  "Ямало-Ненецкий автономный округ",
+  "Ярославская область",
+  "Алтайский край",
+  "Забайкальский край",
+  "Кабардино-Балкарская Республика",
+  "Камчатский край",
+  "Карачаево-Черкесская Республика",
+  "Краснодарский край",
+  "Красноярский край",
+  "Луганская Народная Республика",
+  "Москва",
+  "Ненецкий автономный округ",
+  "Донецкая Народная Республика",
+  "Еврейская автономная область",
+  "Херсонская область"
+]
+  .slice()
+  .sort((a, b) => a.localeCompare(b, 'ru'))
 
 function isGrade(value: unknown): value is UserGrade {
   return value === 7 || value === 8 || value === 9 || value === 10 || value === 11
@@ -235,13 +330,6 @@ export function ProfilePage() {
     return SUBJECTS.filter((subject) => ids.has(subject.id))
   }, [profile])
 
-  const availableAlternativeUniversities = useMemo(() => {
-    const selected = new Set(form.alternativeUniversityIds)
-    return universities.filter((university) =>
-      university.id !== form.targetUniversityId && !selected.has(university.id)
-    )
-  }, [universities, form.targetUniversityId, form.alternativeUniversityIds])
-
   useEffect(() => {
     if (authLoading) return
 
@@ -252,23 +340,12 @@ export function ProfilePage() {
       setError(null)
       setLoadWarning(null)
 
-      const universityRequest = universityService.getAll()
       const profileRequest = session?.access_token
         ? getProfileSnapshot(session.access_token)
         : Promise.resolve(null)
-
-      const [universityResult, profileResult] = await Promise.allSettled([
-        universityRequest,
-        profileRequest
-      ])
+      const [profileResult] = await Promise.allSettled([profileRequest])
 
       if (cancelled) return
-
-      if (universityResult.status === 'fulfilled') {
-        setUniversities(universityResult.value)
-      } else {
-        setLoadWarning('Не удалось загрузить список вузов. Остальные данные профиля доступны для просмотра.')
-      }
 
       if (profileResult.status === 'rejected') {
         setLoadWarning('Не удалось загрузить сохранённый профиль с сервера. Проверь соединение и повтори попытку.')
@@ -278,9 +355,30 @@ export function ProfilePage() {
         ? toProfileInput(profileResult.value)
         : null
       const resolvedProfile = remoteProfile ?? getGuestProfile()
-
       setProfile(resolvedProfile)
       setForm(toForm(resolvedProfile))
+
+      const selectedIds = [...new Set([
+        resolvedProfile?.targetUniversityId,
+        ...(resolvedProfile?.alternativeUniversityIds ?? [])
+      ].filter((id): id is string => Boolean(id)))]
+
+      if (selectedIds.length > 0) {
+        const universityResults = await Promise.allSettled(
+          selectedIds.map((id) => universityService.getById(id))
+        )
+        if (cancelled) return
+        const loadedUniversities = universityResults
+          .filter((result): result is PromiseFulfilledResult<University> => result.status === 'fulfilled')
+          .map((result) => result.value)
+        setUniversities(loadedUniversities)
+        if (loadedUniversities.length !== selectedIds.length) {
+          setLoadWarning('Не удалось загрузить часть выбранных вузов. Проверь их наличие в справочнике.')
+        }
+      } else {
+        setUniversities([])
+      }
+
       setEditing(!resolvedProfile)
       setLoading(false)
     }
@@ -595,30 +693,39 @@ export function ProfilePage() {
               <input
                 value={form.region}
                 onChange={(event) => updateForm('region', event.target.value)}
-                placeholder="Например, Москва"
+                placeholder="Начни вводить регион"
+                list="trajectory-region-options"
+                autoComplete="off"
                 maxLength={120}
                 required
               />
+              <datalist id="trajectory-region-options">
+                {REGION_OPTIONS.map((region) => <option key={region} value={region} />)}
+              </datalist>
             </label>
 
             <label className="profile-form-field">
               <span>Целевой вуз <small>Необязательно</small></span>
-              <select
-                value={form.targetUniversityId}
-                onChange={(event) => setForm((current) => ({
-                  ...current,
-                  targetUniversityId: event.target.value,
-                  targetProgramId: '',
-                  alternativeUniversityIds: current.alternativeUniversityIds.filter((id) => id !== event.target.value)
-                }))}
-              >
-                <option value="">Пока не выбрал</option>
-                {universities.map((university) => (
-                  <option key={university.id} value={university.id}>
-                    {university.shortName} — {university.name}
-                  </option>
-                ))}
-              </select>
+              <UniversityAutocomplete
+                selected={selectedUniversity ?? null}
+                placeholder="Найди вуз по названию или аббревиатуре"
+                onSelect={(university) => {
+                  if (university) {
+                    setUniversities((current) => [
+                      ...current.filter((item) => item.id !== university.id),
+                      university
+                    ])
+                  }
+                  setForm((current) => ({
+                    ...current,
+                    targetUniversityId: university?.id ?? '',
+                    targetProgramId: '',
+                    alternativeUniversityIds: current.alternativeUniversityIds.filter((id) => id !== university?.id)
+                  }))
+                  setError(null)
+                  setMessage(null)
+                }}
+              />
             </label>
 
             <label className="profile-form-field">
@@ -763,18 +870,21 @@ export function ProfilePage() {
             <div className="profile-alternative-add">
               <label className="profile-form-field">
                 <span>Добавить университет</span>
-                <select
-                  value={form.alternativeUniversityToAdd}
-                  onChange={(event) => updateForm('alternativeUniversityToAdd', event.target.value)}
-                  disabled={form.alternativeUniversityIds.length >= 3 || availableAlternativeUniversities.length === 0}
-                >
-                  <option value="">Выбери вуз из списка</option>
-                  {availableAlternativeUniversities.map((university) => (
-                    <option key={university.id} value={university.id}>
-                      {university.shortName} — {university.name}
-                    </option>
-                  ))}
-                </select>
+                <UniversityAutocomplete
+                  selected={universities.find((item) => item.id === form.alternativeUniversityToAdd) ?? null}
+                  placeholder="Найди запасной вуз"
+                  excludedIds={[form.targetUniversityId, ...form.alternativeUniversityIds]}
+                  disabled={form.alternativeUniversityIds.length >= 3}
+                  onSelect={(university) => {
+                    if (university) {
+                      setUniversities((current) => [
+                        ...current.filter((item) => item.id !== university.id),
+                        university
+                      ])
+                    }
+                    updateForm('alternativeUniversityToAdd', university?.id ?? '')
+                  }}
+                />
               </label>
               <button
                 type="button"

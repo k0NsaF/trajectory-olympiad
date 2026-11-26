@@ -12,6 +12,7 @@ import { api } from '@/services/api'
 export interface UniversityFilters {
   search?: string
   city?: string
+  limit?: number
 }
 
 export interface BenefitCompareFilters {

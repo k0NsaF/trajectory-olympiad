@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
@@ -33,6 +33,7 @@ import { useAuth } from '@/app/providers'
 import { olympiadService } from '@/services/olympiad.service'
 import { reminderService } from '@/services/reminder.service'
 import { readCalendarOlympiadIds, subscribeToCalendarSelection } from '@/services/calendar-selection.store'
+import { readRegisteredOlympiadIds, subscribeToOlympiadRegistration } from '@/services/olympiad-registration.store'
 
 import './calendar.css'
 
@@ -135,6 +136,14 @@ function getErrorMessage(error: unknown): string {
     : 'Не удалось выполнить действие. Попробуй ещё раз.'
 }
 
+function getScheduleTimeLabel(whenText: string, dateSemantics: string): string {
+  const times = [...(whenText.match(/\b(?:[01]?\d|2[0-3]):[0-5]\d(?:\s*(?:МСК|UTC[+-]?\d{0,2}))?/giu) ?? [])]
+  if (times.length > 0) return `Время: ${[...new Set(times)].join(' — ')}`
+  if (dateSemantics === 'deadline') return 'Крайний срок'
+  if (dateSemantics === 'period') return 'Период проведения'
+  return 'Время не указано'
+}
+
 function getStageRank(type: OlympiadStageType): number {
   if (type === 'registration') return 0
   if (type === 'qualifying') return 1
@@ -151,6 +160,7 @@ export function CalendarPage() {
   const navigate = useNavigate()
   const calendarScope = user?.id ? `user:${user.id}` : 'guest'
   const [selectedOlympiadIds, setSelectedOlympiadIds] = useState<string[]>(() => readCalendarOlympiadIds(calendarScope))
+  const [registeredOlympiadIds, setRegisteredOlympiadIds] = useState<string[]>(() => readRegisteredOlympiadIds(calendarScope))
   const [reminders, setReminders] = useState<Reminder[]>([])
   const [olympiads, setOlympiads] = useState<OlympiadWithStatus[]>([])
   const [loading, setLoading] = useState(true)
@@ -159,8 +169,10 @@ export function CalendarPage() {
 
   const [viewDate, setViewDate] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [calendarListView, setCalendarListView] = useState<'reminders' | 'olympiads'>('reminders')
   const [filter, setFilter] = useState<ReminderStatus | 'all'>('pending')
   const [formOpen, setFormOpen] = useState(false)
+  const formPanelRef = useRef<HTMLElement | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -171,11 +183,17 @@ export function CalendarPage() {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
-
-
+  useEffect(() => {
+    if (!formOpen) return
+    formPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [formOpen])
   useEffect(() => {
     setSelectedOlympiadIds(readCalendarOlympiadIds(calendarScope))
     return subscribeToCalendarSelection(calendarScope, () => setSelectedOlympiadIds(readCalendarOlympiadIds(calendarScope)))
+  }, [calendarScope])
+  useEffect(() => {
+    setRegisteredOlympiadIds(readRegisteredOlympiadIds(calendarScope))
+    return subscribeToOlympiadRegistration(calendarScope, () => setRegisteredOlympiadIds(readRegisteredOlympiadIds(calendarScope)))
   }, [calendarScope])
 
   useEffect(() => {
@@ -217,9 +235,12 @@ export function CalendarPage() {
 
     for (const olympiad of olympiads) {
       if (!selectedOlympiadIds.includes(olympiad.id)) continue
+      const isRegistered = registeredOlympiadIds.includes(olympiad.id)
+      const hasConfirmedStageSchedule = (olympiad.scheduleItems ?? []).some((item) => item.kind !== 'registration' && item.isConfirmed && ['exact', 'range'].includes(item.dateParseStatus) && ['event', 'period', 'deadline'].includes(item.dateSemantics) && Boolean(item.startDate))
       const subjectLabels = olympiad.subjects
         .map((id) => SUBJECTS.find((subject) => subject.id === id)?.label ?? id)
-      for (const stage of olympiad.season?.stages ?? []) {
+      if (isRegistered && !hasConfirmedStageSchedule) {
+        for (const stage of olympiad.season?.stages ?? []) {
         const dateKey = getDateKey(stage.startDate)
         if (!dateKey) continue
         addEvent({
@@ -235,6 +256,98 @@ export function CalendarPage() {
           olympiadId: olympiad.id,
           sortRank: getStageRank(stage.type)
         })
+        }
+      }
+
+      // Only confirmed, unambiguous event/period/deadline dates become calendar entries.
+      // Mixed, inferred-year and unknown notices remain visible as source text in olympiad details.
+      const scheduleItems = olympiad.scheduleItems ?? []
+      const todayKey = dateKeyFromDate(new Date())
+      const registrationCandidates = scheduleItems
+        .filter((item) =>
+          !isRegistered &&
+          item.kind === 'registration' &&
+          item.isConfirmed &&
+          ['exact', 'range'].includes(item.dateParseStatus) &&
+          ['event', 'period', 'deadline'].includes(item.dateSemantics) &&
+          Boolean(item.startDate)
+        )
+        .map((item) => {
+          const startDate = item.startDate
+          if (!startDate) return { item, dateKey: null }
+
+          const endDate = item.endDate ?? startDate
+          return {
+            item,
+            dateKey: item.dateSemantics === 'period'
+              ? getDateKey(endDate)
+              : getDateKey(startDate)
+          }
+        })
+        .filter((candidate) => candidate.dateKey !== null && candidate.dateKey >= todayKey)
+        .sort((a, b) => (a.dateKey ?? '').localeCompare(b.dateKey ?? ''))
+      const registrationCutoff = registrationCandidates[0]
+      const scheduleItemsToShow = isRegistered
+        ? scheduleItems.filter((item) => item.kind !== 'registration')
+        : registrationCutoff ? [registrationCutoff.item] : []
+
+      for (const item of scheduleItemsToShow) {
+        if (
+          !item.isConfirmed ||
+          !['exact', 'range'].includes(item.dateParseStatus) ||
+          !['event', 'period', 'deadline'].includes(item.dateSemantics) ||
+          !item.startDate
+        ) continue
+
+        const startKey = getDateKey(item.startDate)
+        const endKey = getDateKey(item.endDate ?? item.startDate)
+        const addScheduleEvent = (dateKey: string, suffix: string, label: string, forceSingleDate = false) => {
+          addEvent({
+            id: 'schedule-' + olympiad.id + '-' + item.id + '-' + suffix,
+            dateKey,
+            kind: 'olympiad',
+            title: olympiad.name,
+            dateLabel:
+              !forceSingleDate &&
+              item.dateSemantics === 'period' &&
+              startKey !== null &&
+              endKey !== null &&
+              startKey !== endKey
+              ? `${formatDayLabel(startKey)} — ${formatDayLabel(endKey)}`
+              : formatDayLabel(dateKey),
+            timeLabel: getScheduleTimeLabel(item.whenText, item.dateSemantics),
+            subjectLabels,
+            stageLabel: label,
+            olympiadId: olympiad.id,
+            sortRank: item.kind === 'registration' ? 0 : 1
+          })
+        }
+
+        if (!isRegistered) {
+          const cutoffKey = registrationCutoff?.dateKey
+          if (cutoffKey) addScheduleEvent(cutoffKey, 'registration-cutoff', 'Последний день регистрации', true)
+          continue
+        }
+        if (item.dateSemantics === 'deadline') {
+          if (startKey) {
+            const subject = item.stageName || (item.kind === 'registration' ? 'регистрации' : 'этапа')
+            addScheduleEvent(startKey, 'deadline', 'Крайний срок: ' + subject)
+          }
+          continue
+        }
+
+        if (startKey) {
+          const startLabel = item.kind === 'registration'
+            ? 'Начало регистрации'
+            : (item.stageName || 'Событие')
+          addScheduleEvent(startKey, 'start', startLabel)
+        }
+        if (item.dateSemantics === 'period' && endKey && endKey !== startKey) {
+          const endLabel = item.kind === 'registration'
+            ? 'Последний день регистрации'
+            : 'Окончание: ' + (item.stageName || 'этапа')
+          addScheduleEvent(endKey, 'end', endLabel)
+        }
       }
     }
 
@@ -261,7 +374,27 @@ export function CalendarPage() {
     }
 
     return events
-  }, [olympiads, reminders, selectedOlympiadIds])
+  }, [olympiads, reminders, selectedOlympiadIds, registeredOlympiadIds])
+
+  const trackedOlympiads = useMemo(() => {
+    const todayKey = dateKeyFromDate(new Date())
+    const allEvents = [...eventsByDate.values()].flat()
+
+    return selectedOlympiadIds.flatMap((olympiadId) => {
+      const olympiad = olympiads.find((item) => item.id === olympiadId)
+      if (!olympiad) return []
+
+      const events = allEvents
+        .filter((event) => event.kind === 'olympiad' && event.olympiadId === olympiadId && event.dateKey >= todayKey)
+        .sort((a, b) => a.dateKey.localeCompare(b.dateKey) || a.sortRank - b.sortRank)
+
+      return [{
+        olympiad,
+        events,
+        isRegistered: registeredOlympiadIds.includes(olympiadId)
+      }]
+    }).sort((a, b) => (a.events[0]?.dateKey ?? '9999-12-31').localeCompare(b.events[0]?.dateKey ?? '9999-12-31'))
+  }, [eventsByDate, olympiads, selectedOlympiadIds, registeredOlympiadIds])
 
   const calendarDays = useMemo(() => {
     const year = viewDate.getFullYear()
@@ -443,7 +576,7 @@ export function CalendarPage() {
       </section>
 
       {formOpen && (
-        <section className="panel calendar-form-panel">
+        <section ref={formPanelRef} className="panel calendar-form-panel">
           <div className="calendar-section-heading">
             <div>
               <span className="section-kicker">{editingId ? 'ИЗМЕНЕНИЕ СОБЫТИЯ' : 'НОВОЕ СОБЫТИЕ'}</span>
@@ -628,13 +761,34 @@ export function CalendarPage() {
         <div className="panel-heading calendar-list-heading">
           <div>
             <div className="section-kicker">ТВОИ СОБЫТИЯ</div>
-            <h2>Мои напоминания</h2>
-            <p>Создавай, редактируй и отмечай выполненные задачи.</p>
+            <h2>{calendarListView === 'reminders' ? 'Мои напоминания' : 'Мои олимпиады'}</h2>
+            <p>{calendarListView === 'reminders'
+              ? 'Создавай, редактируй и отмечай выполненные задачи.'
+              : 'Ближайшие подтверждённые даты выбранных олимпиад.'}</p>
           </div>
           <CalendarDays size={21} className="muted-icon" />
         </div>
 
-        <div className="calendar-filter-row" role="group" aria-label="Фильтр напоминаний">
+        <div className="calendar-list-switch" role="group" aria-label="Что показать в списке календаря">
+          <button
+            type="button"
+            className={`calendar-list-switch-button${calendarListView === 'reminders' ? ' is-active' : ''}`}
+            onClick={() => setCalendarListView('reminders')}
+            aria-pressed={calendarListView === 'reminders'}
+          >
+            <Bell size={16} /> Мои напоминания <span>{counts.all}</span>
+          </button>
+          <button
+            type="button"
+            className={`calendar-list-switch-button${calendarListView === 'olympiads' ? ' is-active' : ''}`}
+            onClick={() => setCalendarListView('olympiads')}
+            aria-pressed={calendarListView === 'olympiads'}
+          >
+            <CalendarDays size={16} /> Мои олимпиады <span>{selectedOlympiadIds.length}</span>
+          </button>
+        </div>
+
+        <div className="calendar-filter-row" role="group" aria-label="Фильтр напоминаний" hidden={calendarListView !== 'reminders'}>
           {(Object.keys(FILTER_LABELS) as Array<ReminderStatus | 'all'>).map((value) => (
             <button type="button" key={value} className={`calendar-filter-button${filter === value ? ' is-active' : ''}`} onClick={() => setFilter(value)} aria-pressed={filter === value}>
               {FILTER_LABELS[value]} <span>{counts[value]}</span>
@@ -642,8 +796,9 @@ export function CalendarPage() {
           ))}
         </div>
 
-        {actionError && !formOpen && <p className="calendar-action-error" role="alert">{actionError}</p>}
+        {calendarListView === 'reminders' && actionError && !formOpen && <p className="calendar-action-error" role="alert">{actionError}</p>}
 
+        <div className="calendar-reminders-view" hidden={calendarListView !== 'reminders'}>
         {sortedReminders.length === 0 ? (
           <EmptyState
             icon={<Bell size={25} />}
@@ -688,7 +843,56 @@ export function CalendarPage() {
             })}
           </div>
         )}
-      </section>
+        </div>
+
+        <div className="calendar-olympiads-view" hidden={calendarListView !== 'olympiads'}>
+          {selectedOlympiadIds.length === 0 ? (
+            <EmptyState
+              icon={<CalendarDays size={25} />}
+              title="Пока нет выбранных олимпиад"
+              description="Добавь интересующие олимпиады в календарь из каталога. Здесь появятся их ближайшие подтверждённые даты."
+              action={<Link className="calendar-olympiad-details" to="/olympiads">Открыть каталог олимпиад</Link>}
+            />
+          ) : (
+            <div className="calendar-olympiad-list">
+              {trackedOlympiads.map(({ olympiad, events, isRegistered }) => (
+                <article className="calendar-olympiad-card" key={olympiad.id}>
+                  <div className="calendar-olympiad-card-heading">
+                    <div className="calendar-olympiad-card-title">
+                      <h3><Link to={`/olympiads/${encodeURIComponent(olympiad.id)}`}>{olympiad.name}</Link></h3>
+                      {olympiad.organizer && <p>{olympiad.organizer}</p>}
+                    </div>
+                    <span className={`calendar-olympiad-registration${isRegistered ? ' is-registered' : ''}`}>
+                      {isRegistered ? 'Регистрация отмечена' : 'Регистрация не отмечена'}
+                    </span>
+                  </div>
+
+                  {events.length === 0 ? (
+                    <p className="calendar-olympiad-no-dates">Предстоящих подтверждённых дат пока нет. Проверь подробности у организатора.</p>
+                  ) : (
+                    <div className="calendar-olympiad-dates">
+                      {events.map((event) => (
+                        <div className="calendar-olympiad-date" key={event.id}>
+                          <div className="calendar-olympiad-date-copy">
+                            <strong>{event.stageLabel || 'Этап олимпиады'}</strong>
+                            {event.timeLabel && <span>{event.timeLabel}</span>}
+                          </div>
+                          <time dateTime={event.dateKey}>{event.dateLabel}</time>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="calendar-olympiad-card-footer">
+                    <Link className="calendar-olympiad-details" to={`/olympiads/${encodeURIComponent(olympiad.id)}`}>
+                      Подробности олимпиады
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>      </section>
     </div>
   )
 }

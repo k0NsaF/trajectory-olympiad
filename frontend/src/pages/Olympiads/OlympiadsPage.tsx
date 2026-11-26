@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Award,
@@ -44,6 +44,7 @@ import {
 import type { CreateProfileInput } from '@trajectory/shared'
 import { readFavorites, subscribeToFavorites, toggleFavorite } from '@/services/favorites.store'
 import { readCalendarOlympiadIds, subscribeToCalendarSelection, toggleCalendarOlympiad } from '@/services/calendar-selection.store'
+import { readRegisteredOlympiadIds, subscribeToOlympiadRegistration, toggleOlympiadRegistration } from '@/services/olympiad-registration.store'
 import './catalog.css'
 
 const LEVELS = [1, 2, 3, 4] as const
@@ -90,10 +91,16 @@ function getNextStageDate(olympiad: OlympiadWithStatus): number | null {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  const timestamps = (olympiad.season?.stages ?? [])
+  const scheduleDates = (olympiad.scheduleItems ?? [])
+    .filter((item) => item.isConfirmed && (item.dateParseStatus === 'exact' || item.dateParseStatus === 'range') && item.startDate)
+    .map((item) => parseLocalDate(item.startDate as string))
+    .filter((date): date is Date => Boolean(date))
+    .map((date) => date.getTime())
+  const legacyDates = (olympiad.season?.stages ?? [])
     .map((stage) => parseLocalDate(stage.startDate))
     .filter((date): date is Date => Boolean(date))
     .map((date) => date.getTime())
+  const timestamps = [...scheduleDates, ...legacyDates]
     .filter((timestamp) => timestamp >= today.getTime())
 
   return timestamps.length > 0 ? Math.min(...timestamps) : null
@@ -165,6 +172,7 @@ export function OlympiadsPage() {
   const storageScope = user?.id ? `user:${user.id}` : 'guest'
   const [favoriteIds, setFavoriteIds] = useState<string[]>(() => readFavorites(storageScope).filter((entry) => entry.kind === 'olympiad').map((entry) => entry.id))
   const [calendarIds, setCalendarIds] = useState<string[]>(() => readCalendarOlympiadIds(storageScope))
+  const [registeredIds, setRegisteredIds] = useState<string[]>(() => readRegisteredOlympiadIds(storageScope))
 
   const guestProfile = useMemo(() => getGuestProfile(), [])
   const [profile, setProfile] = useState<CreateProfileInput | null>(() => guestProfile)
@@ -192,6 +200,10 @@ export function OlympiadsPage() {
   useEffect(() => {
     setCalendarIds(readCalendarOlympiadIds(storageScope))
     return subscribeToCalendarSelection(storageScope, () => setCalendarIds(readCalendarOlympiadIds(storageScope)))
+  }, [storageScope])
+  useEffect(() => {
+    setRegisteredIds(readRegisteredOlympiadIds(storageScope))
+    return subscribeToOlympiadRegistration(storageScope, () => setRegisteredIds(readRegisteredOlympiadIds(storageScope)))
   }, [storageScope])
 
   useEffect(() => {
@@ -303,8 +315,8 @@ export function OlympiadsPage() {
         const secondOfficial = second.sourceStatus === 'official' ? 0 : 1
         if (firstOfficial !== secondOfficial) return firstOfficial - secondOfficial
         if (firstOfficial === 0) {
-          const firstLevel = first.level ?? Number.MAX_SAFE_INTEGER
-          const secondLevel = second.level ?? Number.MAX_SAFE_INTEGER
+          const firstLevel = first.profiles.length > 0 ? Math.min(...first.profiles.map((profile) => profile.level)) : first.level ?? Number.MAX_SAFE_INTEGER
+          const secondLevel = second.profiles.length > 0 ? Math.min(...second.profiles.map((profile) => profile.level)) : second.level ?? Number.MAX_SAFE_INTEGER
           if (firstLevel !== secondLevel) return firstLevel - secondLevel
         }
         return first.name.localeCompare(second.name, 'ru')
@@ -361,6 +373,10 @@ export function OlympiadsPage() {
   const handleCalendarSelection = (id: string) => {
     toggleCalendarOlympiad(storageScope, id)
     setCalendarIds(readCalendarOlympiadIds(storageScope))
+  }
+  const handleRegistrationToggle = (id: string) => {
+    toggleOlympiadRegistration(storageScope, id)
+    setRegisteredIds(readRegisteredOlympiadIds(storageScope))
   }
 
   return (
@@ -636,19 +652,37 @@ export function OlympiadsPage() {
                     <div className="olympiad-compact-meta">
                       <span className={`status-pill status-${olympiad.status}`}>{STATUS_LABELS[olympiad.status]}</span>
                       {olympiad.listType === 'school_olympiad' ? (
-                        <span className="catalog-level">{olympiad.level !== null ? (olympiad.sourceStatus === 'official' ? `Уровень ${LEVEL_LABELS[olympiad.level]}` : `Уровень ${LEVEL_LABELS[olympiad.level]} · проверяется`) : 'Уровень не указан'}</span>
+                        <span className="catalog-level">{olympiad.profiles.length > 0
+                          ? 'Уровни по профилям: ' + [...new Set(olympiad.profiles.map((profile) => profile.level))].sort().map((value) => LEVEL_LABELS[value]).join(', ')
+                          : olympiad.level !== null ? 'Уровень ' + LEVEL_LABELS[olympiad.level] : 'Уровень уточняется'}</span>
                       ) : <span className="catalog-level">Уровень не применяется</span>}
                       {olympiad.officialListNumber != null && olympiad.sourceStatus === 'official' && <span>№ {olympiad.officialListNumber} в перечне</span>}
                       <span className={`olympiad-source-status${olympiad.sourceStatus === 'official' ? ' is-official' : ''}`}>{olympiad.sourceStatus === 'official' ? 'Источник проверен' : 'Требует проверки'}</span>
-                      {olympiad.grades.length > 0 && <span>Классы: {olympiad.grades.join(', ')}</span>}
+                      {olympiad.grades.length > 0
+                        ? <span>Классы: {olympiad.grades.join(', ')}</span>
+                        : <span>Классы участия: уточняйте у организатора</span>}
                       {nextDate !== null && <span><CalendarDays size={14} /> Ближайший этап: {formatDateCompact(nextDate)}</span>}
                     </div>
                     <div className="tag-list olympiad-compact-subjects">
                       {olympiad.subjects.slice(0, 4).map((id) => <span className="subject-tag" key={id}>{SUBJECTS.find((item) => item.id === id)?.label ?? id}</span>)}
                       {olympiad.subjects.length > 4 && <span className="subject-tag">+{olympiad.subjects.length - 4}</span>}
                     </div>
+                    {olympiad.profiles.length > 0 && (
+                      <div className="tag-list olympiad-compact-profiles" aria-label="Профили и уровни олимпиады">
+                        {olympiad.profiles.slice(0, 4).map((profile) => (
+                          <span className="subject-tag" key={profile.id}>{profile.profileName} · {LEVEL_LABELS[profile.level]}</span>
+                        ))}
+                        {olympiad.profiles.length > 4 && <span className="subject-tag">Ещё {olympiad.profiles.length - 4} проф.</span>}
+                      </div>
+                    )}
                     {safeHttpUrl(olympiad.sourceDocumentUrl) && <a className="olympiad-source-link" href={safeHttpUrl(olympiad.sourceDocumentUrl) ?? undefined} target="_blank" rel="noopener noreferrer">{olympiad.sourceDocumentTitle || 'Официальный документ перечня'} <ExternalLink size={12} /></a>}
                     <div className="catalog-card-footer olympiad-compact-actions">
+              {olympiad.listType === 'school_olympiad' && (
+                <button type="button" className={`olympiad-save-action${registeredIds.includes(olympiad.id) ? ' is-active' : ''}`} onClick={() => handleRegistrationToggle(olympiad.id)} aria-pressed={registeredIds.includes(olympiad.id)}>
+                  {registeredIds.includes(olympiad.id) ? 'Зарегистрирован' : 'Отметить регистрацию'}
+                  <span role="img" aria-label="Справка о личной отметке" title="Это твоя личная отметка. Trajectory не регистрирует тебя на сайте организатора и не проверяет факт регистрации."><Info size={13} /></span>
+                </button>
+              )}
                       <Link className="catalog-details-link" to={`/olympiads/${encodeURIComponent(olympiad.id)}`}>Подробности <ChevronRight size={16} /></Link>
                       <button type="button" className={`olympiad-save-action${favoriteIds.includes(olympiad.id) ? ' is-active' : ''}`} onClick={() => handleFavorite(olympiad.id)} aria-pressed={favoriteIds.includes(olympiad.id)}><Bookmark size={15} />{favoriteIds.includes(olympiad.id) ? 'В избранном' : 'В избранное'}</button>
                       <button type="button" className={`olympiad-save-action${calendarIds.includes(olympiad.id) ? ' is-active' : ''}`} onClick={() => handleCalendarSelection(olympiad.id)} aria-pressed={calendarIds.includes(olympiad.id)}><CalendarPlus size={15} />{calendarIds.includes(olympiad.id) ? 'В календаре' : 'В календарь'}</button>
