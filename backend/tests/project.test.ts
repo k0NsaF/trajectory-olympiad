@@ -84,6 +84,141 @@ test('схемы данных: корректные сценарии и огра
     assert.equal(result.success, false)
   })
 
+  // TRAJECTORY PLANNING PROFILE TESTS
+  await t.test('профиль принимает параметры персональной траектории', () => {
+    const result = saveProfileSchema.safeParse({
+      ...validProfile(),
+      weeklyStudyHours: 8,
+      targetAdmissionYear: 2028,
+      targetEducationLevel: 'bachelor',
+      subjectPreparation: [
+        { subjectId: 'mathematics', preparationLevel: 'medium' },
+        { subjectId: 'informatics', preparationLevel: 'beginner' }
+      ],
+      alternativeUniversityIds: [
+        '20000000-0000-4000-8000-000000000001',
+        '20000000-0000-4000-8000-000000000002'
+      ]
+    })
+
+    assert.equal(result.success, true)
+  })
+
+  await t.test('недельная нагрузка ограничена диапазоном 1–40 часов', () => {
+    assert.equal(saveProfileSchema.safeParse({
+      ...validProfile(),
+      weeklyStudyHours: 1
+    }).success, true)
+
+    assert.equal(saveProfileSchema.safeParse({
+      ...validProfile(),
+      weeklyStudyHours: 40
+    }).success, true)
+
+    assert.equal(saveProfileSchema.safeParse({
+      ...validProfile(),
+      weeklyStudyHours: 0
+    }).success, false)
+
+    assert.equal(saveProfileSchema.safeParse({
+      ...validProfile(),
+      weeklyStudyHours: 41
+    }).success, false)
+  })
+
+  await t.test('год поступления ограничен диапазоном 2026–2100', () => {
+    assert.equal(saveProfileSchema.safeParse({
+      ...validProfile(),
+      targetAdmissionYear: 2026
+    }).success, true)
+
+    assert.equal(saveProfileSchema.safeParse({
+      ...validProfile(),
+      targetAdmissionYear: 2100
+    }).success, true)
+
+    assert.equal(saveProfileSchema.safeParse({
+      ...validProfile(),
+      targetAdmissionYear: 2025
+    }).success, false)
+
+    assert.equal(saveProfileSchema.safeParse({
+      ...validProfile(),
+      targetAdmissionYear: 2101
+    }).success, false)
+  })
+
+  await t.test('уровень образования ограничен известными вариантами', () => {
+    assert.equal(saveProfileSchema.safeParse({
+      ...validProfile(),
+      targetEducationLevel: 'bachelor'
+    }).success, true)
+
+    assert.equal(saveProfileSchema.safeParse({
+      ...validProfile(),
+      targetEducationLevel: 'unknown'
+    }).success, false)
+  })
+
+  await t.test('подготовка задаётся только для выбранных предметов', () => {
+    const result = saveProfileSchema.safeParse({
+      ...validProfile(),
+      subjectPreparation: [
+        { subjectId: 'history', preparationLevel: 'medium' }
+      ]
+    })
+
+    assert.equal(result.success, false)
+  })
+
+  await t.test('уровень подготовки нельзя указать для предмета дважды', () => {
+    const result = saveProfileSchema.safeParse({
+      ...validProfile(),
+      subjectPreparation: [
+        { subjectId: 'mathematics', preparationLevel: 'beginner' },
+        { subjectId: 'mathematics', preparationLevel: 'advanced' }
+      ]
+    })
+
+    assert.equal(result.success, false)
+  })
+
+  await t.test('альтернативных университетов может быть не больше трёх', () => {
+    const result = saveProfileSchema.safeParse({
+      ...validProfile(),
+      alternativeUniversityIds: [
+        '20000000-0000-4000-8000-000000000001',
+        '20000000-0000-4000-8000-000000000002',
+        '20000000-0000-4000-8000-000000000003',
+        '20000000-0000-4000-8000-000000000004'
+      ]
+    })
+
+    assert.equal(result.success, false)
+  })
+
+  await t.test('альтернативные университеты не должны повторяться', () => {
+    const result = saveProfileSchema.safeParse({
+      ...validProfile(),
+      alternativeUniversityIds: [
+        '20000000-0000-4000-8000-000000000001',
+        '20000000-0000-4000-8000-000000000001'
+      ]
+    })
+
+    assert.equal(result.success, false)
+  })
+
+  await t.test('основной университет нельзя добавить в альтернативные', () => {
+    const result = saveProfileSchema.safeParse({
+      ...validProfile(),
+      targetUniversityId: UNIVERSITY_ID,
+      alternativeUniversityIds: [UNIVERSITY_ID]
+    })
+
+    assert.equal(result.success, false)
+  })
+
   await t.test('настройки принимают только известную тему и три переключателя', () => {
     const result = saveProfilePreferencesSchema.safeParse({
       themePreference: 'system',

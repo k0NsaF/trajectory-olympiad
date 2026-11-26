@@ -15,6 +15,9 @@ interface ProfileRow {
   subjects: string[]
   target_university_id: string | null
   target_program_id: string | null
+  weekly_study_hours: number | null
+  target_admission_year: number | null
+  target_education_level: 'bachelor' | 'specialist' | 'master' | null
   onboarding_completed: boolean
   created_at: string
   updated_at: string
@@ -24,6 +27,16 @@ interface ProfileRow {
     stageDeadlines?: boolean
     newsUpdates?: boolean
   } | null
+}
+
+interface SubjectPreparationRow {
+  subject_id: string
+  preparation_level: 'beginner' | 'medium' | 'advanced'
+}
+
+interface AlternativeUniversityRow {
+  university_id: string
+  priority: number
 }
 
 interface ProfilePreferencesRow {
@@ -53,6 +66,14 @@ export interface ProfileResult {
   subjects: string[]
   targetUniversityId?: string
   targetProgramId?: string
+  weeklyStudyHours?: number
+  targetAdmissionYear?: number
+  targetEducationLevel?: 'bachelor' | 'specialist' | 'master'
+  subjectPreparation: {
+    subjectId: string
+    preparationLevel: 'beginner' | 'medium' | 'advanced'
+  }[]
+  alternativeUniversityIds: string[]
   onboardingCompleted: boolean
   createdAt: string
   updatedAt: string
@@ -69,7 +90,7 @@ const DEFAULT_PREFERENCES: ProfilePreferencesResult = {
 }
 
 const PROFILE_FIELDS =
-  'id, email, full_name, grade, region, subjects, target_university_id, target_program_id, onboarding_completed, created_at, updated_at, theme_preference, notification_preferences'
+  'id, email, full_name, grade, region, subjects, target_university_id, target_program_id, weekly_study_hours, target_admission_year, target_education_level, onboarding_completed, created_at, updated_at, theme_preference, notification_preferences'
 
 function mapPreferences(row: ProfilePreferencesRow | null): ProfilePreferencesResult {
   const notifications = row?.notification_preferences ?? {}
@@ -93,7 +114,11 @@ function mapPreferences(row: ProfilePreferencesRow | null): ProfilePreferencesRe
   }
 }
 
-function mapProfile(row: ProfileRow): ProfileResult {
+function mapProfile(
+  row: ProfileRow,
+  preparationRows: SubjectPreparationRow[],
+  alternativeRows: AlternativeUniversityRow[]
+): ProfileResult {
   return {
     id: row.id,
     ...(row.email ? { email: row.email } : {}),
@@ -103,6 +128,20 @@ function mapProfile(row: ProfileRow): ProfileResult {
     subjects: row.subjects ?? [],
     ...(row.target_university_id ? { targetUniversityId: row.target_university_id } : {}),
     ...(row.target_program_id ? { targetProgramId: row.target_program_id } : {}),
+    ...(row.weekly_study_hours !== null ? { weeklyStudyHours: row.weekly_study_hours } : {}),
+    ...(row.target_admission_year !== null
+      ? { targetAdmissionYear: row.target_admission_year }
+      : {}),
+    ...(row.target_education_level
+      ? { targetEducationLevel: row.target_education_level }
+      : {}),
+    subjectPreparation: preparationRows.map((item) => ({
+      subjectId: item.subject_id,
+      preparationLevel: item.preparation_level
+    })),
+    alternativeUniversityIds: [...alternativeRows]
+      .sort((a, b) => a.priority - b.priority)
+      .map((item) => item.university_id),
     onboardingCompleted: row.onboarding_completed,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -129,7 +168,32 @@ export async function getProfile(
   }
 
   if (!data) return null
-  return mapProfile(data as unknown as ProfileRow)
+
+  const [preparationResult, alternativesResult] = await Promise.all([
+    supabase
+      .from('profile_subject_preparation')
+      .select('subject_id, preparation_level')
+      .eq('user_id', userId),
+    supabase
+      .from('profile_alternative_universities')
+      .select('university_id, priority')
+      .eq('user_id', userId)
+      .order('priority', { ascending: true })
+  ])
+
+  if (preparationResult.error || alternativesResult.error) {
+    throw new AppError(
+      'Не удалось загрузить дополнительные настройки персонального профиля.',
+      500,
+      'PROFILE_PLANNING_LOAD_FAILED'
+    )
+  }
+
+  return mapProfile(
+    data as unknown as ProfileRow,
+    (preparationResult.data ?? []) as SubjectPreparationRow[],
+    (alternativesResult.data ?? []) as AlternativeUniversityRow[]
+  )
 }
 
 export async function saveProfile(
@@ -156,7 +220,7 @@ export async function saveProfile(
       },
       { onConflict: 'id' }
     )
-    .select(PROFILE_FIELDS)
+    .select('id')
     .single()
 
   if (error || !data) {
@@ -167,7 +231,51 @@ export async function saveProfile(
     )
   }
 
-  return mapProfile(data as unknown as ProfileRow)
+  // Keep old clients backward compatible: omitted planning fields are preserved.
+  const planningPreferences: Record<string, unknown> = {}
+
+  if (input.weeklyStudyHours !== undefined) {
+    planningPreferences.weeklyStudyHours = input.weeklyStudyHours
+  }
+  if (input.targetAdmissionYear !== undefined) {
+    planningPreferences.targetAdmissionYear = input.targetAdmissionYear
+  }
+  if (input.targetEducationLevel !== undefined) {
+    planningPreferences.targetEducationLevel = input.targetEducationLevel
+  }
+  if (input.subjectPreparation !== undefined) {
+    planningPreferences.subjectPreparation = input.subjectPreparation
+  }
+  if (input.alternativeUniversityIds !== undefined) {
+    planningPreferences.alternativeUniversityIds = input.alternativeUniversityIds
+  }
+
+  if (Object.keys(planningPreferences).length > 0) {
+    const { error: planningError } = await supabase.rpc(
+      'save_profile_planning_preferences',
+      { p_preferences: planningPreferences }
+    )
+
+    if (planningError) {
+      throw new AppError(
+        'Основной профиль сохранён, но дополнительные настройки подготовки обновить не удалось.',
+        500,
+        'PROFILE_PLANNING_SAVE_FAILED'
+      )
+    }
+  }
+
+  const savedProfile = await getProfile(supabase, userId)
+
+  if (!savedProfile) {
+    throw new AppError(
+      'Профиль сохранён, но не удалось повторно загрузить его данные.',
+      500,
+      'PROFILE_RELOAD_FAILED'
+    )
+  }
+
+  return savedProfile
 }
 
 export async function getProfilePreferences(

@@ -24,3 +24,5 @@ coverage/
 Thumbs.db
 
 .supabase/
+**/supabase/.temp/
+**/supabase/.temp/
