@@ -222,15 +222,25 @@ export async function getProfileSnapshot(
   return api.get<ProfileSnapshot | null>('/api/profile', { token: accessToken })
 }
 
-export async function syncGuestProfile(accessToken: string): Promise<boolean> {
-  const profile = getGuestProfile()
-  if (!profile) return false
+let guestProfileSyncPromise: Promise<boolean> | null = null
 
-  await api.put<unknown, CreateProfileInput>('/api/profile', profile, {
+export function syncGuestProfile(accessToken: string): Promise<boolean> {
+  if (guestProfileSyncPromise) return guestProfileSyncPromise
+
+  const profile = getGuestProfile()
+  if (!profile) return Promise.resolve(false)
+
+  const pending = api.put<unknown, CreateProfileInput>('/api/profile', profile, {
     token: accessToken
+  }).then(() => {
+    clearGuestProfile()
+    return true
   })
-  clearGuestProfile()
-  return true
+
+  guestProfileSyncPromise = pending
+  return pending.finally(() => {
+    if (guestProfileSyncPromise === pending) guestProfileSyncPromise = null
+  })
 }
 
 export async function saveAuthenticatedProfile(

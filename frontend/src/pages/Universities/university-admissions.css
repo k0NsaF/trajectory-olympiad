@@ -1,0 +1,20 @@
+.university-admissions-panel { display: grid; gap: 18px; }
+.admission-state { display: flex; align-items: flex-start; gap: 10px; color: var(--catalog-muted, #756B65); line-height: 1.55; }
+.admission-state button { border: 1px solid var(--catalog-line, #E8E0DA); border-radius: 8px; padding: 7px 12px; background: transparent; cursor: pointer; }
+.admission-campaign-select { display: grid; gap: 7px; max-width: 280px; color: var(--catalog-muted, #756B65); font-size: .9rem; }
+.admission-campaign-select select { min-height: 42px; padding: 8px 12px; border: 1px solid var(--catalog-line, #E8E0DA); border-radius: 8px; background: var(--catalog-paper, #fff); color: var(--catalog-ink, #302B29); }
+.admission-campaign-meta, .admission-tags, .admission-facts, .admission-campaign-links, .admission-sources { display: flex; flex-wrap: wrap; align-items: center; gap: 9px 14px; }
+.admission-campaign-meta, .admission-muted, .admission-sources span { color: var(--catalog-muted, #756B65); font-size: .9rem; }
+.admission-campaign-links a, .admission-sources a { display: inline-flex; align-items: center; gap: 5px; color: var(--catalog-accent, #B94A52); text-decoration: none; }
+.admission-campaign-links a:hover, .admission-sources a:hover { text-decoration: underline; }
+.admission-program-list { display: grid; gap: 18px; }
+.admission-program { padding-top: 16px; border-top: 1px solid var(--catalog-line, #E8E0DA); }
+.admission-program h3 { margin: 0 0 8px; color: var(--catalog-ink, #302B29); }
+.admission-option { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--catalog-line, #E8E0DA); }
+.admission-tags span { padding: 5px 9px; border-radius: 6px; background: var(--catalog-soft, #F9E9E6); color: var(--catalog-ink, #302B29); font-size: .82rem; }
+.admission-facts { margin: 12px 0; color: var(--catalog-muted, #756B65); font-size: .9rem; }
+.admission-facts b { color: var(--catalog-ink, #302B29); }
+.admission-option h4 { margin: 14px 0 6px; color: var(--catalog-ink, #302B29); }
+.admission-option ul { margin: 6px 0 10px; padding-left: 20px; line-height: 1.65; }
+.admission-option li a { color: var(--catalog-accent, #B94A52); }
+.admission-sources { margin-top: 12px; font-size: .85rem; }

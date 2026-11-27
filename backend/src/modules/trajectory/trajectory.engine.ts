@@ -13,7 +13,7 @@ export interface TrajectoryProfileInput {
   subjects: string[]
   weeklyStudyHours?: number
   targetAdmissionYear?: number
-  targetEducationLevel?: 'bachelor' | 'specialist' | 'master'
+  targetEducationLevel?: 'bachelor' | 'specialist' | 'master' | 'basic_higher' | 'specialized_higher'
   targetUniversityId?: string
   targetProgramId?: string
   subjectPreparation: Array<{
@@ -178,15 +178,36 @@ export function validateTrajectoryProfile(profile: TrajectoryProfileInput): asse
     fail('Для выбранной образовательной программы необходимо указать основной университет.', 'TRAJECTORY_PROFILE_PROGRAM_WITHOUT_UNIVERSITY')
   }
 
-  if (profile.targetEducationLevel === 'master') {
-    fail('Магистратура является следующим этапом после получения высшего образования. Для школьной траектории выбери бакалавриат или специалитет.', 'TRAJECTORY_MASTER_NOT_FOR_SCHOOL_STUDENT')
+  if (
+    profile.targetEducationLevel === 'master' ||
+    profile.targetEducationLevel === 'specialized_higher'
+  ) {
+    fail(
+      'Магистратура является следующим этапом после получения высшего образования. Специализированное высшее образование также не является уровнем поступления после школы.',
+      'TRAJECTORY_MASTER_NOT_FOR_SCHOOL_STUDENT'
+    )
   }
 
-  if (profile.targetEducationLevel !== 'bachelor' && profile.targetEducationLevel !== 'specialist') {
-    fail('Выбери бакалавриат или специалитет как уровень поступления после школы.', 'TRAJECTORY_PROFILE_EDUCATION_LEVEL_REQUIRED')
+  if (
+    profile.targetEducationLevel !== 'bachelor' &&
+    profile.targetEducationLevel !== 'specialist' &&
+    profile.targetEducationLevel !== 'basic_higher'
+  ) {
+    fail(
+      '\u0412\u044b\u0431\u0435\u0440\u0438 \u0431\u0430\u043a\u0430\u043b\u0430\u0432\u0440\u0438\u0430\u0442, \u0441\u043f\u0435\u0446\u0438\u0430\u043b\u0438\u0442\u0435\u0442 \u0438\u043b\u0438 \u0431\u0430\u0437\u043e\u0432\u043e\u0435 \u0432\u044b\u0441\u0448\u0435\u0435 \u043e\u0431\u0440\u0430\u0437\u043e\u0432\u0430\u043d\u0438\u0435.',
+      'TRAJECTORY_PROFILE_EDUCATION_LEVEL_REQUIRED'
+    )
   }
 }
 
+
+const ADMISSION_LEVEL_LABELS = {
+  bachelor: '\u0411\u0430\u043a\u0430\u043b\u0430\u0432\u0440\u0438\u0430\u0442',
+  specialist: '\u0421\u043f\u0435\u0446\u0438\u0430\u043b\u0438\u0442\u0435\u0442',
+  master: '\u041c\u0430\u0433\u0438\u0441\u0442\u0440\u0430\u0442\u0443\u0440\u0430',
+  basic_higher: '\u0411\u0430\u0437\u043e\u0432\u043e\u0435 \u0432\u044b\u0441\u0448\u0435\u0435 \u043e\u0431\u0440\u0430\u0437\u043e\u0432\u0430\u043d\u0438\u0435',
+  specialized_higher: '\u0421\u043f\u0435\u0446\u0438\u0430\u043b\u0438\u0437\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u043e\u0435 \u0432\u044b\u0441\u0448\u0435\u0435 \u043e\u0431\u0440\u0430\u0437\u043e\u0432\u0430\u043d\u0438\u0435'
+} as const
 function normalizeText(value: string): string {
   return value.trim().toLocaleLowerCase('ru').replace(/ё/g, 'е').replace(/\s+/g, ' ')
 }
@@ -737,7 +758,7 @@ export function buildTrajectoryPlanDraft(
     requestId,
     profileUpdatedAt: profile.updatedAt,
     title: `Персональная траектория — поступление в ${profile.targetAdmissionYear} году`,
-    summary: `План для ученика ${profile.grade} класса из региона ${profile.region.trim()}. Учебная нагрузка — ${profile.weeklyStudyHours} ч в неделю; уровень поступления — ${profile.targetEducationLevel === 'bachelor' ? 'бакалавриат' : 'специалитет'}. Включены только подтверждённые мероприятия, подходящие по классу и предметам.`,
+    summary: `План для ученика ${profile.grade} класса из региона ${profile.region.trim()}. Учебная нагрузка — ${profile.weeklyStudyHours} ч в неделю; уровень поступления — ${ADMISSION_LEVEL_LABELS[profile.targetEducationLevel ?? 'bachelor']}. Включены только подтверждённые мероприятия, подходящие по классу и предметам.`,
     academicYear,
     ruleVersion: 'rules-v1',
     profileSnapshot: snapshot,

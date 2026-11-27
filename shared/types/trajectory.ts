@@ -1,3 +1,5 @@
+import type { EducationLevel } from './catalog.js'
+
 export type TrajectoryPlanStatus = 'draft' | 'active' | 'superseded' | 'archived'
 
 export type TrajectoryStageType =
@@ -39,7 +41,7 @@ export interface TrajectoryProfileSnapshot {
   subjects: string[]
   weeklyStudyHours: number
   targetAdmissionYear: number
-  targetEducationLevel: 'bachelor' | 'specialist'
+  targetEducationLevel: EducationLevel
   targetUniversityId?: string
   targetProgramId?: string
   alternativeUniversityIds: string[]

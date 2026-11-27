@@ -413,7 +413,7 @@ export function OnboardingPage() {
         await saveAuthenticatedProfile(profile, session.access_token)
       }
 
-      navigate('/profile', { replace: true })
+      navigate('/trajectory', { replace: true })
     } catch {
       setError(session?.access_token
         ? 'Анкета сохранена на этом устройстве, но не удалось обновить профиль. Проверь соединение и попробуй ещё раз.'
@@ -662,38 +662,54 @@ export function OnboardingPage() {
                   </div>
                 )}
 
-                <div className="onboarding-university-grid">
-                  {filteredUniversities.map((university) => {
-                    const selected = targetUniversityId === university.id
-
-                    return (
-                      <button
-                        type="button"
-                        key={university.id}
-                        className={`onboarding-university-card${selected ? ' is-selected' : ''}`}
-                        onClick={() => selectUniversity(university)}
-                        aria-pressed={selected}
-                      >
-                        <span className="onboarding-university-icon"><GraduationCap size={21} /></span>
-                        <span className="onboarding-university-copy">
-                          <strong>{university.shortName}</strong>
-                          <small>{university.name}</small>
-                          <small>{university.city}</small>
-                        </span>
-                        <span className="onboarding-subject-check">
-                          {selected && <Check size={14} />}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-
-                {!universitiesLoading && !universitiesError && filteredUniversities.length === 0 && (
-                  <div className="onboarding-empty-state">
-                    {universities.length === 0
-                      ? 'Список вузов пока пуст. Можно продолжить без выбора университета.'
-                      : 'По такому запросу ничего не найдено. Попробуй другое название.'}
+                {normalizeSearch(universitySearch).length < 2 ? (
+                  <div className="onboarding-university-search-hint">
+                    <strong>Не нужно просматривать весь каталог</strong>
+                    <span>Введи минимум 2 символа названия вуза или города — покажем до 8 подходящих вариантов.</span>
+                    <small>Не определился с университетом? Этот шаг можно пропустить и вернуться к нему позже.</small>
                   </div>
+                ) : (
+                  <>
+                    <div className="onboarding-university-grid">
+                      {filteredUniversities.slice(0, 8).map((university) => {
+                        const selected = targetUniversityId === university.id
+
+                        return (
+                          <button
+                            type="button"
+                            key={university.id}
+                            className={`onboarding-university-card${selected ? ' is-selected' : ''}`}
+                            onClick={() => selectUniversity(university)}
+                            aria-pressed={selected}
+                          >
+                            <span className="onboarding-university-icon"><GraduationCap size={21} /></span>
+                            <span className="onboarding-university-copy">
+                              <strong>{university.shortName}</strong>
+                              <small>{university.name}</small>
+                              <small>{university.city}</small>
+                            </span>
+                            <span className="onboarding-subject-check">
+                              {selected && <Check size={14} />}
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    {!universitiesLoading && !universitiesError && filteredUniversities.length === 0 && (
+                      <div className="onboarding-empty-state">
+                        {universities.length === 0
+                          ? 'Список вузов пока недоступен. Можно продолжить без выбора университета.'
+                          : 'По такому запросу ничего не найдено. Попробуй другое название или город.'}
+                      </div>
+                    )}
+
+                    {filteredUniversities.length > 8 && (
+                      <p className="onboarding-field-note onboarding-university-result-note">
+                        Найдено {filteredUniversities.length} вариантов. Показаны первые 8 — уточни название или город, чтобы сузить поиск.
+                      </p>
+                    )}
+                  </>
                 )}
 
                 {selectedUniversity && (

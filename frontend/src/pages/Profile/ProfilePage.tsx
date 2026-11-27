@@ -96,7 +96,9 @@ const PREPARATION_LEVEL_OPTIONS: { value: PreparationLevel; label: string }[] = 
 const EDUCATION_LEVEL_OPTIONS: { value: EducationLevel; label: string }[] = [
   { value: 'bachelor', label: 'Бакалавриат' },
   { value: 'specialist', label: 'Специалитет' },
-  { value: 'master', label: 'Магистратура' }
+  { value: 'master', label: 'Магистратура' },
+  { value: 'basic_higher', label: 'Базовое высшее образование' },
+  { value: 'specialized_higher', label: 'Специализированное высшее образование' }
 ]
 
 const REGION_OPTIONS = [
@@ -206,7 +208,7 @@ function isPreparationLevel(value: unknown): value is PreparationLevel {
 }
 
 function isEducationLevel(value: unknown): value is EducationLevel {
-  return value === 'bachelor' || value === 'specialist' || value === 'master'
+  return value === 'bachelor' || value === 'specialist' || value === 'master' || value === 'basic_higher' || value === 'specialized_higher'
 }
 
 function toProfileInput(value: ProfileSource | ProfileSnapshot | null): CreateProfileInput | null {

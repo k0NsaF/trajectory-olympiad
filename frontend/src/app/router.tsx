@@ -19,6 +19,7 @@ import { ProfilePage } from '@/pages/Profile/ProfilePage'
 import { AchievementsPage } from '@/pages/Achievements/AchievementsPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { OnboardingPage } from '@/pages/Onboarding/OnboardingPage'
+import { TrajectoryPage } from '@/pages/Trajectory/TrajectoryPage'
 
 export const router = createBrowserRouter([
   {
@@ -44,6 +45,7 @@ export const router = createBrowserRouter([
       { path: 'favorites', element: <FavoritesPage /> },
       { path: 'profile', element: <ProfilePage /> },
       { path: 'onboarding', element: <OnboardingPage /> },
+      { path: 'trajectory', element: <TrajectoryPage /> },
       { path: 'achievements', element: <AchievementsPage /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: 'privacy', element: <PrivacyPolicyPage /> },

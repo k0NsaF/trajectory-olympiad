@@ -154,6 +154,18 @@ test('генератор персональной траектории', async (
       /Магистратура является следующим этапом/u
     )
   })
+  await t.test('принимает базовое высшее образование для школьной траектории', () => {
+    const plan = buildTrajectoryPlanDraft(
+      validProfile({ targetEducationLevel: 'basic_higher' }),
+      [],
+      universities,
+      REQUEST_ID,
+      NOW
+    )
+
+    assert.equal(plan.profileSnapshot.targetEducationLevel, 'basic_higher')
+    assert.match(plan.summary, /Базовое высшее образование/u)
+  })
 
   await t.test('распределяет ровно заданную недельную нагрузку', () => {
     const allocations = allocateWeeklyMinutes(

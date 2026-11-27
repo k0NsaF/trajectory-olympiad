@@ -27,6 +27,7 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { PageHeader } from '@/components/common/PageHeader'
 import { useAsyncData } from '@/hooks/useAsyncData'
 import { universityService } from '@/services/university.service'
+import { UniversityAdmissions } from './UniversityAdmissions'
 import { useAuth } from '@/app/providers'
 import { isFavorite, subscribeToFavorites, toggleFavorite } from '@/services/favorites.store'
 import { readComparisonSelections, readComparisonUniversityIds, subscribeToComparisonChanges, writeComparisonUniversityIds } from '@/services/university-comparison.store'
@@ -647,6 +648,8 @@ export function UniversityDetailsPage() {
           </div>
         )}
       </section>
+
+      <UniversityAdmissions universityId={university.id} />
 
       <section className="panel university-detail-benefits-panel">
         <div className="university-detail-section-heading">

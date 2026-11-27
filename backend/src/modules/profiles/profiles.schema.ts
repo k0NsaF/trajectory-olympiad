@@ -34,7 +34,7 @@ export const saveProfileSchema = z.object({
 
   weeklyStudyHours: z.number().int().min(1).max(40).optional(),
   targetAdmissionYear: z.number().int().min(2026).max(2100).optional(),
-  targetEducationLevel: z.enum(['bachelor', 'specialist', 'master']).optional(),
+  targetEducationLevel: z.enum(['bachelor', 'specialist', 'master', 'basic_higher', 'specialized_higher']).optional(),
 
   subjectPreparation: z.array(subjectPreparationSchema).max(10)
     .refine(

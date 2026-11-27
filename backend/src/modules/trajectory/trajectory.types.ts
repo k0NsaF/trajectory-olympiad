@@ -20,7 +20,7 @@ export interface TrajectoryProfileSnapshot {
   subjects: string[]
   weeklyStudyHours: number
   targetAdmissionYear: number
-  targetEducationLevel: 'bachelor' | 'specialist'
+  targetEducationLevel: 'bachelor' | 'specialist' | 'master' | 'basic_higher' | 'specialized_higher'
   targetUniversityId?: string
   targetProgramId?: string
   alternativeUniversityIds: string[]

@@ -18,7 +18,7 @@ interface ProfileRow {
   target_program_id: string | null
   weekly_study_hours: number | null
   target_admission_year: number | null
-  target_education_level: 'bachelor' | 'specialist' | 'master' | null
+  target_education_level: 'bachelor' | 'specialist' | 'master' | 'basic_higher' | 'specialized_higher' | null
   onboarding_completed: boolean
   created_at: string
   updated_at: string
@@ -69,7 +69,7 @@ export interface ProfileResult {
   targetProgramId?: string
   weeklyStudyHours?: number
   targetAdmissionYear?: number
-  targetEducationLevel?: 'bachelor' | 'specialist' | 'master'
+  targetEducationLevel?: 'bachelor' | 'specialist' | 'master' | 'basic_higher' | 'specialized_higher'
   subjectPreparation: {
     subjectId: string
     preparationLevel: 'beginner' | 'medium' | 'advanced'

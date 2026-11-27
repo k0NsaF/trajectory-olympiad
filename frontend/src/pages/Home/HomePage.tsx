@@ -38,7 +38,7 @@ interface FeatureItem {
 }
 
 const STEPS: StepItem[] = [
-  { imageClass: 'profile', imageSrc: '/images/home/step-start.jpg', title: 'Начни с регистрации', description: 'Создай аккаунт, чтобы сохранять выбранные варианты и результаты.', href: '/auth?mode=register', action: 'Зарегистрироваться' },
+  { imageClass: 'profile', imageSrc: '/images/home/step-start.jpg', title: 'Пройди короткую анкету', description: 'Укажи класс, регион и интересующие предметы. Начать можно без регистрации.', href: '/onboarding', action: 'Пройти анкету' },
   { imageClass: 'professions', imageSrc: '/images/professions/architect.webp', title: 'Изучи профессии', description: 'Посмотри, чем занимаются специалисты и какие навыки им нужны.', href: '/professions', action: 'Открыть профессии' },
   { imageClass: 'directions', imageSrc: '/images/professions/software-developer.webp', title: 'Выбери направления', description: 'Разберись в областях обучения и связанных с ними программах.', href: '/directions', action: 'Изучить направления' },
   { imageClass: 'olympiads', imageSrc: '/images/home/step-olympiad.jpg', title: 'Открой олимпиады', description: 'Подбирай соревнования по предметам, классу и официальным условиям.', href: '/olympiads', action: 'Найти олимпиаду' },
@@ -111,13 +111,13 @@ export function HomePage() {
 
             <div className="public-hero-actions">
               {user ? (
-                <Link to="/profile" className="public-button public-button-large">
-                  Мой профиль
+                <Link to="/trajectory" className="public-button public-button-large">
+                  Моя траектория
                   <ArrowRight size={18} />
                 </Link>
               ) : !authLoading ? (
-                <Link to="/auth?mode=register" className="public-button public-button-large">
-                  Создать аккаунт
+                <Link to="/onboarding" className="public-button public-button-large">
+                  Составить мою траекторию
                   <ArrowRight size={18} />
                 </Link>
               ) : null}
@@ -256,8 +256,8 @@ export function HomePage() {
               </>
             ) : !authLoading ? (
               <>
-                <Link to="/auth?mode=register" className="public-button public-button-light">Зарегистрироваться <ArrowRight size={18} /></Link>
-                <Link to="/auth?mode=register" className="public-cta-secondary">Создать аккаунт <ArrowUpRight size={16} /></Link>
+                <Link to="/onboarding" className="public-button public-button-light">Составить траекторию <ArrowRight size={18} /></Link>
+                <Link to="/olympiads" className="public-cta-secondary">Посмотреть олимпиады <ArrowUpRight size={16} /></Link>
               </>
             ) : null}
           </div>
