@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowUpRight, Bookmark, CalendarDays, ChevronDown, LogOut, Menu, Route, Settings, Trophy, UserRound, X } from 'lucide-react'
 import { TRAJECTORY_LOGO_URL, TRAJECTORY_LOGO_MODE } from '@/app/brandAssets'
 import { useAuth } from '@/app/providers'
+import { ReminderNotificationCenter } from '@/components/common/ReminderNotificationCenter'
 import { authService } from '@/services/auth.service'
 
 export function PublicSiteLayout() {
@@ -70,6 +71,7 @@ export function PublicSiteLayout() {
           </nav>
 
           <div className="public-header-actions">
+            {!authLoading && user && <ReminderNotificationCenter userId={user.id} />}
             {!authLoading && user ? (
               <div className="public-account-wrap">
                 <button type="button" className="public-account-trigger" aria-expanded={accountOpen} onClick={() => setAccountOpen((value) => !value)}>
