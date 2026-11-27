@@ -1,4 +1,4 @@
-export type BenefitRightType =
+﻿export type BenefitRightType =
   | 'BVI'
   | '100_points'
   | 'extra_points'
@@ -17,11 +17,14 @@ export type BenefitVerificationFilter =
   | BenefitVerificationStatus
   | 'all'
 
+export type UniversityProgramCatalogStatus = 'needs_review' | 'official' | 'archived'
+
 export interface UniversityProgram {
   id: string
   universityId: string
   name: string
   direction?: string
+  catalogStatus?: UniversityProgramCatalogStatus
 }
 
 export type UniversityRegistryStatus =

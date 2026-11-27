@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -188,7 +188,17 @@ function UniversityBenefits({
           <span>Год поступления</span>
           <select
             value={selectedYear}
-            onChange={(event) => setSelectedYear(Number(event.target.value))}
+            onChange={(event) => {
+              const nextYear = Number(event.target.value)
+              setSelectedYear(nextYear)
+              if (nextYear >= targetAdmissionYear) {
+                setSelectedProgramId((currentProgramId) =>
+                  programs.some((program) =>
+                    program.id === currentProgramId && program.catalogStatus === 'archived'
+                  ) ? '' : currentProgramId
+                )
+              }
+            }}
           >
             {availableYears.map((year) => (
               <option value={year} key={year}>
@@ -206,9 +216,14 @@ function UniversityBenefits({
           >
             <option value="">Все программы</option>
             {programs.map((program) => (
-              <option value={program.id} key={program.id}>
+              <option
+                value={program.id}
+                key={program.id}
+                disabled={program.catalogStatus === 'archived' && selectedYear >= targetAdmissionYear}
+              >
                 {program.name}
                 {program.direction ? ` · ${program.direction}` : ''}
+                {program.catalogStatus === 'archived' ? ' · архив' : program.catalogStatus === 'needs_review' ? ' · требует проверки' : program.catalogStatus === 'official' ? ' · подтверждено' : ' · статус не указан'}
               </option>
             ))}
           </select>
@@ -425,6 +440,34 @@ function UniversityBenefits({
   )
 }
 
+function UniversityProgramCard({ program }: { program: UniversityProgram }) {
+  const status = program.catalogStatus ?? 'unknown'
+  const statusLabel = status === 'official'
+    ? 'Проверено по официальному источнику'
+    : status === 'needs_review'
+      ? 'Требует проверки'
+      : status === 'archived'
+        ? 'Архивная запись'
+        : 'Статус не указан'
+
+  return (
+    <article className="university-detail-program" key={program.id}>
+      <div className="university-detail-program-icon">
+        <GraduationCap size={19} />
+      </div>
+      <div className="university-detail-program-info">
+        <strong>{program.name}</strong>
+        {program.direction ? (
+          <span className="university-detail-program-direction">Код направления: {program.direction}</span>
+        ) : (
+          <span>Код направления не указан</span>
+        )}
+        <span className={`university-detail-program-status is-${status}`}>{statusLabel}</span>
+      </div>
+    </article>
+  )
+}
+
 export function UniversityDetailsPage() {
   const { id = '' } = useParams()
   const { user } = useAuth()
@@ -499,6 +542,10 @@ export function UniversityDetailsPage() {
 
   const websiteUrl = getSafeUrl(university.website)
   const programs = university.programs ?? []
+  const confirmedPrograms = programs.filter((program) => program.catalogStatus === 'official')
+  const programsNeedingReview = programs.filter((program) => program.catalogStatus === 'needs_review')
+  const currentCatalogPrograms = programs.filter((program) => program.catalogStatus !== 'archived')
+  const archivedPrograms = programs.filter((program) => program.catalogStatus === 'archived')
   const rawCoverImageUrl = getSafeUrl(university.coverImageUrl)
   const coverImageSourceUrl = getSafeUrl(university.coverImageSourceUrl)
   const coverImageUrl = rawCoverImageUrl && coverImageSourceUrl && university.coverImageLicense?.trim() ? rawCoverImageUrl : getUniversityFallbackPhoto(university.id)
@@ -569,10 +616,23 @@ export function UniversityDetailsPage() {
 
           <div className="university-detail-fact">
             <BookOpen size={19} />
-
             <div>
-              <span>Программы в справочнике</span>
-              <strong>{programs.length}</strong>
+              <span>Подтверждённые программы</span>
+              <strong>{confirmedPrograms.length}</strong>
+            </div>
+          </div>
+          <div className="university-detail-fact">
+            <Info size={19} />
+            <div>
+              <span>Требуют проверки</span>
+              <strong>{programsNeedingReview.length}</strong>
+            </div>
+          </div>
+          <div className="university-detail-fact">
+            <CalendarDays size={19} />
+            <div>
+              <span>Архивные программы</span>
+              <strong>{archivedPrograms.length}</strong>
             </div>
           </div>
         </div>
@@ -602,7 +662,7 @@ export function UniversityDetailsPage() {
             <h2>Образовательные программы</h2>
 
             <p>
-              Направления подготовки, которые есть в справочнике проекта.
+              Актуальные записи, сведения на проверке и архивные программы разделены по статусу. Архив не подтверждает набор на текущий год.
             </p>
           </div>
 
@@ -612,41 +672,36 @@ export function UniversityDetailsPage() {
         {programs.length === 0 ? (
           <div className="university-detail-empty">
             <Info size={22} />
-
             <div>
               <strong>Программы пока не добавлены</strong>
-
-              <p>
-                Информация о направлениях подготовки этого университета
-                пока отсутствует в базе проекта.
-              </p>
+              <p>Информация о направлениях подготовки этого университета пока отсутствует в базе проекта.</p>
+            </div>
+          </div>
+        ) : currentCatalogPrograms.length === 0 ? (
+          <div className="university-detail-empty">
+            <Info size={22} />
+            <div>
+              <strong>Подтверждённых актуальных программ пока нет</strong>
+              <p>В справочнике есть архивные записи. Они полезны для истории, но не подтверждают набор на текущий год.</p>
             </div>
           </div>
         ) : (
           <div className="university-detail-program-list">
-            {programs.map((program) => (
-              <article
-                className="university-detail-program"
-                key={program.id}
-              >
-                <div className="university-detail-program-icon">
-                  <GraduationCap size={19} />
-                </div>
-
-                <div className="university-detail-program-info">
-                  <strong>{program.name}</strong>
-
-                  {program.direction ? (
-                    <span className="university-detail-program-direction">
-                      Код направления: {program.direction}
-                    </span>
-                  ) : (
-                    <span>Код направления не указан</span>
-                  )}
-                </div>
-              </article>
+            {currentCatalogPrograms.map((program) => (
+              <UniversityProgramCard key={program.id} program={program} />
             ))}
           </div>
+        )}
+
+        {archivedPrograms.length > 0 && (
+          <details className="university-detail-program-archive">
+            <summary>Архивные программы и исторические записи ({archivedPrograms.length})</summary>
+            <div className="university-detail-program-list">
+              {archivedPrograms.map((program) => (
+                <UniversityProgramCard key={program.id} program={program} />
+              ))}
+            </div>
+          </details>
         )}
       </section>
 

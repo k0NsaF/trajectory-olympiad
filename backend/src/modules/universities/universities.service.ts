@@ -35,6 +35,7 @@ interface ProgramRow {
   university_id: string
   name: string
   direction: string | null
+  catalog_status: 'needs_review' | 'official' | 'archived'
 }
 
 interface UniversityProgramResult {
@@ -42,6 +43,7 @@ interface UniversityProgramResult {
   universityId: string
   name: string
   direction?: string
+  catalogStatus: ProgramRow['catalog_status']
 }
 
 interface UniversityResult {
@@ -128,7 +130,8 @@ function mapProgram(row: ProgramRow): UniversityProgramResult {
     id: row.id,
     universityId: row.university_id,
     name: row.name,
-    ...(row.direction ? { direction: row.direction } : {})
+    ...(row.direction ? { direction: row.direction } : {}),
+    catalogStatus: row.catalog_status
   }
 }
 
@@ -230,7 +233,7 @@ async function loadProgramsForUniversities(
     const ids = universityIds.slice(index, index + PROGRAM_UNIVERSITY_CHUNK_SIZE)
     const { data, error } = await supabase
       .from('programs')
-      .select('id, university_id, name, direction')
+      .select('id, university_id, name, direction, catalog_status')
       .in('university_id', ids)
       .order('name', { ascending: true })
 

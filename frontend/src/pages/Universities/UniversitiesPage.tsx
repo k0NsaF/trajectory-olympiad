@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Bookmark, ExternalLink, GitCompareArrows, GraduationCap, Info, MapPin, Search, Sparkles, X } from 'lucide-react'
 
@@ -175,7 +175,16 @@ export function UniversitiesPage() {
 
   const askAIToCompare = () => {
     const candidates = comparisonUniversities.map((item) => {
-      const programs = (item.programs ?? []).map((program) => program.name).slice(0, 8)
+      const programs = (item.programs ?? []).slice(0, 8).map((program) => {
+        const status = program.catalogStatus === 'official'
+          ? 'подтверждена'
+          : program.catalogStatus === 'needs_review'
+            ? 'требует проверки'
+            : program.catalogStatus === 'archived'
+              ? 'архив'
+              : 'статус не указан'
+        return `${program.name} (${status})`
+      })
       return `- ${item.shortName || item.name}; ${item.city}; ${item.region ?? 'регион не указан'}; программы: ${programs.length ? programs.join(', ') : 'в базе пока нет списка программ'}`
     }).join('\n')
     const prompt = [
@@ -239,6 +248,11 @@ export function UniversitiesPage() {
               const sourceUrl = storedImageIsVerified ? storedSourceUrl : (!university.isBranch ? (campusMedia?.sourceUrl ?? null) : null)
               const photoCredit = storedImageIsVerified ? (university.coverImageLicense || '') : (campusMedia ? campusMedia.author + ' - ' + campusMedia.license : '')
               const favorited = favoriteIds.includes(university.id) || isFavorite(favoriteScope, 'university', university.id)
+              const programRows = university.programs ?? []
+              const confirmedProgramCount = programRows.filter((program) => program.catalogStatus === 'official').length
+              const reviewProgramCount = programRows.filter((program) => program.catalogStatus === 'needs_review').length
+              const archivedProgramCount = programRows.filter((program) => program.catalogStatus === 'archived').length
+              const unclassifiedProgramCount = programRows.length - confirmedProgramCount - reviewProgramCount - archivedProgramCount
               return (
                 <article className="university-card" key={university.id}>
                   <Link className="university-emblem university-photo-slot" to={`/universities/${encodeURIComponent(university.id)}`} aria-label={`Открыть ${university.shortName || university.name}`}>
@@ -266,7 +280,19 @@ export function UniversitiesPage() {
                       <span className="university-location"><MapPin size={14} /><span>{university.city?.trim() || 'Город не указан'}</span></span>
                     </div>
                     {university.description && <p className="university-description">{university.description}</p>}
-                    <div className="university-card-meta"><span>{university.region || 'Регион не указан'}</span>{university.organizationType && <span>{organizationTypeLabel(university.organizationType)}</span>}{university.isBranch && <span>Филиал</span>}{university.programs?.length ? <span>Программ в базе: {university.programs.length}</span> : <span>Программы уточняются</span>}</div>
+                    <div className="university-card-meta">
+                      <span>{university.region || 'Регион не указан'}</span>
+                      {university.organizationType && <span>{organizationTypeLabel(university.organizationType)}</span>}
+                      {university.isBranch && <span>Филиал</span>}
+                      {programRows.length > 0 ? (
+                        <>
+                          <span>Подтверждённых программ: {confirmedProgramCount}</span>
+                          {reviewProgramCount > 0 && <span>Требуют проверки: {reviewProgramCount}</span>}
+                          {archivedProgramCount > 0 && <span>Архивных программ: {archivedProgramCount}</span>}
+                          {unclassifiedProgramCount > 0 && <span>Без статуса: {unclassifiedProgramCount}</span>}
+                        </>
+                      ) : <span>Программы уточняются</span>}
+                    </div>
                     <div className="university-card-actions">
                       <Link className="catalog-details-link" to={`/universities/${encodeURIComponent(university.id)}`}>Подробнее <ExternalLink size={15} /></Link>
                       <button type="button" className={`university-favorite-button${favorited ? ' is-active' : ''}`} onClick={() => handleFavorite(university.id)} aria-pressed={favorited}><Bookmark size={15} />{favorited ? 'В избранном' : 'В избранное'}</button>

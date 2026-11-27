@@ -1,4 +1,4 @@
-.benefit-explorer {
+﻿.benefit-explorer {
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -514,4 +514,56 @@
     min-height: 210px !important;
     max-height: 210px !important;
   }
+}
+/* PROGRAM CATALOG STATUS: current, review and archive */
+.university-detail-program-status {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 7px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.university-detail-program-status.is-official {
+  border-color: color-mix(in srgb, var(--success) 35%, var(--border));
+  background: color-mix(in srgb, var(--success) 8%, var(--card));
+  color: var(--success);
+}
+
+.university-detail-program-status.is-needs_review {
+  border-color: color-mix(in srgb, var(--warning) 35%, var(--border));
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.university-detail-program-archive {
+  margin-top: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.university-detail-program-archive > summary {
+  padding: 13px 15px;
+  color: var(--text-heading);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  list-style-position: inside;
+}
+
+.university-detail-program-archive[open] > summary {
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.university-detail-program-archive > .university-detail-program-list {
+  padding: 12px;
 }
