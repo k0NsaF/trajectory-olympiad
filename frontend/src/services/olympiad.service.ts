@@ -21,6 +21,8 @@ export interface OlympiadFilters {
   universityId?: string
   programId?: string
   benefitYear?: number
+  academicYear?: string
+  calendarYear?: number
 }
 
 function createQuery(filters: OlympiadFilters): string {
@@ -76,6 +78,14 @@ function createQuery(filters: OlympiadFilters): string {
     params.set('benefitYear', String(filters.benefitYear))
   }
 
+  if (filters.academicYear) {
+    params.set('academicYear', filters.academicYear)
+  }
+
+  if (filters.calendarYear !== undefined) {
+    params.set('calendarYear', String(filters.calendarYear))
+  }
+
   const query = params.toString()
   return query ? `?${query}` : ''
 }
@@ -87,9 +97,17 @@ export const olympiadService = {
     )
   },
 
-  getById(id: string): Promise<OlympiadWithStatus> {
+  getById(
+    id: string,
+    filters: Pick<OlympiadFilters, 'academicYear' | 'calendarYear'> = {}
+  ): Promise<OlympiadWithStatus> {
+    const params = new URLSearchParams()
+    if (filters.academicYear) params.set('academicYear', filters.academicYear)
+    if (filters.calendarYear !== undefined) params.set('calendarYear', String(filters.calendarYear))
+    const query = params.toString()
+
     return api.get<OlympiadWithStatus>(
-      `/api/olympiads/${encodeURIComponent(id)}`
+      '/api/olympiads/' + encodeURIComponent(id) + (query ? '?' + query : '')
     )
   }
 }

@@ -1,6 +1,6 @@
 
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   Award,
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 
 import { SUBJECTS } from '@trajectory/shared'
+import type { OlympiadWithStatus } from '@trajectory/shared'
 
 import { ErrorState } from '@/components/common/ErrorState'
 import { LoadingState } from '@/components/common/LoadingState'
@@ -198,8 +199,64 @@ function getStageIcon(type: string) {
   return <CalendarDays size={19} />
 }
 
+function ScheduleItemsTimeline({ items }: { items: OlympiadWithStatus['scheduleItems'] }) {
+  return (
+    <div className="olympiad-timeline">
+      {items.map((item, index) => {
+        const state: StageState = !item.isConfirmed || !item.startDate || !item.endDate || item.dateParseStatus === 'unknown'
+          ? 'unknown' : getStageState({ startDate: item.startDate, endDate: item.endDate })
+        const title = item.stageName || (item.kind === 'registration' ? 'Регистрация' : 'Этап олимпиады')
+        const dateText = item.whenText || (item.startDate || item.endDate
+          ? formatDateRange({ startDate: item.startDate ?? '', endDate: item.endDate ?? '' })
+          : 'Сроки уточняются')
+        const sourceUrl = getSafeWebsiteUrl(item.organizerUrl)
+        return (
+          <article className={'olympiad-stage-item stage-' + state} key={item.id}>
+            <div className="olympiad-stage-track">
+              <div className="olympiad-stage-icon">
+                {state === 'completed' ? <CheckCircle2 size={19} /> : getStageIcon(item.kind === 'registration' ? 'registration' : title.toLowerCase().includes('заключительный') ? 'final' : 'qualifying')}
+              </div>
+              {index !== items.length - 1 && <div className="olympiad-stage-connector" />}
+            </div>
+            <div className="olympiad-stage-card">
+              <div className="olympiad-stage-card-header">
+                <div><span className="olympiad-stage-number">СОБЫТИЕ {index + 1}</span><h3>{title}</h3></div>
+                <span className={'olympiad-stage-state state-' + state}>{STAGE_STATE_LABELS[state]}</span>
+              </div>
+              <div className="olympiad-stage-information">
+                <div className="olympiad-stage-detail"><CalendarDays size={15} /><span>{dateText}</span></div>
+                {item.startTime && (
+                  <div className="olympiad-stage-detail">
+                    <Clock3 size={15} />
+                    <span>{item.startTime.slice(0, 5)}{item.timeZone ? ' · ' + item.timeZone : ''}</span>
+                  </div>
+                )}
+                {item.dateParseStatus === 'inferred_year' && <div className="olympiad-stage-detail"><Info size={15} /><span>Год определён по контексту сезона; проверь у организатора</span></div>}
+                {item.checkedOn && <div className="olympiad-stage-detail"><CheckCircle2 size={15} /><span>Проверено {formatDate(item.checkedOn)}</span></div>}
+                {sourceUrl && <div className="olympiad-stage-detail"><ExternalLink size={15} /><a className="olympiad-inline-link" href={sourceUrl} target="_blank" rel="noopener noreferrer">Источник организатора</a></div>}
+              </div>
+            </div>
+          </article>
+        )
+      })}
+    </div>
+  )
+}
+
 export function OlympiadDetailsPage() {
   const { id = '' } = useParams()
+  const [searchParams] = useSearchParams()
+  const academicYear = searchParams.get('academicYear') || undefined
+  const calendarYearParam = searchParams.get('calendarYear')
+  const calendarYear = calendarYearParam && /^\d{4}$/.test(calendarYearParam)
+    ? Number(calendarYearParam)
+    : undefined
+  const catalogQuery = calendarYear !== undefined
+    ? 'calendarYear=' + String(calendarYear)
+    : academicYear
+      ? 'academicYear=' + encodeURIComponent(academicYear)
+      : ''
+  const catalogUrl = catalogQuery ? '/olympiads?' + catalogQuery : '/olympiads'
   const { user } = useAuth()
   const storageScope = user?.id ? `user:${user.id}` : 'guest'
   const [isFavorite, setIsFavorite] = useState(() => readFavorites(storageScope).some((entry) => entry.kind === 'olympiad' && entry.id === id))
@@ -230,8 +287,8 @@ export function OlympiadDetailsPage() {
   }
 
   const loadOlympiad = useCallback(
-    () => olympiadService.getById(id),
-    [id]
+    () => olympiadService.getById(id, { academicYear, calendarYear }),
+    [id, academicYear, calendarYear]
   )
 
   const {
@@ -259,7 +316,7 @@ export function OlympiadDetailsPage() {
           onRetry={reload}
         />
 
-        <Link className="back-link" to="/olympiads">
+        <Link className="back-link" to={catalogUrl}>
           <ArrowLeft size={16} />
           Вернуться в каталог
         </Link>
@@ -292,10 +349,18 @@ export function OlympiadDetailsPage() {
   const activeStages = sortedStages.filter(
     (stage) => getStageState(stage) === 'active'
   ).length
+  const sortedScheduleItems = [...(olympiad.scheduleItems ?? [])].sort((first, second) => {
+    const firstDate = first.startDate ?? '9999-12-31'
+    const secondDate = second.startDate ?? '9999-12-31'
+    return firstDate.localeCompare(secondDate)
+      || (first.endDate ?? '').localeCompare(second.endDate ?? '')
+      || first.stageName.localeCompare(second.stageName)
+  })
+
 
   return (
     <div className="dashboard-container olympiad-details-page">
-      <Link className="back-link" to="/olympiads">
+      <Link className="back-link" to={catalogUrl}>
         <ArrowLeft size={16} />
         Каталог олимпиад
       </Link>
@@ -447,7 +512,7 @@ export function OlympiadDetailsPage() {
           </div>
         </div>
 
-        {sortedStages.length === 0 ? (
+        {sortedStages.length === 0 && sortedScheduleItems.length === 0 ? (
           <div className="olympiad-empty-stages">
             <div className="olympiad-empty-icon">
               <CalendarDays size={25} />
@@ -470,6 +535,8 @@ export function OlympiadDetailsPage() {
               </a>
             )}
           </div>
+        ) : sortedStages.length === 0 ? (
+          <ScheduleItemsTimeline items={sortedScheduleItems} />
         ) : (
           <>
             <div className="olympiad-stage-summary">
@@ -709,7 +776,7 @@ export function OlympiadDetailsPage() {
         )}
       </section>
 
-      <Link className="back-link olympiad-bottom-back" to="/olympiads">
+      <Link className="back-link olympiad-bottom-back" to={catalogUrl}>
         <ArrowLeft size={16} />
         Вернуться к каталогу олимпиад
       </Link>

@@ -1,6 +1,21 @@
 import { z } from 'zod'
 
 const uuidSchema = z.string().uuid()
+const academicYearSchema = z.string()
+  .regex(/^\d{4}-\d{4}$/, 'Учебный год должен быть указан в формате YYYY-YYYY')
+  .refine((value) => {
+    const [start, end] = value.split('-').map(Number)
+    return end === start + 1 && start >= 2020 && end <= 2200
+  }, 'Некорректный учебный год')
+
+const calendarYearSchema = z.coerce.number().int().min(2020).max(2200)
+
+export const olympiadDetailsQuerySchema = z.object({
+  academicYear: academicYearSchema.optional(),
+  calendarYear: calendarYearSchema.optional()
+}).refine((value) => !(value.academicYear && value.calendarYear), {
+  message: 'Выбери либо учебный год, либо календарный год'
+})
 
 export const olympiadFiltersSchema = z.object({
   search: z.string().trim().max(100).optional(),
@@ -19,7 +34,11 @@ export const olympiadFiltersSchema = z.object({
   ).optional(),
   universityId: uuidSchema.optional(),
   programId: uuidSchema.optional(),
-  benefitYear: z.coerce.number().int().min(2020).max(2200).optional()
+  benefitYear: z.coerce.number().int().min(2020).max(2200).optional(),
+  academicYear: academicYearSchema.optional(),
+  calendarYear: calendarYearSchema.optional()
+}).refine((value) => !(value.academicYear && value.calendarYear), {
+  message: 'Выбери либо учебный год, либо календарный год'
 })
 
 export const olympiadIdSchema = z.object({

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   Award,
   Bookmark,
@@ -151,6 +151,42 @@ function safeHttpUrl(value?: string): string | null {
   }
 }
 
+function getCurrentAcademicYearValue(date = new Date()): string {
+  const startYear = date.getMonth() >= 8 ? date.getFullYear() : date.getFullYear() - 1
+  return String(startYear) + '-' + String(startYear + 1)
+}
+
+function getAcademicYearOptions(): Array<{ value: string; label: string }> {
+  const currentStartYear = Number(getCurrentAcademicYearValue().slice(0, 4))
+  return Array.from({ length: 5 }, (_, index) => {
+    const startYear = currentStartYear - index
+    const value = String(startYear) + '-' + String(startYear + 1)
+    const label = String(startYear) + '/' + String(startYear + 1)
+      + (index === 0 ? ' · текущий сезон' : ' · архив')
+    return { value, label }
+  })
+}
+
+const ACADEMIC_YEAR_OPTIONS = getAcademicYearOptions()
+
+function getCalendarYearOptions(): Array<{ value: number; label: string }> {
+  const currentYear = new Date().getFullYear()
+  return Array.from({ length: 5 }, (_, index) => {
+    const value = currentYear - index
+    return {
+      value,
+      label: String(value) + (index === 0 ? ' · текущий год' : ' · архив')
+    }
+  })
+}
+
+const CALENDAR_YEAR_OPTIONS = getCalendarYearOptions()
+
+function formatAcademicYear(value: string): string {
+  const parts = value.split('-')
+  return parts[0] + '/' + parts[1]
+}
+
 function getAdmissionYearForGrade(grade: number): number {
   const now = new Date()
   const academicEndYear = now.getMonth() >= 8
@@ -168,6 +204,20 @@ function toggleValue(values: string[], value: string): string[] {
 
 export function OlympiadsPage() {
   const { searchQuery, setSearchQuery } = useAppLayout()
+  const [routeSearchParams, setRouteSearchParams] = useSearchParams()
+  const currentAcademicYear = getCurrentAcademicYearValue()
+  const currentCalendarYear = new Date().getFullYear()
+  const requestedAcademicYear = routeSearchParams.get('academicYear')
+  const requestedCalendarYear = routeSearchParams.get('calendarYear')
+  const initialYearMode = CALENDAR_YEAR_OPTIONS.some((option) => String(option.value) === requestedCalendarYear)
+    ? 'calendar' as const
+    : 'academic' as const
+  const initialCalendarYear = initialYearMode === 'calendar'
+    ? Number(requestedCalendarYear)
+    : currentCalendarYear
+  const initialAcademicYear = ACADEMIC_YEAR_OPTIONS.some((option) => option.value === requestedAcademicYear)
+    ? requestedAcademicYear as string
+    : currentAcademicYear
   const { session, user } = useAuth()
   const storageScope = user?.id ? `user:${user.id}` : 'guest'
   const [favoriteIds, setFavoriteIds] = useState<string[]>(() => readFavorites(storageScope).filter((entry) => entry.kind === 'olympiad').map((entry) => entry.id))
@@ -184,13 +234,47 @@ export function OlympiadsPage() {
   const [status, setStatus] = useState<FilterStatus>('')
   const [format, setFormat] = useState<FilterFormat>('')
   const [period, setPeriod] = useState<PeriodFilter>('all')
-  const [collection, setCollection] = useState<CollectionFilter>('upcoming')
+  const [collection, setCollection] = useState<CollectionFilter>(
+    initialYearMode === 'calendar'
+      ? initialCalendarYear === currentCalendarYear ? 'upcoming' : 'all'
+      : initialAcademicYear === currentAcademicYear ? 'upcoming' : 'all'
+  )
   const [listType, setListType] = useState<OlympiadListType>('school_olympiad')
+  const [yearMode, setYearMode] = useState<'academic' | 'calendar'>(initialYearMode)
+  const [academicYear, setAcademicYear] = useState(initialAcademicYear)
+  const [calendarYear, setCalendarYear] = useState(initialCalendarYear)
+  const isHistoricalYear = yearMode === 'calendar'
+    ? calendarYear !== currentCalendarYear
+    : academicYear !== currentAcademicYear
   const [onlyWithBenefits, setOnlyWithBenefits] = useState(false)
   const [onlyTargetUniversity, setOnlyTargetUniversity] = useState(false)
   const [onlyMyRegion, setOnlyMyRegion] = useState(false)
   const [sortBy, setSortBy] = useState<SortMode>('level')
   const [filtersOpen, setFiltersOpen] = useState(false)
+
+  useEffect(() => {
+    const calendarYearFromUrl = CALENDAR_YEAR_OPTIONS.find((option) => String(option.value) === requestedCalendarYear)?.value
+    const academicYearFromUrl = ACADEMIC_YEAR_OPTIONS.find((option) => option.value === requestedAcademicYear)?.value
+
+    if (calendarYearFromUrl !== undefined) {
+      if (yearMode !== 'calendar' || calendarYear !== calendarYearFromUrl) {
+        setYearMode('calendar')
+        setCalendarYear(calendarYearFromUrl)
+        setPeriod('all')
+        setStatus('')
+        setCollection(calendarYearFromUrl === currentCalendarYear ? 'upcoming' : 'all')
+      }
+    } else {
+      const nextAcademicYear = academicYearFromUrl ?? currentAcademicYear
+      if (yearMode !== 'academic' || academicYear !== nextAcademicYear) {
+        setYearMode('academic')
+        setAcademicYear(nextAcademicYear)
+        setPeriod('all')
+        setStatus('')
+        setCollection(nextAcademicYear === currentAcademicYear ? 'upcoming' : 'all')
+      }
+    }
+  }, [requestedAcademicYear, requestedCalendarYear, currentAcademicYear, currentCalendarYear, yearMode, academicYear, calendarYear])
 
   useEffect(() => {
     setFavoriteIds(readFavorites(storageScope).filter((entry) => entry.kind === 'olympiad').map((entry) => entry.id))
@@ -253,7 +337,41 @@ export function OlympiadsPage() {
   const targetProgramId = onlyTargetUniversity ? profile?.targetProgramId : undefined
   const targetRegion = onlyMyRegion ? profile?.region : undefined
   const admissionGrade = grade ? Number(grade) : profile?.grade ?? 11
-  const benefitYear = getAdmissionYearForGrade(admissionGrade)
+  const benefitYear = yearMode === 'calendar'
+    ? calendarYear
+    : isHistoricalYear
+      ? Number(academicYear.slice(5))
+      : getAdmissionYearForGrade(admissionGrade)
+
+  const handleAcademicYearChange = (nextAcademicYear: string) => {
+    setYearMode('academic')
+    setAcademicYear(nextAcademicYear)
+    setPeriod('all')
+    setStatus('')
+    setCollection(nextAcademicYear === currentAcademicYear ? 'upcoming' : 'all')
+    setRouteSearchParams((current) => {
+      const next = new URLSearchParams(current)
+      next.delete('calendarYear')
+      if (nextAcademicYear === currentAcademicYear) next.delete('academicYear')
+      else next.set('academicYear', nextAcademicYear)
+      return next
+    }, { replace: true })
+  }
+
+  const handleCalendarYearChange = (nextCalendarYear: number) => {
+    setYearMode('calendar')
+    setCalendarYear(nextCalendarYear)
+    setPeriod('all')
+    setStatus('')
+    setCollection(nextCalendarYear === currentCalendarYear ? 'upcoming' : 'all')
+    setRouteSearchParams((current) => {
+      const next = new URLSearchParams(current)
+      next.delete('academicYear')
+      if (nextCalendarYear === currentCalendarYear) next.delete('calendarYear')
+      else next.set('calendarYear', String(nextCalendarYear))
+      return next
+    }, { replace: true })
+  }
 
   const loadOlympiads = useCallback(() => {
     const filters: OlympiadFilters = {
@@ -262,6 +380,7 @@ export function OlympiadsPage() {
       grade: grade ? Number(grade) : undefined,
       level: level ? Number(level) : undefined,
       listType,
+      ...(yearMode === 'calendar' ? { calendarYear } : { academicYear }),
       status: status || undefined,
       format: format || undefined,
       region: targetRegion,
@@ -278,6 +397,9 @@ export function OlympiadsPage() {
     grade,
     level,
     listType,
+    yearMode,
+    academicYear,
+    calendarYear,
     status,
     format,
     targetRegion,
@@ -342,7 +464,8 @@ export function OlympiadsPage() {
     Boolean(status),
     Boolean(format),
     period !== 'all',
-    collection !== 'upcoming',
+    collection !== (isHistoricalYear ? 'all' : 'upcoming'),
+    yearMode === 'calendar' || isHistoricalYear,
     onlyWithBenefits,
     onlyTargetUniversity,
     onlyMyRegion
@@ -358,6 +481,15 @@ export function OlympiadsPage() {
     setStatus('')
     setFormat('')
     setPeriod('all')
+    setYearMode('academic')
+    setAcademicYear(currentAcademicYear)
+    setCalendarYear(currentCalendarYear)
+    setRouteSearchParams((current) => {
+      const next = new URLSearchParams(current)
+      next.delete('academicYear')
+      next.delete('calendarYear')
+      return next
+    }, { replace: true })
     setCollection('upcoming')
     setOnlyWithBenefits(false)
     setOnlyTargetUniversity(false)
@@ -366,6 +498,9 @@ export function OlympiadsPage() {
   }
 
   const closeFilters = () => setFiltersOpen(false)
+  const selectedYearQuery = yearMode === 'calendar'
+    ? 'calendarYear=' + String(calendarYear)
+    : 'academicYear=' + encodeURIComponent(academicYear)
 
   const handleFavorite = (id: string) => {
     toggleFavorite(storageScope, 'olympiad', id)
@@ -386,8 +521,49 @@ export function OlympiadsPage() {
       <PageHeader
         eyebrow="ВОЗМОЖНОСТИ ДЛЯ ТВОЕГО РОСТА"
         title={listType === 'school_olympiad' ? 'Каталог олимпиад школьников' : 'Иные интеллектуальные и творческие конкурсы'}
-        description={listType === 'school_olympiad' ? 'Подбирай олимпиады по предметам и классу, следи за этапами и проверяй условия поступления по документам выбранного вуза.' : 'Отдельный каталог интеллектуальных и творческих конкурсов из перечня Минпросвещения. Он помогает находить мероприятия, но сам по себе не подтверждает особые права при поступлении.'}
+        description={isHistoricalYear
+          ? yearMode === 'calendar'
+            ? 'История мероприятий за ' + String(calendarYear) + ' календарный год. Показываем только события с датами внутри выбранного года.'
+            : 'Исторический архив за ' + formatAcademicYear(academicYear) + ' учебный год. Текущие сведения не подставляются вместо отсутствующих.'
+          : listType === 'school_olympiad'
+            ? 'Подбирай олимпиады по предметам и классу, следи за этапами и проверяй условия поступления по документам выбранного вуза.'
+            : 'Отдельный каталог интеллектуальных и творческих конкурсов из перечня Минпросвещения. Он помогает находить мероприятия, но сам по себе не подтверждает особые права при поступлении.'}
       />
+
+      <div className="olympiad-year-toolbar">
+        <div className="olympiad-year-copy">
+          <strong>История мероприятий</strong>
+          <span>Смотри данные как по учебному сезону, так и по календарному году</span>
+        </div>
+        <div className="olympiad-year-controls">
+          <div className="olympiad-year-mode" role="group" aria-label="Тип периода">
+            <button type="button" className={yearMode === 'academic' ? 'is-active' : ''} onClick={() => handleAcademicYearChange(academicYear)} aria-pressed={yearMode === 'academic'}>Учебный год</button>
+            <button type="button" className={yearMode === 'calendar' ? 'is-active' : ''} onClick={() => handleCalendarYearChange(calendarYear)} aria-pressed={yearMode === 'calendar'}>Календарный год</button>
+          </div>
+          <label className="olympiad-year-select">
+            <span>{yearMode === 'calendar' ? 'Календарный год' : 'Учебный сезон'}</span>
+            {yearMode === 'calendar' ? (
+              <select value={calendarYear} onChange={(event) => handleCalendarYearChange(Number(event.target.value))}>
+                {CALENDAR_YEAR_OPTIONS.map((option) => (
+                  <option value={option.value} key={option.value}>{option.label}</option>
+                ))}
+              </select>
+            ) : (
+              <select value={academicYear} onChange={(event) => handleAcademicYearChange(event.target.value)}>
+                {ACADEMIC_YEAR_OPTIONS.map((option) => (
+                  <option value={option.value} key={option.value}>{option.label}</option>
+                ))}
+              </select>
+            )}
+          </label>
+        </div>
+      </div>
+      {isHistoricalYear && (
+        <div className="olympiad-archive-note">
+          <strong>{yearMode === 'calendar' ? 'Просмотр календарного года: ' + String(calendarYear) : 'Просмотр учебного сезона: ' + formatAcademicYear(academicYear)}</strong>
+          <span>Показываем только подтверждённые записи за выбранный период. Если сведений нет, Trajectory сообщит об этом и не подставит даты из другого года.</span>
+        </div>
+      )}
 
       <nav className="olympiad-list-tabs" aria-label="Официальные перечни мероприятий">
         <button type="button" className={listType === 'school_olympiad' ? 'is-active' : ''} onClick={() => { setListType('school_olympiad'); setOnlyWithBenefits(false); setOnlyTargetUniversity(false); setLevel('') }} aria-pressed={listType === 'school_olympiad'}>Олимпиады школьников</button>
@@ -638,8 +814,16 @@ export function OlympiadsPage() {
         ) : visibleOlympiads.length === 0 ? (
           <EmptyState
             icon={<BookOpen size={25} />}
-            title="Пока ничего не нашли"
-            description={listType === 'intellectual_competition' ? 'Записи второго перечня ещё не импортированы в базу. Мы не будем заполнять каталог вымышленными конкурсами: после загрузки официального реестра они появятся здесь отдельно.' : 'Попробуй изменить предметы, период или фильтры. Часть существующих записей ещё проходит сверку с официальными документами; это отмечено в карточках.'}
+            title={isHistoricalYear && (olympiads?.length ?? 0) === 0
+              ? yearMode === 'calendar'
+                ? 'Архив за ' + String(calendarYear) + ' год пока не заполнен'
+                : 'Архив за ' + formatAcademicYear(academicYear) + ' пока не заполнен'
+              : 'Пока ничего не нашли'}
+            description={isHistoricalYear && (olympiads?.length ?? 0) === 0
+              ? 'В базе пока нет подтверждённых мероприятий и дат за выбранный период. Мы не подставляем события другого года и не придумываем даты, этапы или льготы.'
+              : listType === 'intellectual_competition'
+                ? 'Записи второго перечня ещё не импортированы в базу. Мы не будем заполнять каталог вымышленными конкурсами: после загрузки официального реестра они появятся здесь отдельно.'
+                : 'Попробуй изменить предметы, период или фильтры. Часть существующих записей ещё проходит сверку с официальными документами; это отмечено в карточках.'}
           />
         ) : (
           <div className="catalog-list catalog-list-enhanced">
@@ -650,7 +834,7 @@ export function OlympiadsPage() {
                 <article className="catalog-card catalog-card-enhanced olympiad-compact-card" key={olympiad.id}>
                   <div className="catalog-card-content">
                     <p className="catalog-organizer">{olympiad.organizer || 'Организатор уточняется'}</p>
-                    <h2><Link to={`/olympiads/${encodeURIComponent(olympiad.id)}`}>{olympiad.name}</Link></h2>
+                    <h2><Link to={'/olympiads/' + encodeURIComponent(olympiad.id) + '?' + selectedYearQuery}>{olympiad.name}</Link></h2>
                     <div className="olympiad-compact-meta">
                       <span className={`status-pill status-${olympiad.status}`}>{STATUS_LABELS[olympiad.status]}</span>
                       <span className="catalog-level">{olympiad.profiles.length > 0
@@ -677,15 +861,17 @@ export function OlympiadsPage() {
                     )}
                     {safeHttpUrl(olympiad.sourceDocumentUrl) && <a className="olympiad-source-link" href={safeHttpUrl(olympiad.sourceDocumentUrl) ?? undefined} target="_blank" rel="noopener noreferrer">{olympiad.sourceDocumentTitle || 'Официальный документ перечня'} <ExternalLink size={12} /></a>}
                     <div className="catalog-card-footer olympiad-compact-actions">
-              {olympiad.listType === 'school_olympiad' && (
+              {!isHistoricalYear && olympiad.listType === 'school_olympiad' && (
                 <button type="button" className={`olympiad-save-action${registeredIds.includes(olympiad.id) ? ' is-active' : ''}`} onClick={() => handleRegistrationToggle(olympiad.id)} aria-pressed={registeredIds.includes(olympiad.id)}>
                   {registeredIds.includes(olympiad.id) ? 'Зарегистрирован' : 'Отметить регистрацию'}
                   <span role="img" aria-label="Справка о личной отметке" title="Это твоя личная отметка. Trajectory не регистрирует тебя на сайте организатора и не проверяет факт регистрации."><Info size={13} /></span>
                 </button>
               )}
-                      <Link className="catalog-details-link" to={`/olympiads/${encodeURIComponent(olympiad.id)}`}>Подробности <ChevronRight size={16} /></Link>
+                      <Link className="catalog-details-link" to={'/olympiads/' + encodeURIComponent(olympiad.id) + '?' + selectedYearQuery}>Подробности <ChevronRight size={16} /></Link>
                       <button type="button" className={`olympiad-save-action${favoriteIds.includes(olympiad.id) ? ' is-active' : ''}`} onClick={() => handleFavorite(olympiad.id)} aria-pressed={favoriteIds.includes(olympiad.id)}><Bookmark size={15} />{favoriteIds.includes(olympiad.id) ? 'В избранном' : 'В избранное'}</button>
+                      {!isHistoricalYear && (
                       <button type="button" className={`olympiad-save-action${calendarIds.includes(olympiad.id) ? ' is-active' : ''}`} onClick={() => handleCalendarSelection(olympiad.id)} aria-pressed={calendarIds.includes(olympiad.id)}><CalendarPlus size={15} />{calendarIds.includes(olympiad.id) ? 'В календаре' : 'В календарь'}</button>
+                      )}
                     </div>
                   </div>
                 </article>

@@ -629,8 +629,16 @@ export async function getOlympiads(
     current.push(mapScheduleItem(row))
     scheduleByOlympiad.set(row.olympiad_id, current)
   }
-  const benefitYear = filters.benefitYear ?? getNextAdmissionYear()
-  const academicYear = getCurrentAcademicYear()
+  const academicYear = filters.academicYear
+    ?? (filters.calendarYear
+      ? String(filters.calendarYear) + '-' + String(filters.calendarYear + 1)
+      : getCurrentAcademicYear())
+  const benefitYear = filters.benefitYear
+    ?? (filters.calendarYear
+      ? filters.calendarYear
+      : filters.academicYear
+        ? Number(academicYear.slice(5))
+        : getNextAdmissionYear())
 
   const extendedSeasonSelect = 'id, olympiad_id, academic_year, grades, level, level_label, list_type, official_list_number, official_list_key, grade_eligibility_status, grade_source_url, grade_checked_at, source_document_title, source_document_url, source_checked_at, source_status'
   const legacySeasonSelect = 'id, olympiad_id, academic_year, grades'
@@ -701,7 +709,14 @@ export async function getOlympiads(
   const result: OlympiadResult[] = olympiadRows.map((olympiad) => {
     const season = seasonByOlympiad.get(olympiad.id)
     const mappedStages = season
-      ? (stagesBySeason.get(season.id) ?? []).map((stage) => mapStage(stage, olympiad.id))
+      ? (stagesBySeason.get(season.id) ?? [])
+        .filter((stage) => {
+          if (!filters.calendarYear) return true
+          const yearStart = String(filters.calendarYear) + '-01-01'
+          const yearEnd = String(filters.calendarYear) + '-12-31'
+          return stage.start_date <= yearEnd && stage.end_date >= yearStart
+        })
+        .map((stage) => mapStage(stage, olympiad.id))
       : []
     const mappedSeason = season
       ? {
@@ -720,7 +735,22 @@ export async function getOlympiads(
 
     const hasYearMetadata = Boolean(season && Object.prototype.hasOwnProperty.call(season, 'list_type'))
     const profiles = profilesByOlympiad.get(olympiad.id) ?? []
-    const scheduleItems = scheduleByOlympiad.get(olympiad.id) ?? []
+    const scheduleItems = (scheduleByOlympiad.get(olympiad.id) ?? []).filter((item) => {
+      if (!filters.academicYear && !filters.calendarYear) return true
+      const itemStart = item.startDate ?? item.endDate
+      const itemEnd = item.endDate ?? item.startDate
+      if (!itemStart || !itemEnd) return false
+      if (filters.calendarYear) {
+        const yearStart = String(filters.calendarYear) + '-01-01'
+        const yearEnd = String(filters.calendarYear) + '-12-31'
+        return itemStart <= yearEnd && itemEnd >= yearStart
+      }
+      const startYear = Number(filters.academicYear!.slice(0, 4))
+      const endYear = Number(filters.academicYear!.slice(5))
+      const academicYearStart = String(startYear) + '-09-01'
+      const academicYearEnd = String(endYear) + '-08-31'
+      return itemStart <= academicYearEnd && itemEnd >= academicYearStart
+    })
     const distinctProfileLevels = [...new Set(profiles.map((profile) => profile.level))]
     // Level belongs to an individual profile; an event with mixed levels has no single level.
     const effectiveLevel = profiles.length > 0
@@ -774,6 +804,10 @@ export async function getOlympiads(
       : []
 
   return result.filter((olympiad) => {
+    // Never substitute another academic season when an explicit season was requested.
+    if (filters.academicYear && olympiad.season?.academicYear !== filters.academicYear) return false
+    // Calendar-year views contain only events with dates inside that calendar year.
+    if (filters.calendarYear && olympiad.scheduleItems.length === 0 && (olympiad.season?.stages.length ?? 0) === 0) return false
     if (filters.listType && olympiad.listType !== filters.listType) return false
 
     if (
@@ -832,9 +866,10 @@ export async function getOlympiads(
 
 export async function getOlympiadById(
   supabase: SupabaseClient,
-  id: string
+  id: string,
+  filters: Pick<OlympiadFiltersInput, 'academicYear' | 'calendarYear'> = {}
 ): Promise<OlympiadResult> {
-  const olympiads = await getOlympiads(supabase)
+  const olympiads = await getOlympiads(supabase, filters)
   const olympiad = olympiads.find((item) => item.id === id)
 
   if (!olympiad) {

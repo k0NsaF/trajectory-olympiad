@@ -2,7 +2,7 @@
 import { Router } from 'express'
 
 import { createSupabaseClient } from '../../config/supabase.js'
-import { olympiadFiltersSchema, olympiadIdSchema } from './olympiads.schema.js'
+import { olympiadDetailsQuerySchema, olympiadFiltersSchema, olympiadIdSchema } from './olympiads.schema.js'
 import {
   getOlympiadById,
   getOlympiads
@@ -25,8 +25,9 @@ router.get('/', async (req, res, next) => {
 router.get('/:id', async (req, res, next) => {
   try {
     const { id } = olympiadIdSchema.parse(req.params)
+    const { academicYear, calendarYear } = olympiadDetailsQuerySchema.parse(req.query)
     const supabase = createSupabaseClient()
-    const olympiad = await getOlympiadById(supabase, id)
+    const olympiad = await getOlympiadById(supabase, id, { academicYear, calendarYear })
 
     res.status(200).json(olympiad)
   } catch (error) {
