@@ -23,6 +23,8 @@ export const env = {
 
   supabaseUrl: process.env.SUPABASE_URL?.trim() ?? '',
   supabasePublishableKey: process.env.SUPABASE_PUBLISHABLE_KEY?.trim() ?? '',
+  // Server-only Supabase secret key. Never expose this variable to Vite/frontend.
+  supabaseSecretKey: process.env.SUPABASE_SECRET_KEY?.trim() || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || '',
 
   groqApiKey,
   groqAiModel,
@@ -39,6 +41,10 @@ export const isProduction = env.nodeEnv === 'production'
 
 export const hasSupabaseConfig = Boolean(
   env.supabaseUrl && env.supabasePublishableKey
+)
+
+export const hasSupabaseServiceConfig = Boolean(
+  env.supabaseUrl && env.supabaseSecretKey
 )
 
 export const hasGroqAIConfig = Boolean(env.groqApiKey)

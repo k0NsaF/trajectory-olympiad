@@ -5,8 +5,9 @@ export const universityIdSchema = z.object({
 })
 
 export const universityQuerySchema = z.object({
-  search: z.string().trim().max(100).optional(),
-  city: z.string().trim().max(100).optional()
+  search: z.string().trim().min(1).max(100).optional(),
+  city: z.string().trim().max(100).optional(),
+  limit: z.coerce.number().int().min(1).max(50).optional()
 })
 
 const domainSchema = z.string()

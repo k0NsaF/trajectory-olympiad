@@ -20,9 +20,25 @@ import { authService } from '@/services/auth.service'
 
 type AuthMode = 'login' | 'register' | 'reset' | 'new-password'
 
+function getSafeReturnPath(value: string | null): string {
+  if (!value || !value.startsWith('/') || value.startsWith('//') || value.includes('\\')) {
+    return '/'
+  }
+
+  try {
+    return new URL(value, window.location.origin).origin === window.location.origin
+      ? value
+      : '/'
+  } catch {
+    return '/'
+  }
+}
+
 export function AuthPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const returnPath = getSafeReturnPath(searchParams.get('next'))
+  const emailRedirectTo = `${window.location.origin}/auth?next=${encodeURIComponent(returnPath)}`
   const { user, isConfigured } = useAuth()
 
   const [mode, setMode] = useState<AuthMode>(
@@ -74,7 +90,7 @@ export function AuthPage() {
     clearMessages()
 
     try {
-      await authService.resendSignupConfirmation(email.trim())
+      await authService.resendSignupConfirmation(email.trim(), emailRedirectTo)
 
       setNotice(
         'Письмо отправлено, если для этого адреса есть неподтверждённая регистрация. Проверь почту, включая папку «Спам».'
@@ -138,11 +154,12 @@ export function AuthPage() {
         const data = await authService.signUp({
           fullName,
           email,
-          password
+          password,
+          redirectTo: emailRedirectTo
         })
 
         if (data.session) {
-          navigate('/', { replace: true })
+          navigate(returnPath, { replace: true })
         } else {
           setNotice(
             'Аккаунт создан. Проверь электронную почту и перейди по ссылке подтверждения для завершения регистрации.'
@@ -161,7 +178,7 @@ export function AuthPage() {
         })
 
         if (data.session) {
-          navigate('/', { replace: true })
+          navigate(returnPath, { replace: true })
         }
 
         return
@@ -246,9 +263,9 @@ export function AuthPage() {
           <button
             type="button"
             className="primary-button auth-submit"
-            onClick={() => navigate('/')}
+            onClick={() => navigate(returnPath, { replace: true })}
           >
-            Вернуться на сайт
+            {returnPath === '/trajectory' ? 'Продолжить к траектории' : 'Вернуться на сайт'}
             <ArrowRight size={17} />
           </button>
 

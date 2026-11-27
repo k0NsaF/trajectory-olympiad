@@ -1,13 +1,17 @@
 import type {
   CreateProfileInput,
+  EducationLevel,
   NotificationPreferences,
+  PreparationLevel,
   ProfilePreferences,
   ProfileSnapshot,
+  SubjectId,
+  SubjectPreparation,
   ThemePreference,
   UserGrade
 } from '@trajectory/shared'
 
-import { DEFAULT_PROFILE_PREFERENCES } from '@trajectory/shared'
+import { DEFAULT_PROFILE_PREFERENCES, SUBJECTS } from '@trajectory/shared'
 import { api } from '@/services/api'
 
 const STORAGE_KEY = 'trajectory-guest-profile'
@@ -19,6 +23,11 @@ interface SavedProfileResponse {
   subjects?: string[]
   targetUniversityId?: string
   targetProgramId?: string
+  weeklyStudyHours?: unknown
+  targetAdmissionYear?: unknown
+  targetEducationLevel?: unknown
+  subjectPreparation?: unknown
+  alternativeUniversityIds?: unknown
 }
 
 function isUserGrade(value: unknown): value is UserGrade {
@@ -27,6 +36,72 @@ function isUserGrade(value: unknown): value is UserGrade {
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
+}
+
+function isSubjectId(value: unknown): value is SubjectId {
+  return SUBJECTS.some((subject) => subject.id === value)
+}
+
+function isPreparationLevel(value: unknown): value is PreparationLevel {
+  return value === 'beginner' || value === 'medium' || value === 'advanced'
+}
+
+function isEducationLevel(value: unknown): value is EducationLevel {
+  return value === 'bachelor' || value === 'specialist' || value === 'master'
+}
+
+function mapSubjectPreparation(value: unknown): SubjectPreparation[] {
+  if (!Array.isArray(value)) return []
+
+  const seen = new Set<SubjectId>()
+  const result: SubjectPreparation[] = []
+
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue
+    const candidate = item as Record<string, unknown>
+    if (!isSubjectId(candidate.subjectId) || !isPreparationLevel(candidate.preparationLevel)) continue
+    if (seen.has(candidate.subjectId)) continue
+
+    seen.add(candidate.subjectId)
+    result.push({
+      subjectId: candidate.subjectId,
+      preparationLevel: candidate.preparationLevel
+    })
+  }
+
+  return result
+}
+
+function mapAlternativeUniversityIds(value: unknown, primaryUniversityId?: string): string[] {
+  if (!isStringArray(value)) return []
+  return [...new Set(value)]
+    .filter((id) => id.length > 0 && id !== primaryUniversityId)
+    .slice(0, 3)
+}
+
+function mapPlanningFields(
+  profile: Record<string, unknown>,
+  primaryUniversityId?: string
+): Partial<CreateProfileInput> {
+  const weeklyStudyHours = profile.weeklyStudyHours
+  const targetAdmissionYear = profile.targetAdmissionYear
+
+  return {
+    ...(typeof weeklyStudyHours === 'number' && Number.isInteger(weeklyStudyHours) && weeklyStudyHours >= 1 && weeklyStudyHours <= 40
+      ? { weeklyStudyHours }
+      : {}),
+    ...(typeof targetAdmissionYear === 'number' && Number.isInteger(targetAdmissionYear) && targetAdmissionYear >= 2026 && targetAdmissionYear <= 2100
+      ? { targetAdmissionYear }
+      : {}),
+    ...(isEducationLevel(profile.targetEducationLevel)
+      ? { targetEducationLevel: profile.targetEducationLevel }
+      : {}),
+    subjectPreparation: mapSubjectPreparation(profile.subjectPreparation),
+    alternativeUniversityIds: mapAlternativeUniversityIds(
+      profile.alternativeUniversityIds,
+      primaryUniversityId
+    )
+  }
 }
 
 function mapSavedProfile(profile: SavedProfileResponse | null): CreateProfileInput | null {
@@ -46,7 +121,11 @@ function mapSavedProfile(profile: SavedProfileResponse | null): CreateProfileInp
     region: profile.region,
     subjects: profile.subjects,
     ...(profile.targetUniversityId ? { targetUniversityId: profile.targetUniversityId } : {}),
-    ...(profile.targetProgramId ? { targetProgramId: profile.targetProgramId } : {})
+    ...(profile.targetProgramId ? { targetProgramId: profile.targetProgramId } : {}),
+    ...mapPlanningFields(
+      profile as unknown as Record<string, unknown>,
+      profile.targetUniversityId
+    )
   }
 }
 
@@ -108,7 +187,8 @@ export function getGuestProfile(): CreateProfileInput | null {
       region: profile.region,
       subjects: profile.subjects,
       ...(typeof profile.targetUniversityId === 'string' ? { targetUniversityId: profile.targetUniversityId } : {}),
-      ...(typeof profile.targetProgramId === 'string' ? { targetProgramId: profile.targetProgramId } : {})
+      ...(typeof profile.targetProgramId === 'string' ? { targetProgramId: profile.targetProgramId } : {}),
+      ...mapPlanningFields(profile, typeof profile.targetUniversityId === 'string' ? profile.targetUniversityId : undefined)
     }
   } catch {
     return null
@@ -142,15 +222,25 @@ export async function getProfileSnapshot(
   return api.get<ProfileSnapshot | null>('/api/profile', { token: accessToken })
 }
 
-export async function syncGuestProfile(accessToken: string): Promise<boolean> {
-  const profile = getGuestProfile()
-  if (!profile) return false
+let guestProfileSyncPromise: Promise<boolean> | null = null
 
-  await api.put<unknown, CreateProfileInput>('/api/profile', profile, {
+export function syncGuestProfile(accessToken: string): Promise<boolean> {
+  if (guestProfileSyncPromise) return guestProfileSyncPromise
+
+  const profile = getGuestProfile()
+  if (!profile) return Promise.resolve(false)
+
+  const pending = api.put<unknown, CreateProfileInput>('/api/profile', profile, {
     token: accessToken
+  }).then(() => {
+    clearGuestProfile()
+    return true
   })
-  clearGuestProfile()
-  return true
+
+  guestProfileSyncPromise = pending
+  return pending.finally(() => {
+    if (guestProfileSyncPromise === pending) guestProfileSyncPromise = null
+  })
 }
 
 export async function saveAuthenticatedProfile(

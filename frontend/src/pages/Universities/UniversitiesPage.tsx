@@ -14,6 +14,7 @@ import { universityService } from '@/services/university.service'
 import { readComparisonUniversityIds, readDiscoveredComparisonUniversities, removeComparisonSelection, subscribeToComparisonChanges } from '@/services/university-comparison.store'
 import { isFavorite, readFavorites, subscribeToFavorites, toggleFavorite } from '@/services/favorites.store'
 
+import { getUniversityFallbackPhoto, getUniversityFallbackPhotoCount } from '@/utils/university-fallback-photos'
 import './benefits-enhancements.css'
 
 type SortMode = 'name' | 'city' | 'region'
@@ -228,19 +229,36 @@ export function UniversitiesPage() {
         <div className="university-results-bar"><span>Найдено организаций: <strong>{filteredUniversities.length}</strong></span>{hasFilters && <button type="button" className="university-reset-button" onClick={clearFilters}><X size={14} />Сбросить фильтры</button>}</div>
         {loading ? <LoadingState message="Загружаем справочник университетов..." /> : error ? <ErrorState message={error} onRetry={reload} /> : filteredUniversities.length === 0 ? <EmptyState icon={<Search size={25} />} title="Университеты не найдены" description="Измени запрос или фильтры. Если вуза нет в справочнике, попробуй поиск по официальным сайтам выше." /> : (
           <div className="university-list">
-            {visibleUniversities.map((university: University) => {
+            {visibleUniversities.map((university: University, cardIndex: number) => {
               const campusMedia = campusMediaFor(university)
               const rawImageUrl = safeUrl(university.coverImageUrl)
               const storedSourceUrl = safeUrl(university.coverImageSourceUrl)
               const storedImageIsVerified = Boolean(rawImageUrl && storedSourceUrl && university.coverImageLicense?.trim())
-              const imageUrl = !university.isBranch ? (campusMedia?.imageUrl ?? (storedImageIsVerified ? rawImageUrl : null)) : null
-              const sourceUrl = campusMedia?.sourceUrl ?? (!university.isBranch && storedImageIsVerified ? storedSourceUrl : null)
-              const photoCredit = campusMedia ? 'Фото: ' + campusMedia.author + ' · ' + campusMedia.license : (university.coverImageLicense || 'Проверенный источник')
+              const usesFallbackPhoto = !storedImageIsVerified && !campusMedia
+              const imageUrl = storedImageIsVerified ? rawImageUrl : (campusMedia?.imageUrl ?? getUniversityFallbackPhoto(university.id, 0, ((currentPage - 1) * 20 + cardIndex)))
+              const sourceUrl = storedImageIsVerified ? storedSourceUrl : (!university.isBranch ? (campusMedia?.sourceUrl ?? null) : null)
+              const photoCredit = storedImageIsVerified ? (university.coverImageLicense || '') : (campusMedia ? campusMedia.author + ' - ' + campusMedia.license : '')
               const favorited = favoriteIds.includes(university.id) || isFavorite(favoriteScope, 'university', university.id)
               return (
                 <article className="university-card" key={university.id}>
                   <Link className="university-emblem university-photo-slot" to={`/universities/${encodeURIComponent(university.id)}`} aria-label={`Открыть ${university.shortName || university.name}`}>
-                    {imageUrl ? <img src={imageUrl} alt={campusMedia?.alt || university.coverImageAlt || `Фотография ${university.shortName || university.name}`} loading="lazy" /> : <span className="university-photo-placeholder"><GraduationCap size={38} /><small>Фотография будет добавлена после проверки источника</small></span>}
+                    {imageUrl ? <img
+                      src={imageUrl}
+                      alt={university.coverImageAlt || campusMedia?.alt || `Р¤РѕС‚РѕРіСЂР°С„РёСЏ ${university.shortName || university.name}`}
+                      loading="lazy"
+                      onError={(event) => {
+                        const image = event.currentTarget
+                        const previousAttempt = Number(image.dataset.fallbackAttempt ?? (usesFallbackPhoto ? '0' : '-1'))
+                        const nextAttempt = previousAttempt + 1
+                        if (nextAttempt >= getUniversityFallbackPhotoCount()) {
+                          image.onerror = null
+                          image.src = '/images/university-photo-fallback.svg'
+                          return
+                        }
+                        image.dataset.fallbackAttempt = String(nextAttempt)
+                        image.src = getUniversityFallbackPhoto(university.id, nextAttempt, ((currentPage - 1) * 20 + cardIndex))
+                      }}
+                    /> : <span className="university-photo-placeholder"><GraduationCap size={38} /><small>Фотография будет добавлена после проверки источника</small></span>}
                   </Link>
                   <div className="university-card-content">
                     <div className="university-card-heading">

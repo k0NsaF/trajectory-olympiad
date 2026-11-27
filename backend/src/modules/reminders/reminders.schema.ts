@@ -14,7 +14,8 @@ export const createReminderSchema = z.object({
   description: z.string().trim().max(1000).optional(),
   type: reminderTypeSchema,
   dueAt: z.string().datetime({ offset: true }),
-  notifyAt: notificationTimeSchema
+  notifyAt: notificationTimeSchema,
+  timeZone: z.string().trim().min(1).max(64).optional()
 }).refine(
   (value) => !value.notifyAt || new Date(value.notifyAt).getTime() <= new Date(value.dueAt).getTime(),
   { path: ['notifyAt'], message: 'Время уведомления должно быть не позже времени события.' }
@@ -25,7 +26,8 @@ export const updateReminderSchema = z.object({
   description: z.string().trim().max(1000).optional(),
   type: reminderTypeSchema.optional(),
   dueAt: z.string().datetime({ offset: true }).optional(),
-  notifyAt: notificationTimeSchema
+  notifyAt: notificationTimeSchema,
+  timeZone: z.string().trim().min(1).max(64).optional()
 }).refine(
   (value) => Object.values(value).some((item) => item !== undefined),
   { message: 'Укажи хотя бы одно поле для обновления.' }

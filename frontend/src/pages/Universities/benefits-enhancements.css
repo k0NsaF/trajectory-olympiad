@@ -179,3 +179,339 @@
     min-width: 0;
   }
 }
+
+
+/* TRAJECTORY UNIVERSITY CARD LAYOUT FIX 2026 */
+.public-site .university-card {
+  display: grid;
+  grid-template-columns: minmax(220px, 250px) minmax(0, 1fr) !important;
+  align-items: stretch;
+  gap: 20px;
+}
+
+.public-site .university-card .university-photo-slot {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0;
+  height: 100%;
+  min-height: 250px;
+  flex: none !important;
+  overflow: hidden;
+  border-radius: 11px;
+}
+
+.public-site .university-photo-slot img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 250px;
+  object-fit: cover;
+  object-position: center;
+}
+
+.public-site .university-card-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(126px, auto) 44px auto minmax(40px, 1fr);
+  min-width: 0;
+  min-height: 250px;
+  align-content: stretch;
+}
+
+.public-site .university-card-heading {
+  display: grid;
+  grid-row: 1;
+  grid-template-columns: minmax(0, 1fr) 152px;
+  align-items: start;
+  gap: 16px;
+  min-width: 0;
+}
+
+.public-site .university-card-heading > div {
+  min-width: 0;
+}
+
+.public-site .university-card-heading h2 {
+  margin: 5px 0 8px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.public-site .university-location {
+  display: flex;
+  width: 152px;
+  min-width: 152px;
+  max-width: 152px;
+  flex: 0 0 152px;
+  align-items: flex-start;
+  gap: 7px;
+  justify-self: end;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+  line-height: 1.4;
+}
+
+.public-site .university-location svg {
+  flex: 0 0 14px;
+  margin-top: 2px;
+}
+
+.public-site .university-location span {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
+}
+
+.public-site .university-card-content > .university-description {
+  grid-row: 2;
+  min-height: 44px;
+  max-height: 44px;
+  margin: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.public-site .university-card-meta {
+  grid-row: 3;
+  align-content: start;
+  min-height: 30px;
+  margin-top: 0;
+}
+
+.public-site .university-card-actions {
+  grid-row: 4;
+  align-self: end;
+  align-items: center;
+  flex-direction: row;
+  margin-top: 12px;
+}
+
+/* Mobile layout */
+@media (max-width: 760px) {
+  .public-site .university-card {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 14px;
+  }
+
+  .public-site .university-card .university-photo-slot {
+    min-height: 190px;
+    max-height: 220px;
+  }
+
+  .public-site .university-photo-slot img {
+    min-height: 190px;
+    max-height: 220px;
+  }
+
+  .public-site .university-card-content {
+    grid-template-rows: minmax(100px, auto) 44px auto minmax(40px, 1fr);
+    min-height: 0;
+  }
+
+  .public-site .university-card-heading {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .public-site .university-location {
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+    flex: none;
+    justify-self: start;
+  }
+}
+
+
+/* TRAJECTORY UNIVERSITY CARD LAYOUT FIX V2 */
+
+.dashboard-container.universities-page .university-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.dashboard-container.universities-page .university-card {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  align-items: stretch;
+  gap: 22px;
+  min-height: 260px;
+  padding: 16px;
+}
+
+.dashboard-container.universities-page .university-card .university-photo-slot {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0;
+  height: 100%;
+  min-height: 228px;
+  flex: none !important;
+  overflow: hidden;
+  border-radius: 11px;
+}
+
+.dashboard-container.universities-page .university-photo-slot img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 228px;
+  object-fit: contain;
+  object-position: center;
+}
+
+.dashboard-container.universities-page .university-card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  min-height: 228px;
+}
+
+.dashboard-container.universities-page .university-card-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 168px;
+  align-items: start;
+  gap: 18px;
+  min-height: 125px;
+}
+
+.dashboard-container.universities-page .university-card-heading > div {
+  min-width: 0;
+}
+
+.dashboard-container.universities-page .university-card-heading h2 {
+  margin: 6px 0 10px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.dashboard-container.universities-page .university-location {
+  display: flex;
+  width: 168px !important;
+  min-width: 168px !important;
+  max-width: 168px;
+  flex: 0 0 168px;
+  align-items: flex-start;
+  justify-self: end;
+  gap: 8px;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+  line-height: 1.45;
+}
+
+.dashboard-container.universities-page .university-location svg {
+  flex: 0 0 14px;
+  margin-top: 2px;
+}
+
+.dashboard-container.universities-page .university-location span {
+  display: block;
+  min-width: 0;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
+.dashboard-container.universities-page .university-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.dashboard-container.universities-page .university-card-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin-top: auto;
+  padding-top: 16px;
+}
+
+@media (max-width: 760px) {
+  .dashboard-container.universities-page .university-card {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .dashboard-container.universities-page .university-card .university-photo-slot {
+    min-height: 200px;
+    max-height: 230px;
+  }
+
+  .dashboard-container.universities-page .university-photo-slot img {
+    min-height: 200px;
+    max-height: 230px;
+  }
+
+  .dashboard-container.universities-page .university-card-heading {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+    gap: 10px;
+  }
+
+  .dashboard-container.universities-page .university-location {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100%;
+    flex: none;
+    justify-self: start;
+  }
+
+  .dashboard-container.universities-page .university-card-content {
+    min-height: 0;
+  }
+
+  .dashboard-container.universities-page .university-card-actions {
+    margin-top: 16px;
+  }
+}
+
+/* TRAJECTORY_UNIVERSITY_PHOTO_POSITION_COVER_V3_FIXED */
+.public-site .university-card .university-photo-slot,
+.university-card .university-photo-slot {
+  position: relative !important;
+  display: block !important;
+  align-self: stretch !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 180px !important;
+  max-height: none !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  box-sizing: border-box;
+}
+
+.public-site .university-card .university-photo-slot > img,
+.university-card .university-photo-slot > img {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  max-width: none !important;
+  object-fit: cover !important;
+  object-position: center center !important;
+}
+
+@media (max-width: 760px) {
+  .public-site .university-card .university-photo-slot,
+  .university-card .university-photo-slot {
+    height: 210px !important;
+    min-height: 210px !important;
+    max-height: 210px !important;
+  }
+}

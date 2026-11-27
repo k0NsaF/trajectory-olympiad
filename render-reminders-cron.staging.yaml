@@ -1,0 +1,25 @@
+# Separate STAGING Cron Job fragment.
+# Do not paste into the production render.yaml or sync it with the production Blueprint.
+services:
+  - type: cron
+    name: trajectory-olympiad-reminders-staging
+    runtime: node
+    plan: starter
+    region: frankfurt
+    branch: trajectory-personal-plan
+    schedule: "*/5 * * * *"
+    buildCommand: npm ci --include=dev
+    startCommand: npm run reminders:dispatch --workspace=backend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SUPABASE_URL
+        value: https://uzsossytdoysravlbgcp.supabase.co
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: REMINDER_FROM_EMAIL
+        sync: false
+      - key: REMINDER_TIME_ZONE
+        value: Europe/Moscow

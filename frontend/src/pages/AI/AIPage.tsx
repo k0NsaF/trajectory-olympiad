@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
-import { Bot, ExternalLink, Send, Sparkles, UserRound } from 'lucide-react'
+﻿import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
+import { Bot, ExternalLink, MessageSquarePlus, Send, Sparkles, Trash2, UserRound } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import type {
@@ -20,6 +20,80 @@ import './ai-enhancements.css'
 interface NavigationState {
   sourcePath?: string
   initialQuestion?: string
+}
+interface AIConversation {
+  id: string
+  title: string
+  createdAt: string
+  updatedAt: string
+  messages: AIMessage[]
+}
+
+interface AIChatState {
+  conversations: AIConversation[]
+  activeConversationId: string
+}
+
+function getAIConversationsKey(scope: string): string {
+  return `trajectory:ai-conversations:v1:${scope}`
+}
+
+function getAIConversationTitle(messages: AIMessage[]): string {
+  const firstQuestion = messages.find((message) => message.role === 'user')?.content
+  const title = (firstQuestion ?? '').replace(/\s+/g, ' ').trim()
+  if (!title) return 'Новый диалог'
+  return title.length > 52 ? `${title.slice(0, 49)}…` : title
+}
+
+function createAIConversation(messages: AIMessage[] = []): AIConversation {
+  const now = new Date().toISOString()
+  return {
+    id: `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    title: getAIConversationTitle(messages),
+    createdAt: messages[0]?.createdAt ?? now,
+    updatedAt: messages[messages.length - 1]?.createdAt ?? now,
+    messages: messages.slice(-40)
+  }
+}
+
+function isStoredAIMessage(value: unknown): value is AIMessage {
+  if (!value || typeof value !== 'object') return false
+  const item = value as Record<string, unknown>
+  return typeof item.id === 'string' &&
+    (item.role === 'user' || item.role === 'assistant') &&
+    typeof item.content === 'string' &&
+    typeof item.createdAt === 'string'
+}
+
+function isStoredAIConversation(value: unknown): value is AIConversation {
+  if (!value || typeof value !== 'object') return false
+  const item = value as Record<string, unknown>
+  return typeof item.id === 'string' &&
+    typeof item.title === 'string' &&
+    typeof item.createdAt === 'string' &&
+    typeof item.updatedAt === 'string' &&
+    Array.isArray(item.messages) &&
+    item.messages.every(isStoredAIMessage)
+}
+
+function readAIConversations(scope: string): AIConversation[] {
+  try {
+    const raw = window.localStorage.getItem(getAIConversationsKey(scope))
+    if (raw) {
+      const parsed: unknown = JSON.parse(raw)
+      if (Array.isArray(parsed)) {
+        const stored = parsed
+          .filter(isStoredAIConversation)
+          .map((conversation) => ({ ...conversation, messages: conversation.messages.slice(-40) }))
+          .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+          .slice(0, 10)
+        if (stored.length > 0) return stored
+      }
+    }
+  } catch {
+    // Fall back to the previous single-chat history format.
+  }
+  return [createAIConversation(readAIHistory(scope))]
 }
 
 function getAIHistoryKey(scope: string): string {
@@ -72,6 +146,7 @@ function getPageContext(path: string): AIPageContext {
   const universityMatch = path.match(/^\/universities\/([0-9a-f-]{36})$/i)
   if (universityMatch) return { page: 'university', entityId: universityMatch[1] }
 
+  if (path.startsWith('/trajectory')) return { page: 'trajectory' }
   if (path.startsWith('/olympiads')) return { page: 'catalog' }
   if (path.startsWith('/calendar')) return { page: 'calendar' }
   if (path.startsWith('/universities')) return { page: 'universities' }
@@ -103,6 +178,7 @@ function getPageContextLabel(context: Pick<AIPageContext, 'page'>): string {
     universities: 'Список вузов',
     university: 'Страница вуза',
     profile: 'Профиль',
+    trajectory: 'Моя траектория',
     general: 'Общие вопросы'
   }
   return labels[context.page ?? 'general']
@@ -125,26 +201,74 @@ export function AIPage() {
   const pageContext = useMemo(() => getPageContext(sourcePath), [sourcePath])
 
   const [profile, setProfile] = useState<CreateProfileInput | null>(getGuestProfile)
-  const [messages, setMessages] = useState<AIMessage[]>(() => readAIHistory(historyScope))
+  const [chatState, setChatState] = useState<AIChatState>(() => {
+    const conversations = readAIConversations(historyScope)
+    return { conversations, activeConversationId: conversations[0].id }
+  })
   const [loadedHistoryScope, setLoadedHistoryScope] = useState(historyScope)
+  const activeConversation = chatState.conversations.find((conversation) => conversation.id === chatState.activeConversationId)
+    ?? chatState.conversations[0]
+  const messages = activeConversation?.messages ?? []
+  const setMessages = (update: AIMessage[] | ((current: AIMessage[]) => AIMessage[])) => {
+    setChatState((current) => {
+      const conversation = current.conversations.find((item) => item.id === current.activeConversationId)
+        ?? createAIConversation()
+      const nextMessages = typeof update === 'function' ? update(conversation.messages) : update
+      const updatedConversation: AIConversation = {
+        ...conversation,
+        title: conversation.title === 'Новый диалог' ? getAIConversationTitle(nextMessages) : conversation.title,
+        updatedAt: nextMessages[nextMessages.length - 1]?.createdAt ?? conversation.updatedAt,
+        messages: nextMessages.slice(-40)
+      }
+      return {
+        conversations: [updatedConversation, ...current.conversations.filter((item) => item.id !== conversation.id)].slice(0, 10),
+        activeConversationId: updatedConversation.id
+      }
+    })
+  }
   const [question, setQuestion] = useState(() => navigationState?.initialQuestion ?? '')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [serviceStatus, setServiceStatus] = useState<AIServiceStatus | null>(null)
 
   useEffect(() => {
-    setMessages(readAIHistory(historyScope))
+    const conversations = readAIConversations(historyScope)
+    setChatState({ conversations, activeConversationId: conversations[0].id })
     setLoadedHistoryScope(historyScope)
   }, [historyScope])
 
   useEffect(() => {
     if (loadedHistoryScope !== historyScope) return
     try {
-      window.localStorage.setItem(getAIHistoryKey(historyScope), JSON.stringify(messages.slice(-40)))
+      window.localStorage.setItem(getAIConversationsKey(historyScope), JSON.stringify(chatState.conversations.slice(0, 10)))
     } catch {
-      // Conversation remains available in memory when browser storage is unavailable.
+      // Conversations remain available in memory when browser storage is unavailable.
     }
-  }, [historyScope, loadedHistoryScope, messages])
+  }, [historyScope, loadedHistoryScope, chatState.conversations])
+
+  const handleNewConversation = () => {
+    if (sending) return
+    const conversation = createAIConversation()
+    setChatState((current) => ({
+      conversations: [conversation, ...current.conversations].slice(0, 10),
+      activeConversationId: conversation.id
+    }))
+    setQuestion('')
+    setError(null)
+  }
+
+  const handleDeleteConversation = () => {
+    if (sending) return
+    setChatState((current) => {
+      const remaining = current.conversations.filter((conversation) => conversation.id !== current.activeConversationId)
+      const next = remaining[0] ?? createAIConversation()
+      return {
+        conversations: remaining.length > 0 ? remaining : [next],
+        activeConversationId: next.id
+      }
+    })
+    setError(null)
+  }
 
   useEffect(() => {
     if (navigationState?.initialQuestion) setQuestion(navigationState.initialQuestion)
@@ -201,23 +325,24 @@ export function AIPage() {
     }
     const history = messages.slice(-8).map((message) => ({
       role: message.role,
-      content: message.content
+      content: message.content.slice(0, 1800)
     }))
 
     setMessages((current) => [...current, userMessage])
     setQuestion('')
     setError(null)
 
-    const explicitNavigation = /\b(открой|открыть|перейди|перейти|покажи страницу|покажи раздел|направь|перенаправь)\b/i.test(text)
+    const explicitNavigation = /(?:^|[^а-яё])(?:открой|открыть|перейди|перейти|покажи|показать|направь|перенаправь)[а-яё]*(?=$|[^а-яё])/i.test(text)
     const navigationTargets: Array<{ route: string; pattern: RegExp; title: string }> = [
-      { route: '/universities', pattern: /\b(вуз|вузы|университет|университеты|колледж|колледжи)\b/i, title: 'Каталог университетов' },
-      { route: '/olympiads', pattern: /\b(олимпиад|конкурс|соревнован)\w*/i, title: 'Каталог олимпиад' },
-      { route: '/calendar', pattern: /\b(календар|расписан|напоминан)\w*/i, title: 'Календарь' },
-      { route: '/professions', pattern: /\bпрофесси\w*/i, title: 'Каталог профессий' },
-      { route: '/directions', pattern: /\b(направлен|специальност)\w*/i, title: 'Направления обучения' },
-      { route: '/favorites', pattern: /\b(избранн|сохраненн)\w*/i, title: 'Избранное' },
-      { route: '/universities/compare', pattern: /\b(сравнен|сравнить)\w*\b.*\b(вуз|университет)|\b(вуз|университет)\w*.*\bсравн/i, title: 'Сравнение университетов' },
-      { route: '/profile', pattern: /\b(профил|анкета)\w*/i, title: 'Профиль' }
+      { route: '/universities/compare', pattern: /(?:сравн[а-яё]*[\s\S]{0,80}(?:вуз[а-яё]*|университет[а-яё]*)|(?:вуз[а-яё]*|университет[а-яё]*)[\s\S]{0,80}сравн[а-яё]*)/i, title: 'Сравнение университетов' },
+      { route: '/trajectory', pattern: /(?:траектор[а-яё]*|план\s+поступлен[а-яё]*|персональн[а-яё]*\s+план)/i, title: 'Моя траектория' },
+      { route: '/universities', pattern: /(?:вуз[а-яё]*|университет[а-яё]*|колледж[а-яё]*)/i, title: 'Каталог университетов' },
+      { route: '/olympiads', pattern: /(?:олимпиад[а-яё]*|конкурс[а-яё]*|соревнован[а-яё]*)/i, title: 'Каталог олимпиад' },
+      { route: '/calendar', pattern: /(?:календар[а-яё]*|расписан[а-яё]*|напоминан[а-яё]*)/i, title: 'Календарь' },
+      { route: '/professions', pattern: /професси[а-яё]*/i, title: 'Каталог профессий' },
+      { route: '/directions', pattern: /(?:направлен[а-яё]*|специальност[а-яё]*)/i, title: 'Направления обучения' },
+      { route: '/favorites', pattern: /(?:избранн[а-яё]*|сохраненн[а-яё]*)/i, title: 'Избранное' },
+      { route: '/profile', pattern: /(?:профил[а-яё]*|анкета)/i, title: 'Профиль' }
     ]
     const target = explicitNavigation ? navigationTargets.find((item) => item.pattern.test(text)) : undefined
     if (target) {
@@ -274,6 +399,29 @@ export function AIPage() {
       />
 
       <section className="panel ai-panel">
+        <div className="ai-chat-toolbar">
+          <label className="ai-chat-history">
+            <span>История диалогов</span>
+            <select
+              value={chatState.activeConversationId}
+              onChange={(event) => setChatState((current) => ({ ...current, activeConversationId: event.target.value }))}
+              disabled={sending}
+              aria-label="Выбрать диалог"
+            >
+              {chatState.conversations.map((conversation) => (
+                <option key={conversation.id} value={conversation.id}>{conversation.title}</option>
+              ))}
+            </select>
+          </label>
+          <div className="ai-chat-actions">
+            <button type="button" onClick={handleNewConversation} disabled={sending}>
+              <MessageSquarePlus size={16} /> Новый чат
+            </button>
+            <button type="button" onClick={handleDeleteConversation} disabled={sending || messages.length === 0}>
+              <Trash2 size={16} /> Удалить чат
+            </button>
+          </div>
+        </div>
         <div className="ai-intro">
           <div className="ai-avatar">
             <Bot size={25} />
@@ -368,6 +516,12 @@ export function AIPage() {
               rows={2}
               maxLength={2000}
               disabled={sending}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                  event.preventDefault()
+                  event.currentTarget.form?.requestSubmit()
+                }
+              }}
             />
           </label>
           <button

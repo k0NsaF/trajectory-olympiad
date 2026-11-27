@@ -16,6 +16,7 @@ interface ReminderRow {
   status: 'pending' | 'completed' | 'dismissed'
   due_at: string
   notify_at?: string | null
+  time_zone?: string | null
   created_at: string
 }
 
@@ -35,11 +36,12 @@ export interface ReminderResult {
   status: ReminderRow['status']
   dueAt: string
   notifyAt?: string
+  timeZone?: string
   createdAt: string
 }
 
 const REMINDER_FIELDS =
-  'id, user_id, title, description, type, status, due_at, notify_at, created_at'
+  'id, user_id, title, description, type, status, due_at, notify_at, time_zone, created_at'
 const LEGACY_REMINDER_FIELDS =
   'id, user_id, title, description, type, status, due_at, created_at'
 
@@ -56,7 +58,7 @@ function isMissingNotifyAtColumn(error: DbErrorLike | null | undefined): boolean
 
 function migrationRequiredError(): AppError {
   return new AppError(
-    'Чтобы сохранить время будущего уведомления, сначала примени локальную SQL-миграцию 202611240001_reminder_notify_at.sql в Supabase. Отправка уведомлений пока не реализована.',
+    'Чтобы сохранить время будущего уведомления, сначала примени локальную SQL-миграцию 202611240001_reminder_notify_at.sql в Supabase. Для доставки email требуется настроить серверный планировщик и почтовый провайдер.',
     409,
     'REMINDER_NOTIFY_AT_MIGRATION_REQUIRED'
   )
@@ -72,6 +74,7 @@ function mapReminder(row: ReminderRow): ReminderResult {
     status: row.status,
     dueAt: row.due_at,
     ...(row.notify_at ? { notifyAt: row.notify_at } : {}),
+    ...(row.time_zone ? { timeZone: row.time_zone } : {}),
     createdAt: row.created_at
   }
 }
@@ -117,7 +120,8 @@ export async function createReminder(
     description: input.description?.trim() || null,
     type: input.type,
     due_at: input.dueAt,
-    notify_at: input.notifyAt ?? null
+    notify_at: input.notifyAt ?? null,
+    time_zone: input.timeZone ?? null
   }
 
   const primary = await supabase
@@ -166,6 +170,7 @@ export async function updateReminder(
     type?: CreateReminderInput['type']
     due_at?: string
     notify_at?: string | null
+    time_zone?: string | null
   } = {}
 
   if (input.title !== undefined) updates.title = input.title
@@ -173,6 +178,7 @@ export async function updateReminder(
   if (input.type !== undefined) updates.type = input.type
   if (input.dueAt !== undefined) updates.due_at = input.dueAt
   if (input.notifyAt !== undefined) updates.notify_at = input.notifyAt
+  if (input.timeZone !== undefined) updates.time_zone = input.timeZone
 
   const primary = await supabase
     .from('reminders')

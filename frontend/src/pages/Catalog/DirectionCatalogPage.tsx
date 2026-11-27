@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, BookOpen, GraduationCap, Search } from 'lucide-react'
 
@@ -9,7 +9,10 @@ import './catalog-pages.css'
 const LEVEL_LABELS: Record<EducationLevel, string> = {
   bachelor: 'Бакалавриат',
   specialist: 'Специалитет',
-  master: 'Магистратура'
+  master: 'Магистратура',
+  basic_higher: 'Базовое высшее образование',
+  specialized_higher: 'Специализированное высшее образование'
+
 }
 
 function ContentStatus({ status }: { status: string }) {
@@ -53,7 +56,7 @@ export function DirectionCatalogPage() {
         <header className="catalog-page-heading">
           <span className="catalog-kicker">ВЫБИРАЙ ОБРАЗОВАТЕЛЬНЫЙ МАРШРУТ</span>
           <h1>Направления обучения</h1>
-          <p>Знакомься с направлениями бакалавриата и специалитета. Смотри, какие профессии с ними связаны, и переходи к программам вузов, когда их связь подтверждена.</p>
+          <p>Знакомься с направлениями бакалавриата, специалитета и базового высшего образования. Смотри, какие профессии с ними связаны, и переходи к программам вузов, когда их связь подтверждена.</p>
         </header>
 
         <div className="catalog-toolbar">
@@ -66,6 +69,8 @@ export function DirectionCatalogPage() {
             <option value="bachelor">Бакалавриат</option>
             <option value="specialist">Специалитет</option>
             <option value="master">Магистратура</option>
+    <option value="basic_higher">Базовое высшее образование</option>
+    <option value="specialized_higher">Специализированное высшее образование</option>
           </select>
           <span className="catalog-result-count">{result?.total ?? 0} направлений</span>
         </div>

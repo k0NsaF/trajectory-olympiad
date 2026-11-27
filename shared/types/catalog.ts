@@ -1,4 +1,4 @@
-export type EducationLevel = 'bachelor' | 'specialist' | 'master'
+export type EducationLevel = 'bachelor' | 'specialist' | 'master' | 'basic_higher' | 'specialized_higher'
 export type CatalogContentStatus = 'editorial' | 'official' | 'needs_review'
 export type CatalogRelationship = 'primary' | 'related'
 

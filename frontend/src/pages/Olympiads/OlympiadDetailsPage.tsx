@@ -612,7 +612,13 @@ export function OlympiadDetailsPage() {
                       <span>Уровень олимпиады: <strong>{LEVEL_LABELS[benefit.levelRequired] ?? benefit.levelRequired}</strong></span>
                     )}
                     {benefit.resultClassRequired !== undefined && (
-                      <span>Класс диплома: <strong>{benefit.resultClassRequired}</strong></span>
+                      <span>Класс получения диплома: <strong>{benefit.resultClassRequired}</strong></span>
+                    )}
+                    {benefit.diplomaDegreeRequired !== undefined && (
+                      <span>Степень диплома: <strong>{['', 'I', 'II', 'III'][benefit.diplomaDegreeRequired] ?? benefit.diplomaDegreeRequired}</strong></span>
+                    )}
+                    {benefit.pointsAwarded !== undefined && (
+                      <span>Дополнительные баллы: <strong>{benefit.pointsAwarded}</strong></span>
                     )}
                     {benefit.confirmExamSubject && (
                       <span>Подтверждающий предмет: <strong>{benefit.confirmExamSubject}</strong></span>

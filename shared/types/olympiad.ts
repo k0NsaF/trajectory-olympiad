@@ -26,6 +26,12 @@ export interface Olympiad {
   level: OlympiadLevel | null
   listType: OlympiadListType
   officialListNumber?: number
+  officialListKey?: string
+  levelLabel?: string
+  sourceDirection?: string
+  gradeEligibilityStatus?: 'unknown' | 'needs_review' | 'official'
+  gradeSourceUrl?: string
+  gradeCheckedAt?: string
   sourceDocumentTitle?: string
   sourceDocumentUrl?: string
   sourceCheckedAt?: string
@@ -51,7 +57,47 @@ export interface OlympiadSeason {
   olympiadId: string
   academicYear: string
   grades: number[]
+  officialListKey?: string
+  levelLabel?: string
+  gradeEligibilityStatus?: 'unknown' | 'needs_review' | 'official'
+  gradeSourceUrl?: string
+  gradeCheckedAt?: string
   stages: OlympiadStage[]
+}
+
+export type OlympiadScheduleKind = 'registration' | 'stage'
+export type OlympiadDateParseStatus = 'exact' | 'range' | 'inferred_year' | 'unknown'
+export type OlympiadDateSemantics = 'event' | 'period' | 'deadline' | 'mixed' | 'unknown'
+
+export interface OlympiadProfileSummary {
+  id: string
+  profileName: string
+  level: OlympiadLevel | null
+  levelLabel?: string
+  sourceDirection?: string
+  subjects: string[]
+  sourceSubjects: string
+  eligibleGrades: number[]
+  gradeEligibilityStatus: 'unknown' | 'needs_review' | 'official'
+  gradeSourceUrl?: string
+  gradeCheckedAt?: string
+}
+
+export interface OlympiadScheduleItem {
+  id: string
+  kind: OlympiadScheduleKind
+  stageName: string
+  whenText: string
+  isConfirmed: boolean
+  checkedOn?: string
+  organizerUrl: string
+  startDate?: string
+  endDate?: string
+  dateParseStatus: OlympiadDateParseStatus
+  dateSemantics: OlympiadDateSemantics
+  startTime?: string
+  endTime?: string
+  timeZone?: string
 }
 
 export interface OlympiadBenefitSummary {
@@ -67,6 +113,10 @@ export interface OlympiadBenefitSummary {
   confirmExamSubject?: string
   confirmExamThreshold?: number
   resultClassRequired?: number
+  diplomaDegreeRequired?: number
+  pointsAwarded?: number
+  sourceExcerpt?: string
+  verificationNotes?: string
   validYear: number
   sourceUrl: string
   lastCheckedAt: string
@@ -77,4 +127,6 @@ export interface OlympiadWithStatus extends Olympiad {
   season?: OlympiadSeason
   benefitYear: number
   benefits: OlympiadBenefitSummary[]
+  profiles: OlympiadProfileSummary[]
+  scheduleItems: OlympiadScheduleItem[]
 }

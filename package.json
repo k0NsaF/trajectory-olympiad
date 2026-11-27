@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
+    "supabase": "^3.4.0",
     "typescript": "^5.9.3"
   },
   "allowScripts": {

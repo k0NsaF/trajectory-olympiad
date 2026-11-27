@@ -27,6 +27,7 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { PageHeader } from '@/components/common/PageHeader'
 import { useAsyncData } from '@/hooks/useAsyncData'
 import { universityService } from '@/services/university.service'
+import { UniversityAdmissions } from './UniversityAdmissions'
 import { useAuth } from '@/app/providers'
 import { isFavorite, subscribeToFavorites, toggleFavorite } from '@/services/favorites.store'
 import { readComparisonSelections, readComparisonUniversityIds, subscribeToComparisonChanges, writeComparisonUniversityIds } from '@/services/university-comparison.store'
@@ -38,6 +39,7 @@ import {
   matchesBenefitVerificationFilter
 } from '@/utils/benefits'
 
+import { getUniversityFallbackPhoto } from '@/utils/university-fallback-photos'
 import './benefits-enhancements.css'
 
 const RIGHT_LABELS: Record<string, string> = {
@@ -499,7 +501,7 @@ export function UniversityDetailsPage() {
   const programs = university.programs ?? []
   const rawCoverImageUrl = getSafeUrl(university.coverImageUrl)
   const coverImageSourceUrl = getSafeUrl(university.coverImageSourceUrl)
-  const coverImageUrl = rawCoverImageUrl && coverImageSourceUrl && university.coverImageLicense?.trim() ? rawCoverImageUrl : null
+  const coverImageUrl = rawCoverImageUrl && coverImageSourceUrl && university.coverImageLicense?.trim() ? rawCoverImageUrl : getUniversityFallbackPhoto(university.id)
   const isInComparison = comparisonIds.includes(university.id)
 
   return (
@@ -647,6 +649,8 @@ export function UniversityDetailsPage() {
           </div>
         )}
       </section>
+
+      <UniversityAdmissions universityId={university.id} />
 
       <section className="panel university-detail-benefits-panel">
         <div className="university-detail-section-heading">

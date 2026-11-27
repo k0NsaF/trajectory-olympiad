@@ -16,6 +16,7 @@ export const aiAskSchema = z.object({
       'catalog',
       'olympiad',
       'calendar',
+      'trajectory',
       'universities',
       'university',
       'profile',

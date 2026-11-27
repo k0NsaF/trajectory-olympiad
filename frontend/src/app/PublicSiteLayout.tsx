@@ -77,6 +77,7 @@ export function PublicSiteLayout() {
                   <span>Аккаунт</span><ChevronDown size={15} />
                 </button>
                 {accountOpen && <div className="public-account-menu">
+                  <Link to="/trajectory" onClick={() => setAccountOpen(false)}><Route size={16} />Моя траектория</Link>
                   <Link to="/profile" onClick={() => setAccountOpen(false)}><UserRound size={16} />Профиль</Link>
                   <Link to="/favorites" onClick={() => setAccountOpen(false)}><Bookmark size={16} />Избранное</Link>
                   <Link to="/calendar" onClick={() => setAccountOpen(false)}><CalendarDays size={16} />Календарь</Link>
@@ -89,7 +90,7 @@ export function PublicSiteLayout() {
             ) : !authLoading ? (
               <>
                 <Link to="/auth" className="public-login-link">Войти</Link>
-                <Link to="/auth?mode=register" className="public-button public-button-compact">Регистрация <ArrowUpRight size={16} /></Link>
+                <Link to="/onboarding" className="public-button public-button-compact">Начать путь <ArrowUpRight size={16} /></Link>
               </>
             ) : null}
             <button
@@ -116,6 +117,7 @@ export function PublicSiteLayout() {
               <Link to="/universities" onClick={closeMobileMenu}>Университеты</Link>
               <Link to="/ai" state={{ sourcePath: location.pathname }} onClick={closeMobileMenu}>ИИ-помощник</Link><div className="public-mobile-nav-actions">
                 {user ? (<>
+                  <Link to="/trajectory" onClick={closeMobileMenu}><Route size={17} />Моя траектория</Link>
                   <Link to="/profile" onClick={closeMobileMenu}><UserRound size={17} />Профиль</Link>
                   <Link to="/favorites" onClick={closeMobileMenu}><Bookmark size={17} />Избранное</Link>
                   <Link to="/calendar" onClick={closeMobileMenu}><CalendarDays size={17} />Календарь</Link>
@@ -124,7 +126,7 @@ export function PublicSiteLayout() {
                   <button type="button" className="public-login-link" onClick={() => void handleSignOut()}><LogOut size={17} />Выйти из аккаунта</button>
                 </>) : (<>
                   <Link to="/auth" className="public-login-link" onClick={closeMobileMenu}>Войти</Link>
-                  <Link to="/auth?mode=register" className="public-button" onClick={closeMobileMenu}>Регистрация <ArrowUpRight size={16} /></Link>
+                  <Link to="/onboarding" className="public-button" onClick={closeMobileMenu}>Начать путь <ArrowUpRight size={16} /></Link>
                 </>)}
               </div>
             </nav>

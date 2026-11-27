@@ -603,3 +603,295 @@ a.calendar-popover-title:hover { color: var(--accent); text-decoration: underlin
 .calendar-day-popover { z-index: 80; isolation: isolate; opacity: 1 !important; background: #fff !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; box-shadow: 0 12px 30px rgba(48, 43, 41, .14); }
 .calendar-day-popover * { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .calendar-day-button { transition: none; } }
+
+
+.calendar-form-panel {
+  scroll-margin-top: 94px;
+}
+
+/* Calendar list switch: reminders and tracked olympiads */
+.calendar-filter-row[hidden],
+.calendar-reminders-view[hidden],
+.calendar-olympiads-view[hidden] {
+  display: none !important;
+}
+
+.calendar-list-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 18px;
+  padding: 4px;
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.calendar-list-switch-button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 13px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  transition: background .16s ease, border-color .16s ease, color .16s ease;
+}
+
+.calendar-list-switch-button span {
+  display: inline-grid;
+  min-width: 21px;
+  height: 21px;
+  place-items: center;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--text-muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.calendar-list-switch-button.is-active {
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
+  background: var(--card);
+  color: var(--accent);
+}
+
+.calendar-list-switch-button.is-active span {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.calendar-list-switch-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.calendar-olympiad-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.calendar-olympiad-card {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.calendar-olympiad-card:last-child {
+  padding-bottom: 2px;
+  border-bottom: 0;
+}
+
+.calendar-olympiad-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.calendar-olympiad-card-title {
+  min-width: 0;
+}
+
+.calendar-olympiad-card-title h3 {
+  margin: 0;
+  color: var(--text-heading);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.calendar-olympiad-card-title h3 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.calendar-olympiad-card-title h3 a:hover {
+  color: var(--accent);
+}
+
+.calendar-olympiad-card-title p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.calendar-olympiad-registration {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 750;
+  text-align: center;
+}
+
+.calendar-olympiad-registration.is-registered {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.calendar-olympiad-dates {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 13px;
+  padding: 0 0 0 12px;
+  border-left: 2px solid var(--border-soft);
+}
+
+.calendar-olympiad-date {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.calendar-olympiad-date-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.calendar-olympiad-date-copy strong {
+  color: var(--text-heading);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.calendar-olympiad-date-copy span {
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.calendar-olympiad-date time {
+  flex: 0 0 auto;
+  color: var(--text-heading);
+  font-size: 11px;
+  font-weight: 750;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.calendar-olympiad-no-dates {
+  margin: 12px 0 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.calendar-olympiad-card-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.calendar-olympiad-details {
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.calendar-olympiad-details:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 600px) {
+  .calendar-list-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .calendar-list-switch-button {
+    gap: 5px;
+    padding: 8px 6px;
+    font-size: 10px;
+  }
+
+  .calendar-olympiad-card-heading,
+  .calendar-olympiad-date {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .calendar-olympiad-registration {
+    white-space: normal;
+  }
+
+  .calendar-olympiad-date time {
+    text-align: left;
+  }
+}
+
+/* TRAJECTORY UI QUICK FIX: calendar guide hierarchy */
+.calendar-guide {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px 24px;
+  align-items: start;
+  padding: 22px 24px;
+  border: 1px solid #e5ddd5;
+  border-radius: 16px;
+  background: #fff;
+}
+.calendar-guide-copy strong { font-size: 16px; letter-spacing: -.01em; }
+.calendar-guide-copy p { max-width: 720px; margin-top: 8px; color: #71665f; font-size: 12px; line-height: 1.65; }
+.calendar-legend {
+  display: grid;
+  gap: 9px;
+  justify-items: start;
+  padding: 11px 13px;
+  border: 1px solid #eee7e1;
+  border-radius: 12px;
+  background: #faf8f6;
+}
+.calendar-legend > span {
+  gap: 9px;
+  color: #514842;
+  font-size: 11px;
+}
+.calendar-legend-dot { width: 9px; height: 9px; flex-basis: 9px; }
+.calendar-selected-count {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  grid-column: 1 / -1;
+  padding-top: 13px;
+  border-top: 1px solid #eee7e1;
+  color: #71665f;
+  font-size: 12px;
+}
+.calendar-selected-count strong { color: #302b29; font-size: 14px; }
+.calendar-selected-count a {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid #e6c9c5;
+  border-radius: 8px;
+  background: #f9e9e6;
+  color: #a43f48;
+  font-weight: 750;
+  text-decoration: none;
+}
+.calendar-selected-count a:hover { background: #f4ded9; }
+.calendar-notification-note { color: #71665f; font-size: 11px; }
+@media (max-width: 700px) {
+  .calendar-guide { grid-template-columns: 1fr; padding: 16px; }
+  .calendar-legend { grid-template-columns: 1fr; }
+}

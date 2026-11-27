@@ -69,6 +69,18 @@ function renderInline(value: string, keyPrefix: string): ReactNode[] {
   return nodes
 }
 
+function renderListItemContent(value: string, key: string): ReactNode {
+  const checkbox = value.match(/^(?:☐|□|◻|\[\s\])\s*/u)
+  if (!checkbox) return renderInline(value, key)
+
+  return (
+    <>
+      <span className="ai-task-checkbox" aria-hidden="true" />
+      {renderInline(value.slice(checkbox[0].length), key)}
+    </>
+  )
+}
+
 function isTableDivider(line: string): boolean {
   const cells = line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|')
   return cells.length > 0 && cells.every((cell) => /^\s*:?-{3,}:?\s*$/.test(cell))
@@ -232,11 +244,11 @@ export function AIMessageContent({ content }: AIMessageContentProps) {
 
         listItems.push(
           <li key={`${blockKey}-item-${itemIndex}`}>
-            {renderInline(itemContent, `${blockKey}-item-${itemIndex}`)}
+            {renderListItemContent(itemContent, `${blockKey}-item-${itemIndex}`)}
             {nestedGroups.map((group, groupIndex) => {
               const nestedListItems = group.items.map((nestedItem, nestedIndex) => (
                 <li key={`${blockKey}-${itemIndex}-${groupIndex}-${nestedIndex}`}>
-                  {renderInline(nestedItem, `${blockKey}-${itemIndex}-${groupIndex}-${nestedIndex}`)}
+                  {renderListItemContent(nestedItem, `${blockKey}-${itemIndex}-${groupIndex}-${nestedIndex}`)}
                 </li>
               ))
               return group.ordered

@@ -10,6 +10,7 @@ export interface SignUpInput {
   fullName: string
   email: string
   password: string
+  redirectTo?: string
 }
 
 export interface SignInInput {
@@ -28,7 +29,7 @@ export const authService = {
         data: {
           full_name: input.fullName.trim()
         },
-        emailRedirectTo: `${window.location.origin}/auth`
+        emailRedirectTo: input.redirectTo ?? `${window.location.origin}/auth`
       }
     })
 
@@ -54,14 +55,14 @@ export const authService = {
     return data
   },
 
-  async resendSignupConfirmation(email: string): Promise<void> {
+  async resendSignupConfirmation(email: string, redirectTo?: string): Promise<void> {
     const supabase = getSupabaseClient()
 
     const { error } = await supabase.auth.resend({
       type: 'signup',
       email: email.trim().toLowerCase(),
       options: {
-        emailRedirectTo: `${window.location.origin}/auth`
+        emailRedirectTo: redirectTo ?? `${window.location.origin}/auth`
       }
     })
 
