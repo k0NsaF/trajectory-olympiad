@@ -17,8 +17,9 @@ export interface Reminder {
   type: ReminderType
   status: ReminderStatus
   dueAt: string
-  /** Planned notification time. Stored for future push/MAX integration; not sent yet. */
+  /** Planned email delivery time; sent by the server-side staging scheduler when configured. */
   notifyAt?: string
+  timeZone?: string
   createdAt: string
 }
 
@@ -28,6 +29,7 @@ export interface CreateReminderInput {
   type: ReminderType
   dueAt: string
   notifyAt?: string | null
+  timeZone?: string
 }
 
 export interface UpdateReminderInput {
@@ -36,4 +38,5 @@ export interface UpdateReminderInput {
   type?: ReminderType
   dueAt?: string
   notifyAt?: string | null
+  timeZone?: string
 }

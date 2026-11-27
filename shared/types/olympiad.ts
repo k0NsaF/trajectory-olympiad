@@ -26,6 +26,12 @@ export interface Olympiad {
   level: OlympiadLevel | null
   listType: OlympiadListType
   officialListNumber?: number
+  officialListKey?: string
+  levelLabel?: string
+  sourceDirection?: string
+  gradeEligibilityStatus?: 'unknown' | 'needs_review' | 'official'
+  gradeSourceUrl?: string
+  gradeCheckedAt?: string
   sourceDocumentTitle?: string
   sourceDocumentUrl?: string
   sourceCheckedAt?: string
@@ -51,6 +57,11 @@ export interface OlympiadSeason {
   olympiadId: string
   academicYear: string
   grades: number[]
+  officialListKey?: string
+  levelLabel?: string
+  gradeEligibilityStatus?: 'unknown' | 'needs_review' | 'official'
+  gradeSourceUrl?: string
+  gradeCheckedAt?: string
   stages: OlympiadStage[]
 }
 
@@ -61,9 +72,15 @@ export type OlympiadDateSemantics = 'event' | 'period' | 'deadline' | 'mixed' | 
 export interface OlympiadProfileSummary {
   id: string
   profileName: string
-  level: 1 | 2 | 3
+  level: OlympiadLevel | null
+  levelLabel?: string
+  sourceDirection?: string
   subjects: string[]
   sourceSubjects: string
+  eligibleGrades: number[]
+  gradeEligibilityStatus: 'unknown' | 'needs_review' | 'official'
+  gradeSourceUrl?: string
+  gradeCheckedAt?: string
 }
 
 export interface OlympiadScheduleItem {
@@ -96,6 +113,10 @@ export interface OlympiadBenefitSummary {
   confirmExamSubject?: string
   confirmExamThreshold?: number
   resultClassRequired?: number
+  diplomaDegreeRequired?: number
+  pointsAwarded?: number
+  sourceExcerpt?: string
+  verificationNotes?: string
   validYear: number
   sourceUrl: string
   lastCheckedAt: string

@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Award,
@@ -315,8 +315,10 @@ export function OlympiadsPage() {
         const secondOfficial = second.sourceStatus === 'official' ? 0 : 1
         if (firstOfficial !== secondOfficial) return firstOfficial - secondOfficial
         if (firstOfficial === 0) {
-          const firstLevel = first.profiles.length > 0 ? Math.min(...first.profiles.map((profile) => profile.level)) : first.level ?? Number.MAX_SAFE_INTEGER
-          const secondLevel = second.profiles.length > 0 ? Math.min(...second.profiles.map((profile) => profile.level)) : second.level ?? Number.MAX_SAFE_INTEGER
+          const firstProfileLevels = first.profiles.map((profile) => profile.level).filter((value): value is Exclude<typeof value, null> => value !== null)
+          const secondProfileLevels = second.profiles.map((profile) => profile.level).filter((value): value is Exclude<typeof value, null> => value !== null)
+          const firstLevel = firstProfileLevels.length > 0 ? Math.min(...firstProfileLevels) : first.level ?? Number.MAX_SAFE_INTEGER
+          const secondLevel = secondProfileLevels.length > 0 ? Math.min(...secondProfileLevels) : second.level ?? Number.MAX_SAFE_INTEGER
           if (firstLevel !== secondLevel) return firstLevel - secondLevel
         }
         return first.name.localeCompare(second.name, 'ru')
@@ -651,12 +653,10 @@ export function OlympiadsPage() {
                     <h2><Link to={`/olympiads/${encodeURIComponent(olympiad.id)}`}>{olympiad.name}</Link></h2>
                     <div className="olympiad-compact-meta">
                       <span className={`status-pill status-${olympiad.status}`}>{STATUS_LABELS[olympiad.status]}</span>
-                      {olympiad.listType === 'school_olympiad' ? (
-                        <span className="catalog-level">{olympiad.profiles.length > 0
-                          ? 'Уровни по профилям: ' + [...new Set(olympiad.profiles.map((profile) => profile.level))].sort().map((value) => LEVEL_LABELS[value]).join(', ')
-                          : olympiad.level !== null ? 'Уровень ' + LEVEL_LABELS[olympiad.level] : 'Уровень уточняется'}</span>
-                      ) : <span className="catalog-level">Уровень не применяется</span>}
-                      {olympiad.officialListNumber != null && olympiad.sourceStatus === 'official' && <span>№ {olympiad.officialListNumber} в перечне</span>}
+                      <span className="catalog-level">{olympiad.profiles.length > 0
+                        ? 'Уровни по профилям: ' + [...new Set(olympiad.profiles.map((profile) => profile.levelLabel || (profile.level !== null ? LEVEL_LABELS[profile.level] : 'Не установлен')))].sort().join(', ')
+                        : olympiad.levelLabel || (olympiad.level !== null ? LEVEL_LABELS[olympiad.level] : (olympiad.listType === 'school_olympiad' ? 'Уровень уточняется' : 'Уровень не установлен'))}</span>
+                      {(olympiad.officialListKey || olympiad.officialListNumber != null) && olympiad.sourceStatus === 'official' && <span>№ {olympiad.officialListKey || olympiad.officialListNumber} в перечне</span>}
                       <span className={`olympiad-source-status${olympiad.sourceStatus === 'official' ? ' is-official' : ''}`}>{olympiad.sourceStatus === 'official' ? 'Источник проверен' : 'Требует проверки'}</span>
                       {olympiad.grades.length > 0
                         ? <span>Классы: {olympiad.grades.join(', ')}</span>
@@ -670,7 +670,7 @@ export function OlympiadsPage() {
                     {olympiad.profiles.length > 0 && (
                       <div className="tag-list olympiad-compact-profiles" aria-label="Профили и уровни олимпиады">
                         {olympiad.profiles.slice(0, 4).map((profile) => (
-                          <span className="subject-tag" key={profile.id}>{profile.profileName} · {LEVEL_LABELS[profile.level]}</span>
+                          <span className="subject-tag" key={profile.id}>{profile.profileName} · {profile.levelLabel || (profile.level !== null ? LEVEL_LABELS[profile.level] : 'Уровень не установлен')}</span>
                         ))}
                         {olympiad.profiles.length > 4 && <span className="subject-tag">Ещё {olympiad.profiles.length - 4} проф.</span>}
                       </div>

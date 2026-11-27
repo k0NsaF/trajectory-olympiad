@@ -36,6 +36,10 @@ export interface TrajectoryOlympiadBenefitInput {
   confirmExamSubject?: string
   confirmExamThreshold?: number
   resultClassRequired?: number
+  diplomaDegreeRequired?: number
+  pointsAwarded?: number
+  sourceExcerpt?: string
+  verificationNotes?: string
   validYear: number
   sourceUrl: string
   lastCheckedAt: string
@@ -53,11 +57,24 @@ export interface TrajectoryOlympiadInput {
   subjects: string[]
   grades: number[]
   website?: string
+  gradeEligibilityStatus?: 'unknown' | 'needs_review' | 'official'
+  gradeSourceUrl?: string
+  level?: number | null
+  profiles?: Array<{
+    profileName: string
+    level: number | null
+    subjects: string[]
+    eligibleGrades: number[]
+    gradeEligibilityStatus: 'unknown' | 'needs_review' | 'official'
+    gradeSourceUrl?: string
+  }>
   status: 'eligible' | 'upcoming' | 'closed' | 'unknown'
   benefits?: TrajectoryOlympiadBenefitInput[]
   scheduleItems?: Array<{
     id: string
     kind: 'registration' | 'stage'
+    stageName?: string
+    whenText?: string
     isConfirmed: boolean
     checkedOn?: string
     organizerUrl?: string
@@ -68,6 +85,9 @@ export interface TrajectoryOlympiadInput {
   }>
   season?: {
     academicYear: string
+    grades?: number[]
+    gradeEligibilityStatus?: 'unknown' | 'needs_review' | 'official'
+    gradeSourceUrl?: string
     stages: Array<{
       id: string
       type: 'registration' | 'qualifying' | 'final'
@@ -491,6 +511,52 @@ function task(
   }
 }
 
+function getGradeEligibilityStatus(
+  item: TrajectoryOlympiadInput,
+  grade: number,
+  subjects: string[]
+): 'eligible' | 'unverified' | 'ineligible' {
+  const matchingProfiles = (item.profiles ?? []).filter((profile) =>
+    profile.subjects.length === 0 || profile.subjects.some((subject) => subjects.includes(subject))
+  )
+  const officialProfiles = matchingProfiles.filter((profile) => profile.gradeEligibilityStatus === 'official')
+  if (officialProfiles.some((profile) => profile.eligibleGrades.includes(grade))) return 'eligible'
+
+  const hasUnverifiedMatchingProfile = matchingProfiles.some((profile) => profile.gradeEligibilityStatus !== 'official')
+  if (officialProfiles.length > 0 && !hasUnverifiedMatchingProfile) return 'ineligible'
+
+  if (item.season?.gradeEligibilityStatus === 'official') {
+    return (item.season.grades ?? item.grades).includes(grade) ? 'eligible' : 'ineligible'
+  }
+  if (item.gradeEligibilityStatus === 'official') {
+    return item.grades.includes(grade) ? 'eligible' : 'ineligible'
+  }
+  return 'unverified'
+}
+
+function hasVerifiedBenefitLevel(
+  item: TrajectoryOlympiadInput,
+  grade: number,
+  subjects: string[],
+  levelRequired?: number
+): boolean {
+  if (levelRequired === undefined) return true
+  const matchingProfiles = (item.profiles ?? []).filter((profile) =>
+    profile.subjects.length === 0 || profile.subjects.some((subject) => subjects.includes(subject))
+  )
+  const eligibleProfiles = matchingProfiles.filter((profile) =>
+    profile.gradeEligibilityStatus === 'official' && profile.eligibleGrades.includes(grade)
+  )
+  if (eligibleProfiles.length > 0) return eligibleProfiles.some((profile) => profile.level === levelRequired)
+
+  const eventGradeIsOfficial = item.season?.gradeEligibilityStatus === 'official'
+    ? (item.season.grades ?? item.grades).includes(grade)
+    : item.gradeEligibilityStatus === 'official' && item.grades.includes(grade)
+  if (!eventGradeIsOfficial) return false
+  return matchingProfiles.length > 0
+    ? matchingProfiles.some((profile) => profile.level === levelRequired)
+    : item.level === levelRequired
+}
 export function buildTrajectoryPlanDraft(
   profile: TrajectoryProfileInput,
   olympiads: TrajectoryOlympiadInput[],
@@ -625,7 +691,7 @@ export function buildTrajectoryPlanDraft(
     includeRecentScheduleRegistrationPeriods(olympiad, now)
   )
   const suitableOlympiads = trajectoryOlympiads
-    .filter((item) => item.grades.includes(profile.grade as number))
+    .filter((item) => getGradeEligibilityStatus(item, profile.grade as number, profile.subjects) !== 'ineligible')
     .filter((item) => item.subjects.some((subject) => profile.subjects.includes(subject)))
     .map((item) => ({
       olympiad: item,
@@ -645,10 +711,12 @@ export function buildTrajectoryPlanDraft(
 
     return task(
       `olympiad:${olympiad.id}:registration:${registration.startDate}:${registration.endDate}`,
-      `Проверить регистрацию: ${olympiad.name}`,
-      'olympiad',
+      getGradeEligibilityStatus(olympiad, profile.grade as number, profile.subjects) === 'eligible'
+        ? `Проверить регистрацию: ${olympiad.name}`
+        : `Проверить допуск ${profile.grade} класса и регистрацию: ${olympiad.name}`,
+      getGradeEligibilityStatus(olympiad, profile.grade as number, profile.subjects) === 'eligible' ? 'olympiad' : 'research',
       isOpen ? 'high' : 'medium',
-      `Подходит по указанным предметам и классу. Проверь актуальные условия участия, формат и регион на странице организатора. В каталоге указан подтверждённый период регистрации: ${registration.startDate} — ${registration.endDate}. Данные помечены как официально проверенные${olympiad.sourceCheckedAt ? ` (${olympiad.sourceCheckedAt.slice(0, 10)})` : ''}.`,
+      `${getGradeEligibilityStatus(olympiad, profile.grade as number, profile.subjects) === 'eligible' ? 'Класс участия подтверждён по источнику организатора.' : `Допуск ${profile.grade} класса пока не подтверждён в базе. Не считай мероприятие доступным до проверки положения организатора.`} Проверь актуальные условия участия, формат и регион. В каталоге указан подтверждённый период регистрации: ${registration.startDate} — ${registration.endDate}. Данные помечены как официально проверенные${olympiad.sourceCheckedAt ? ` (${olympiad.sourceCheckedAt.slice(0, 10)})` : ''}.`,
       {
         startDate: registration.startDate,
         dueDate: registration.endDate,
@@ -661,9 +729,84 @@ export function buildTrajectoryPlanDraft(
     )
   })
 
-  const selectedUniversityIds = new Set(selectedUniversities.map((university) => university.id))
-  const benefitEligibleOlympiads = trajectoryOlympiads
+  // Add confirmed upcoming qualifying/final events even when registration has
+  // already closed. Participation remains conditional on passing prior stages.
+  const scheduleStageTasks: TrajectoryTaskDraft[] = trajectoryOlympiads
     .filter((item) => item.grades.includes(profile.grade as number))
+    .filter((item) => item.subjects.some((subject) => profile.subjects.includes(subject)))
+    .filter((item) => isOfficialCurrentOlympiad(item, profile.region as string, academicYear, now))
+    .flatMap((olympiad) => (olympiad.scheduleItems ?? []).flatMap((item) => {
+      if (
+        item.kind !== 'stage' ||
+        !item.isConfirmed ||
+        !isHttpsUrl(item.organizerUrl) ||
+        (item.dateParseStatus !== 'exact' && item.dateParseStatus !== 'range') ||
+        !['event', 'period', 'deadline'].includes(item.dateSemantics) ||
+        !isRecentSourceVerification(item.checkedOn, now, OLYMPIAD_SOURCE_MAX_AGE_MS)
+      ) return []
+
+      const startDate = parseDateOnly(item.startDate)
+      const endDate = parseDateOnly(item.endDate ?? item.startDate)
+      if (!startDate || !endDate || endDate < startDate || endDate < today) return []
+
+      const stageName = item.stageName?.trim() || 'этап олимпиады'
+      const deadlineOnly = item.dateSemantics === 'deadline'
+      const daysUntil = Math.floor(
+        (new Date(`${startDate}T00:00:00.000Z`).getTime() - Date.parse(`${today}T00:00:00.000Z`)) /
+        (24 * 60 * 60 * 1000)
+      )
+      const sourceUrl = isHttpsUrl(olympiad.website) ? olympiad.website : item.organizerUrl
+
+      return [task(
+        `olympiad:${olympiad.id}:schedule:${item.id}`,
+        deadlineOnly ? `Срок этапа: ${olympiad.name}` : `Подготовиться к этапу «${stageName}»: ${olympiad.name}`,
+        'olympiad',
+        daysUntil <= 14 ? 'high' : 'medium',
+        `В календаре организатора подтверждена дата «${stageName}»: ${startDate}${endDate !== startDate ? ` — ${endDate}` : ''}. Выполняй эту задачу, если ты зарегистрирован на олимпиаду и прошёл необходимые предыдущие этапы. Если участие ещё не подтверждено, сначала уточни допуск у организатора.`,
+        {
+          ...(deadlineOnly ? { dueDate: endDate } : {
+            startDate,
+            ...(endDate !== startDate ? { dueDate: endDate } : {})
+          }),
+          relatedOlympiadId: olympiad.id,
+          sourceUrl,
+          sourceLabel: 'Подтверждённый календарь организатора'
+        }
+      )]
+    }))
+  const datedEligibilityReviewTasks: TrajectoryTaskDraft[] = trajectoryOlympiads
+    .filter((olympiad) => olympiad.listType === 'school_olympiad')
+    .filter((olympiad) => isOfficialCurrentOlympiad(olympiad, profile.region as string, academicYear, now))
+    .filter((olympiad) => olympiad.subjects.some((subject) => profile.subjects.includes(subject)))
+    .filter((olympiad) => getGradeEligibilityStatus(olympiad, profile.grade as number, profile.subjects) === 'unverified')
+    .flatMap((olympiad) => (olympiad.scheduleItems ?? [])
+      .filter((item) => item.isConfirmed && item.kind === 'stage')
+      .filter((item) => item.dateParseStatus === 'exact' || item.dateParseStatus === 'range')
+      .filter((item) => item.dateSemantics === 'event' || item.dateSemantics === 'period' || item.dateSemantics === 'deadline')
+      .filter((item) => Boolean(item.startDate && item.endDate && item.organizerUrl?.startsWith('https://')))
+      .filter((item) => Boolean(item.checkedOn && now.getTime() - new Date(item.checkedOn).getTime() <= OLYMPIAD_SOURCE_MAX_AGE_MS))
+      .filter((item) => (item.endDate as string) >= today)
+      .map((item) => task(
+        `olympiad:eligibility:${olympiad.id}:${item.id}`,
+        `Проверить допуск ${profile.grade} класса к этапу «${item.stageName || item.whenText}» — ${olympiad.name}`,
+        'research',
+        'medium',
+        `Предметы совпадают с твоим профилем, а дата этапа подтверждена источником. Но допустимый класс для этого профиля ещё не подтверждён в Trajectory. До регистрации проверь на сайте организатора, допускается ли ${profile.grade} класс, какие есть предварительные этапы и требования. Эта задача не означает, что право участия уже подтверждено.`,
+        {
+          startDate: item.startDate,
+          dueDate: item.endDate,
+          relatedOlympiadId: olympiad.id,
+          sourceUrl: item.organizerUrl,
+          sourceLabel: 'Положение / календарь организатора'
+        }
+      )))
+  olympiadTasks.push(...datedEligibilityReviewTasks)
+  const selectedUniversityIds = new Set(selectedUniversities.map((university) => university.id))
+  olympiadTasks.push(...scheduleStageTasks)
+
+  const benefitEligibleOlympiads = trajectoryOlympiads
+    .filter((item) => item.listType === 'school_olympiad')
+    .filter((item) => getGradeEligibilityStatus(item, profile.grade as number, profile.subjects) === 'eligible')
     .filter((item) => item.subjects.some((subject) => profile.subjects.includes(subject)))
     .filter((item) => isOfficialCurrentOlympiad(item, profile.region as string, academicYear, now))
   const benefitTasks: TrajectoryTaskDraft[] = benefitEligibleOlympiads.flatMap((olympiad) =>
@@ -677,7 +820,14 @@ export function buildTrajectoryPlanDraft(
       const hasVerifiedSource = isHttpsUrl(benefit.sourceUrl) &&
         isRecentSourceVerification(benefit.lastCheckedAt, now, BENEFIT_SOURCE_MAX_AGE_MS)
 
-      if (!isSelectedUniversity || !matchesProgram || !isCurrentBenefit || !hasVerifiedSource) {
+      const hasVerifiedLevel = hasVerifiedBenefitLevel(
+        olympiad,
+        profile.grade as number,
+        profile.subjects,
+        benefit.levelRequired
+      )
+
+      if (!isSelectedUniversity || !matchesProgram || !isCurrentBenefit || !hasVerifiedSource || !hasVerifiedLevel) {
         return []
       }
 
@@ -687,6 +837,8 @@ export function buildTrajectoryPlanDraft(
         `Категория результата: ${benefitResultLabel(benefit.forStatus)}.`,
         benefit.levelRequired !== undefined ? `Требуемый уровень олимпиады: ${benefit.levelRequired}.` : undefined,
         benefit.resultClassRequired !== undefined ? `Класс получения результата: ${benefit.resultClassRequired}.` : undefined,
+        benefit.diplomaDegreeRequired !== undefined ? `Степень диплома: ${['', 'I', 'II', 'III'][benefit.diplomaDegreeRequired] ?? benefit.diplomaDegreeRequired}.` : undefined,
+        benefit.pointsAwarded !== undefined ? `Дополнительные баллы: ${benefit.pointsAwarded}.` : undefined,
         benefit.confirmExamSubject ? `Подтверждающий предмет: ${SUBJECT_LABELS[benefit.confirmExamSubject] ?? benefit.confirmExamSubject}.` : undefined,
         benefit.confirmExamThreshold !== undefined ? `Порог подтверждения: ${benefit.confirmExamThreshold}.` : undefined,
         'Эта запись сама по себе не подтверждает право именно в твоём случае: сверь диплом, класс, предмет, программу и локальный акт университета.'
@@ -720,7 +872,7 @@ export function buildTrajectoryPlanDraft(
     ))
   }
 
-  if (suitableOlympiads.length === 0) {
+  if (suitableOlympiads.length === 0 && scheduleStageTasks.length === 0) {
     olympiadTasks.push(task(
       `olympiads:check-official-calendar:${academicYear}`,
       'Проверять публикацию подходящих олимпиад',

@@ -18,3 +18,115 @@
 .admission-option ul { margin: 6px 0 10px; padding-left: 20px; line-height: 1.65; }
 .admission-option li a { color: var(--catalog-accent, #B94A52); }
 .admission-sources { margin-top: 12px; font-size: .85rem; }
+
+/* TRAJECTORY UI QUICK FIX: admissions information hierarchy */
+.university-admissions-panel {
+  gap: 20px;
+  padding: 22px;
+  border: 1px solid #e7dfd8;
+  border-radius: 16px;
+  background: #fff;
+}
+.admission-campaign-select { max-width: 340px; font-size: 12px; font-weight: 750; color: #514842; }
+.admission-campaign-select select {
+  min-height: 46px;
+  border-color: #ded5cd;
+  border-radius: 10px;
+  background: #faf8f6;
+  color: #302b29;
+  font: inherit;
+  font-size: 13px;
+}
+.admission-campaign-meta {
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid #e8e0da;
+  border-radius: 11px;
+  background: #faf8f6;
+  color: #514842;
+  font-size: 11px;
+}
+.admission-campaign-meta > span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 27px;
+  padding: 4px 9px;
+  border: 1px solid #e7dfd8;
+  border-radius: 7px;
+  background: #fff;
+  color: #514842;
+  font-weight: 700;
+}
+.admission-campaign-meta svg { color: #b94a52; }
+.admission-campaign-links { gap: 8px; }
+.admission-campaign-links a,
+.admission-sources a {
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid #e7c9c5;
+  border-radius: 8px;
+  background: #fbefed;
+  color: #a43f48;
+  font-size: 11px;
+  font-weight: 750;
+  text-decoration: none;
+}
+.admission-campaign-links a:hover,
+.admission-sources a:hover { background: #f6e3df; text-decoration: none; }
+.admission-program-list { gap: 14px; }
+.admission-program {
+  padding: 18px 0 0;
+  border-top: 1px solid #e8e0da;
+}
+.admission-program h3 { margin-bottom: 7px; color: #302b29; font-size: 16px; line-height: 1.4; }
+.admission-program > p { color: #71665f; font-size: 12px; line-height: 1.6; }
+.admission-option {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid #e8e0da;
+  border-radius: 12px;
+  background: #fdfbf9;
+}
+.admission-tags { gap: 7px; }
+.admission-tags span {
+  padding: 6px 9px;
+  border: 1px solid #eadbd5;
+  border-radius: 7px;
+  background: #f9e9e6;
+  color: #65443f;
+  font-size: 10px;
+  font-weight: 750;
+}
+.admission-facts { gap: 8px; margin: 13px 0; }
+.admission-facts > span {
+  padding: 8px 10px;
+  border: 1px solid #eee7e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #71665f;
+  font-size: 11px;
+}
+.admission-facts b { color: #302b29; }
+.admission-option h4 {
+  margin: 16px 0 8px;
+  color: #514842;
+  font-size: 12px;
+  font-weight: 800;
+}
+.admission-option ul { margin: 0; padding-left: 19px; color: #514842; font-size: 11px; line-height: 1.75; }
+.admission-option li { padding: 3px 0; }
+.admission-option li a { color: #a43f48; font-weight: 700; }
+.admission-sources {
+  gap: 8px 10px;
+  margin-top: 15px;
+  padding-top: 12px;
+  border-top: 1px solid #eee7e1;
+  font-size: 10px;
+}
+.admission-sources span { color: #71665f; }
+.admission-state { padding: 13px 14px; border: 1px solid #e8e0da; border-radius: 10px; background: #faf8f6; font-size: 12px; }
+@media (max-width: 640px) {
+  .university-admissions-panel { padding: 16px; }
+  .admission-option { padding: 12px; }
+  .admission-campaign-meta { align-items: flex-start; }
+}

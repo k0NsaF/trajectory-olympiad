@@ -39,6 +39,7 @@ import {
   matchesBenefitVerificationFilter
 } from '@/utils/benefits'
 
+import { getUniversityFallbackPhoto } from '@/utils/university-fallback-photos'
 import './benefits-enhancements.css'
 
 const RIGHT_LABELS: Record<string, string> = {
@@ -500,7 +501,7 @@ export function UniversityDetailsPage() {
   const programs = university.programs ?? []
   const rawCoverImageUrl = getSafeUrl(university.coverImageUrl)
   const coverImageSourceUrl = getSafeUrl(university.coverImageSourceUrl)
-  const coverImageUrl = rawCoverImageUrl && coverImageSourceUrl && university.coverImageLicense?.trim() ? rawCoverImageUrl : null
+  const coverImageUrl = rawCoverImageUrl && coverImageSourceUrl && university.coverImageLicense?.trim() ? rawCoverImageUrl : getUniversityFallbackPhoto(university.id)
   const isInComparison = comparisonIds.includes(university.id)
 
   return (

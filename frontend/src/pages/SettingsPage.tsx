@@ -2,17 +2,13 @@ import { useEffect, useState } from 'react'
 import {
   BellRing,
   Check,
-  Monitor,
-  Moon,
   Newspaper,
   Save,
-  Sun
 } from 'lucide-react'
 
 import type {
   NotificationPreferences,
   ProfilePreferences,
-  ThemePreference
 } from '@trajectory/shared'
 import { DEFAULT_PROFILE_PREFERENCES } from '@trajectory/shared'
 
@@ -27,32 +23,6 @@ import {
 import { setThemePreference } from '@/lib/theme'
 
 import './Profile/profile-settings.css'
-
-const THEME_OPTIONS: Array<{
-  value: ThemePreference
-  label: string
-  description: string
-  icon: typeof Sun
-}> = [
-  {
-    value: 'light',
-    label: 'Светлая',
-    description: 'Светлый фон интерфейса',
-    icon: Sun
-  },
-  {
-    value: 'dark',
-    label: 'Тёмная',
-    description: 'Тёмная цветовая схема',
-    icon: Moon
-  },
-  {
-    value: 'system',
-    label: 'Системная',
-    description: 'Следовать настройкам устройства',
-    icon: Monitor
-  }
-]
 
 const NOTIFICATION_OPTIONS: Array<{
   key: keyof NotificationPreferences
@@ -122,13 +92,6 @@ export function SettingsPage() {
     }
   }, [authLoading, session?.access_token])
 
-  const chooseTheme = (themePreference: ThemePreference) => {
-    setPreferences((current) => ({ ...current, themePreference }))
-    setThemePreference(themePreference)
-    setError(null)
-    setMessage(null)
-  }
-
   const toggleNotification = (key: keyof NotificationPreferences) => {
     setPreferences((current) => ({
       ...current,
@@ -175,42 +138,9 @@ export function SettingsPage() {
       <PageHeader
         eyebrow="ПЕРСОНАЛИЗАЦИЯ"
         title="Настройки"
-        description="Настрой внешний вид приложения и типы напоминаний."
       />
 
-      <section className="panel settings-panel">
-        <div className="settings-panel-heading">
-          <div className="settings-panel-icon"><Sun size={19} /></div>
-          <div>
-            <h2>Внешний вид</h2>
-            <p>Выбери цветовую схему приложения.</p>
-          </div>
-        </div>
 
-        <div className="settings-theme-grid" role="group" aria-label="Цветовая тема">
-          {THEME_OPTIONS.map((option) => {
-            const Icon = option.icon
-            const selected = preferences.themePreference === option.value
-            return (
-              <button
-                key={option.value}
-                type="button"
-                className={`settings-theme-option ${selected ? 'is-selected' : ''}`}
-                aria-pressed={selected}
-                onClick={() => chooseTheme(option.value)}
-                disabled={loading}
-              >
-                <span className="settings-theme-icon"><Icon size={19} /></span>
-                <span className="settings-theme-copy">
-                  <strong>{option.label}</strong>
-                  <small>{option.description}</small>
-                </span>
-                {selected && <span className="settings-selected-check"><Check size={15} /></span>}
-              </button>
-            )
-          })}
-        </div>
-      </section>
 
       <section className="panel settings-panel">
         <div className="settings-panel-heading">

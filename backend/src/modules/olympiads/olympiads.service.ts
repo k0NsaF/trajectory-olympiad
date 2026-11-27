@@ -29,6 +29,12 @@ interface OlympiadRow {
   level: number | null
   list_type?: 'school_olympiad' | 'intellectual_competition' | null
   official_list_number?: number | null
+  official_list_key?: string | null
+  level_label?: string | null
+  source_direction?: string | null
+  grade_eligibility_status?: 'unknown' | 'needs_review' | 'official' | null
+  grade_source_url?: string | null
+  grade_checked_at?: string | null
   source_document_title?: string | null
   source_document_url?: string | null
   source_checked_at?: string | null
@@ -51,6 +57,11 @@ interface SeasonRow {
   source_document_url?: string | null
   source_checked_at?: string | null
   source_status?: 'official' | 'needs_review' | 'archived' | null
+  official_list_key?: string | null
+  level_label?: string | null
+  grade_eligibility_status?: 'unknown' | 'needs_review' | 'official' | null
+  grade_source_url?: string | null
+  grade_checked_at?: string | null
 }
 
 interface StageRow {
@@ -67,7 +78,13 @@ interface OlympiadProfileRow {
   id: string
   olympiad_id: string
   profile_name: string
-  level: number
+  level: number | null
+  level_label: string
+  source_direction: string
+  eligible_grades: number[]
+  grade_eligibility_status: 'unknown' | 'needs_review' | 'official'
+  grade_source_url: string | null
+  grade_checked_at: string | null
   subjects: string[]
   source_subjects: string
 }
@@ -93,9 +110,15 @@ interface ScheduleItemRow {
 interface OlympiadProfileSummary {
   id: string
   profileName: string
-  level: 1 | 2 | 3
+  level: 1 | 2 | 3 | 4 | null
+  levelLabel?: string
+  sourceDirection?: string
   subjects: string[]
   sourceSubjects: string
+  eligibleGrades: number[]
+  gradeEligibilityStatus: 'unknown' | 'needs_review' | 'official'
+  gradeSourceUrl?: string
+  gradeCheckedAt?: string
 }
 
 interface OlympiadScheduleItemSummary {
@@ -126,6 +149,10 @@ interface BenefitRow {
   confirm_exam_subject: string | null
   confirm_exam_threshold: number | null
   result_class_required: number | null
+  diploma_degree_required: number | null
+  points_awarded: number | null
+  source_excerpt: string | null
+  verification_notes: string | null
   source_url: string
   valid_year: number
   last_checked_at: string | null
@@ -157,6 +184,11 @@ interface OlympiadSeason {
   olympiadId: string
   academicYear: string
   grades: number[]
+  officialListKey?: string
+  levelLabel?: string
+  gradeEligibilityStatus?: 'unknown' | 'needs_review' | 'official'
+  gradeSourceUrl?: string
+  gradeCheckedAt?: string
   stages: OlympiadStage[]
 }
 
@@ -173,6 +205,10 @@ interface OlympiadBenefitSummary {
   confirmExamSubject?: string
   confirmExamThreshold?: number
   resultClassRequired?: number
+  diplomaDegreeRequired?: number
+  pointsAwarded?: number
+  sourceExcerpt?: string
+  verificationNotes?: string
   validYear: number
   sourceUrl: string
   lastCheckedAt: string
@@ -185,6 +221,12 @@ interface OlympiadResult {
   level: number | null
   listType: 'school_olympiad' | 'intellectual_competition'
   officialListNumber?: number
+  officialListKey?: string
+  levelLabel?: string
+  sourceDirection?: string
+  gradeEligibilityStatus?: 'unknown' | 'needs_review' | 'official'
+  gradeSourceUrl?: string
+  gradeCheckedAt?: string
   sourceDocumentTitle?: string
   sourceDocumentUrl?: string
   sourceCheckedAt?: string
@@ -311,7 +353,7 @@ async function loadOlympiadProfiles(supabase: SupabaseClient, olympiadIds: strin
     const ids = olympiadIds.slice(index, index + 150)
     const { data, error } = await supabase
       .from('olympiad_profiles')
-      .select('id, olympiad_id, profile_name, level, subjects, source_subjects')
+      .select('id, olympiad_id, profile_name, level, level_label, source_direction, eligible_grades, grade_eligibility_status, grade_source_url, grade_checked_at, subjects, source_subjects')
       .in('olympiad_id', ids)
       .order('order_n', { ascending: true })
       .order('profile_name', { ascending: true })
@@ -344,7 +386,19 @@ async function loadOlympiadScheduleItems(supabase: SupabaseClient, olympiadIds: 
 }
 
 function mapOlympiadProfile(row: OlympiadProfileRow): OlympiadProfileSummary {
-  return { id: row.id, profileName: row.profile_name, level: row.level as 1 | 2 | 3, subjects: row.subjects ?? [], sourceSubjects: row.source_subjects }
+  return {
+    id: row.id,
+    profileName: row.profile_name,
+    level: row.level as 1 | 2 | 3 | 4 | null,
+    ...(row.level_label ? { levelLabel: row.level_label } : {}),
+    ...(row.source_direction ? { sourceDirection: row.source_direction } : {}),
+    subjects: row.subjects ?? [],
+    sourceSubjects: row.source_subjects,
+    eligibleGrades: row.eligible_grades ?? [],
+    gradeEligibilityStatus: row.grade_eligibility_status ?? 'unknown',
+    ...(row.grade_source_url ? { gradeSourceUrl: row.grade_source_url } : {}),
+    ...(row.grade_checked_at ? { gradeCheckedAt: row.grade_checked_at } : {})
+  }
 }
 
 function mapScheduleItem(row: ScheduleItemRow): OlympiadScheduleItemSummary {
@@ -413,6 +467,10 @@ function mapBenefit(
     ...(row.result_class_required !== null
       ? { resultClassRequired: row.result_class_required }
       : {}),
+    ...(row.diploma_degree_required !== null ? { diplomaDegreeRequired: row.diploma_degree_required } : {}),
+    ...(row.points_awarded !== null ? { pointsAwarded: row.points_awarded } : {}),
+    ...(row.source_excerpt ? { sourceExcerpt: row.source_excerpt } : {}),
+    ...(row.verification_notes ? { verificationNotes: row.verification_notes } : {}),
     validYear: row.valid_year,
     sourceUrl: row.source_url,
     lastCheckedAt: row.last_checked_at
@@ -428,7 +486,7 @@ async function getOfficialBenefits(
   let query = supabase
     .from('benefits')
     .select(
-      'id, university_id, program_id, olympiad_id, right_type, for_status, level_required, confirm_exam_subject, confirm_exam_threshold, result_class_required, source_url, valid_year, last_checked_at'
+      'id, university_id, program_id, olympiad_id, right_type, for_status, level_required, confirm_exam_subject, confirm_exam_threshold, result_class_required, diploma_degree_required, points_awarded, source_excerpt, verification_notes, source_url, valid_year, last_checked_at'
     )
     .in('olympiad_id', olympiadIds)
     .eq('verification_status', 'official')
@@ -524,7 +582,7 @@ export async function getOlympiads(
   filters: OlympiadFiltersInput = {}
 
 ): Promise<OlympiadResult[]> {
-  const extendedSelect = 'id, name, organizer, level, list_type, official_list_number, source_document_title, source_document_url, source_checked_at, source_status, subjects, grades, website, description'
+  const extendedSelect = 'id, name, organizer, level, list_type, official_list_number, official_list_key, level_label, source_direction, grade_eligibility_status, grade_source_url, grade_checked_at, source_document_title, source_document_url, source_checked_at, source_status, subjects, grades, website, description'
   const legacySelect = 'id, name, organizer, level, subjects, grades, website, description'
   const extendedOlympiadResult = await supabase
     .from('olympiads')
@@ -534,7 +592,7 @@ export async function getOlympiads(
   let olympiadData: OlympiadRow[] | null = extendedOlympiadResult.data as unknown as OlympiadRow[] | null
   let olympiadError = extendedOlympiadResult.error
 
-  if (olympiadError && /list_type|official_list_number|source_document|source_checked_at|source_status|schema cache|column .* does not exist/i.test(olympiadError.message)) {
+  if (olympiadError && /list_type|official_list_number|official_list_key|level_label|source_direction|grade_eligibility|grade_source_url|grade_checked_at|source_document|source_checked_at|source_status|schema cache|column .* does not exist/i.test(olympiadError.message)) {
     const legacyResult = await supabase
       .from('olympiads')
       .select(legacySelect)
@@ -574,7 +632,7 @@ export async function getOlympiads(
   const benefitYear = filters.benefitYear ?? getNextAdmissionYear()
   const academicYear = getCurrentAcademicYear()
 
-  const extendedSeasonSelect = 'id, olympiad_id, academic_year, grades, level, list_type, official_list_number, source_document_title, source_document_url, source_checked_at, source_status'
+  const extendedSeasonSelect = 'id, olympiad_id, academic_year, grades, level, level_label, list_type, official_list_number, official_list_key, grade_eligibility_status, grade_source_url, grade_checked_at, source_document_title, source_document_url, source_checked_at, source_status'
   const legacySeasonSelect = 'id, olympiad_id, academic_year, grades'
   const extendedSeasonResult = await supabase
     .from('olympiad_seasons')
@@ -585,7 +643,7 @@ export async function getOlympiads(
   let seasonData: SeasonRow[] | null = extendedSeasonResult.data as unknown as SeasonRow[] | null
   let seasonError = extendedSeasonResult.error
 
-  if (seasonError && /level|list_type|official_list_number|source_document|source_checked_at|source_status|schema cache|column .* does not exist/i.test(seasonError.message)) {
+  if (seasonError && /level|level_label|list_type|official_list_number|official_list_key|grade_eligibility|grade_source_url|grade_checked_at|source_document|source_checked_at|source_status|schema cache|column .* does not exist/i.test(seasonError.message)) {
     const legacySeasonResult = await supabase
       .from('olympiad_seasons')
       .select(legacySeasonSelect)
@@ -651,6 +709,11 @@ export async function getOlympiads(
           olympiadId: olympiad.id,
           academicYear: season.academic_year,
           grades: season.grades ?? olympiad.grades,
+          ...(season.official_list_key ? { officialListKey: season.official_list_key } : {}),
+          ...(season.level_label ? { levelLabel: season.level_label } : {}),
+          gradeEligibilityStatus: season.grade_eligibility_status ?? 'unknown',
+          ...(season.grade_source_url ? { gradeSourceUrl: season.grade_source_url } : {}),
+          ...(season.grade_checked_at ? { gradeCheckedAt: season.grade_checked_at } : {}),
           stages: mappedStages
         }
       : undefined
@@ -664,6 +727,11 @@ export async function getOlympiads(
       ? (distinctProfileLevels.length === 1 ? distinctProfileLevels[0] : null)
       : (hasYearMetadata ? (season?.level ?? null) : olympiad.level)
     const effectiveListNumber = hasYearMetadata ? season?.official_list_number : olympiad.official_list_number
+    const effectiveListKey = hasYearMetadata ? season?.official_list_key : olympiad.official_list_key
+    const effectiveLevelLabel = hasYearMetadata ? season?.level_label : olympiad.level_label
+    const effectiveGradeEligibilityStatus = season?.grade_eligibility_status ?? olympiad.grade_eligibility_status ?? 'unknown'
+    const effectiveGradeSourceUrl = season?.grade_source_url ?? olympiad.grade_source_url
+    const effectiveGradeCheckedAt = season?.grade_checked_at ?? olympiad.grade_checked_at
     const effectiveSourceTitle = hasYearMetadata ? season?.source_document_title : olympiad.source_document_title
     const effectiveSourceUrl = hasYearMetadata ? season?.source_document_url : olympiad.source_document_url
     const effectiveSourceCheckedAt = hasYearMetadata ? season?.source_checked_at : olympiad.source_checked_at
@@ -676,6 +744,12 @@ export async function getOlympiads(
       level: effectiveLevel,
       listType: (season?.list_type ?? olympiad.list_type) === 'intellectual_competition' ? 'intellectual_competition' : 'school_olympiad',
       ...(effectiveListNumber != null ? { officialListNumber: effectiveListNumber } : {}),
+      ...(effectiveListKey ? { officialListKey: effectiveListKey } : {}),
+      ...(effectiveLevelLabel ? { levelLabel: effectiveLevelLabel } : {}),
+      ...(olympiad.source_direction ? { sourceDirection: olympiad.source_direction } : {}),
+      gradeEligibilityStatus: effectiveGradeEligibilityStatus,
+      ...(effectiveGradeSourceUrl ? { gradeSourceUrl: effectiveGradeSourceUrl } : {}),
+      ...(effectiveGradeCheckedAt ? { gradeCheckedAt: effectiveGradeCheckedAt } : {}),
       ...(effectiveSourceTitle ? { sourceDocumentTitle: effectiveSourceTitle } : {}),
       ...(effectiveSourceUrl ? { sourceDocumentUrl: effectiveSourceUrl } : {}),
       ...(effectiveSourceCheckedAt ? { sourceCheckedAt: effectiveSourceCheckedAt } : {}),

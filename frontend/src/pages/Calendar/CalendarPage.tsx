@@ -494,7 +494,8 @@ export function CalendarPage() {
         description: description.trim(),
         type,
         dueAt: parsedDate.toISOString(),
-        notifyAt: effectiveNotifyDate.toISOString()
+        notifyAt: effectiveNotifyDate.toISOString(),
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
       }
 
       if (editingId) {

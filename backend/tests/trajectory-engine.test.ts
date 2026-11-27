@@ -57,6 +57,8 @@ function officialBenefit(overrides: Partial<NonNullable<TrajectoryOlympiadInput[
 }
 
 function officialOlympiad(overrides: Partial<TrajectoryOlympiadInput> = {}): TrajectoryOlympiadInput {
+  const grades = overrides.grades ?? [9, 10, 11]
+  const subjects = overrides.subjects ?? ['informatics']
   return {
     id: OLYMPIAD_ID,
     name: 'Олимпиада по информатике',
@@ -65,8 +67,16 @@ function officialOlympiad(overrides: Partial<TrajectoryOlympiadInput> = {}): Tra
     sourceStatus: 'official',
     sourceDocumentUrl: 'https://example.org/official-list.pdf',
     sourceCheckedAt: '2026-11-20T10:00:00.000Z',
-    subjects: ['informatics'],
-    grades: [9, 10, 11],
+    subjects,
+    grades,
+    profiles: [{
+      profileName: 'Verified primary profile',
+      level: 2,
+      subjects,
+      eligibleGrades: grades,
+      gradeEligibilityStatus: 'official',
+      gradeSourceUrl: 'https://olympiad.example.org/regulations'
+    }],
     website: 'https://olympiad.example.org/',
     status: 'upcoming',
     season: {
@@ -273,6 +283,75 @@ test('генератор персональной траектории', async (
     assert.equal(tasks[0]?.dueDate, '2026-12-15')
   })
 
+  await t.test('добавляет подтверждённые будущие отборочные и заключительные этапы в траекторию', () => {
+    const draft = buildTrajectoryPlanDraft(
+      validProfile(),
+      [officialOlympiad({
+        scheduleItems: [
+          {
+            id: 'stage-qualifying-valid',
+            kind: 'stage',
+            stageName: 'Отборочный этап',
+            isConfirmed: true,
+            checkedOn: '2026-11-25T10:00:00.000Z',
+            organizerUrl: 'https://olympiad.example.org/calendar',
+            startDate: '2026-12-12',
+            endDate: '2026-12-13',
+            dateParseStatus: 'range',
+            dateSemantics: 'period'
+          },
+          {
+            id: 'stage-final-stale',
+            kind: 'stage',
+            stageName: 'Заключительный этап',
+            isConfirmed: true,
+            checkedOn: '2026-08-01T10:00:00.000Z',
+            organizerUrl: 'https://olympiad.example.org/calendar',
+            startDate: '2027-02-10',
+            endDate: '2027-02-11',
+            dateParseStatus: 'range',
+            dateSemantics: 'period'
+          },
+          {
+            id: 'stage-final-unconfirmed',
+            kind: 'stage',
+            stageName: 'Заключительный этап',
+            isConfirmed: false,
+            checkedOn: '2026-11-25T10:00:00.000Z',
+            organizerUrl: 'https://olympiad.example.org/calendar',
+            startDate: '2027-02-10',
+            endDate: '2027-02-11',
+            dateParseStatus: 'range',
+            dateSemantics: 'period'
+          },
+          {
+            id: 'stage-final-inferred',
+            kind: 'stage',
+            stageName: 'Заключительный этап',
+            isConfirmed: true,
+            checkedOn: '2026-11-25T10:00:00.000Z',
+            organizerUrl: 'https://olympiad.example.org/calendar',
+            startDate: '2027-02-10',
+            endDate: '2027-02-11',
+            dateParseStatus: 'inferred_year',
+            dateSemantics: 'period'
+          }
+        ]
+      })],
+      universities,
+      REQUEST_ID,
+      NOW
+    )
+
+    const tasks = draft.stages.find((stage) => stage.stableKey === 'olympiads')?.tasks
+      .filter((item) => item.stableKey.startsWith(`olympiad:${OLYMPIAD_ID}:schedule:`)) ?? []
+
+    assert.equal(tasks.length, 1)
+    assert.equal(tasks[0]?.title, 'Подготовиться к этапу «Отборочный этап»: Олимпиада по информатике')
+    assert.equal(tasks[0]?.startDate, '2026-12-12')
+    assert.equal(tasks[0]?.dueDate, '2026-12-13')
+    assert.equal(tasks[0]?.sourceUrl, 'https://olympiad.example.org/')
+  })
   await t.test('не создаёт фиктивный сезон только на основании расписания', () => {
     const draft = buildTrajectoryPlanDraft(
       validProfile(),

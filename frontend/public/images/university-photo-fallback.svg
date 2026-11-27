@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="University campus">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e8eee9"/>
+      <stop offset="1" stop-color="#f4e9df"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg)"/>
+  <circle cx="980" cy="130" r="70" fill="#fff" opacity=".55"/>
+  <path d="M0 620 Q240 560 460 625 T900 610 T1200 600 V800 H0Z" fill="#d8e3d8"/>
+  <path d="M170 620V310L600 150L1030 310V620Z" fill="#b7c6bd"/>
+  <path d="M135 320L600 130L1065 320L1035 350L600 190L165 350Z" fill="#8fa69a"/>
+  <rect x="220" y="345" width="760" height="275" rx="8" fill="#f7f4ef"/>
+  <rect x="525" y="430" width="150" height="190" fill="#c4d2ca"/>
+  <g fill="#98b4a8">
+    <rect x="280" y="390" width="92" height="82" rx="4"/><rect x="420" y="390" width="92" height="82" rx="4"/>
+    <rect x="688" y="390" width="92" height="82" rx="4"/><rect x="828" y="390" width="92" height="82" rx="4"/>
+    <rect x="280" y="505" width="92" height="82" rx="4"/><rect x="420" y="505" width="92" height="82" rx="4"/>
+    <rect x="688" y="505" width="92" height="82" rx="4"/><rect x="828" y="505" width="92" height="82" rx="4"/>
+  </g>
+  <path d="M0 690H1200" stroke="#b5c5b9" stroke-width="8"/>
+</svg>
