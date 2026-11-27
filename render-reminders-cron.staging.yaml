@@ -6,7 +6,7 @@ services:
     runtime: node
     plan: starter
     region: frankfurt
-    branch: trajectory-personal-plan
+    branch: trajectory-full-release
     schedule: "*/5 * * * *"
     buildCommand: npm ci --include=dev
     startCommand: npm run reminders:dispatch --workspace=backend

@@ -5,10 +5,12 @@ on:
     branches:
       - main
       - trajectory-v2
+      - trajectory-full-release
   pull_request:
     branches:
       - main
       - trajectory-v2
+      - trajectory-full-release
 
 permissions:
   contents: read
