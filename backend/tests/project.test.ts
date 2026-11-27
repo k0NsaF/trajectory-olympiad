@@ -156,6 +156,21 @@ test('схемы данных: корректные сценарии и огра
 
     assert.equal(saveProfileSchema.safeParse({
       ...validProfile(),
+      targetEducationLevel: 'basic_higher'
+    }).success, true)
+
+    assert.equal(saveProfileSchema.safeParse({
+      ...validProfile(),
+      targetEducationLevel: null
+    }).success, true)
+
+    assert.equal(saveProfileSchema.safeParse({
+      ...validProfile(),
+      targetEducationLevel: 'master'
+    }).success, false)
+
+    assert.equal(saveProfileSchema.safeParse({
+      ...validProfile(),
       targetEducationLevel: 'unknown'
     }).success, false)
   })
@@ -585,6 +600,10 @@ test('схемы данных: корректные сценарии и огра
     })
 
     assert.equal(parsed.success, true)
+    assert.equal(aiAskSchema.safeParse({
+      question: 'Открой мою траекторию',
+      context: { page: 'trajectory' }
+    }).success, true)
     assert.equal(aiAskSchema.safeParse({ question: 'да' }).success, false)
     assert.equal(aiAskSchema.safeParse({
       question: 'Подбери олимпиады',

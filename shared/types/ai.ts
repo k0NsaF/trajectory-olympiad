@@ -3,6 +3,7 @@ import type { UserGrade } from './profile.js'
 export type AIMessageRole = 'user' | 'assistant'
 
 export type AIPageType =
+  | 'trajectory'
   | 'catalog'
   | 'olympiad'
   | 'calendar'

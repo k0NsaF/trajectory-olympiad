@@ -246,6 +246,50 @@ test('генератор персональной траектории', async (
     assert.equal(registrationTasks[0]?.sourceUrl, 'https://olympiad.example.org/')
   })
 
+  await t.test('добавляет в траекторию только свежие подтверждённые периоды регистрации из расписания', () => {
+    const draft = buildTrajectoryPlanDraft(
+      validProfile(),
+      [officialOlympiad({
+        season: { academicYear: '2026-2027', stages: [] },
+        scheduleItems: [
+          { id: 'schedule-valid', kind: 'registration', isConfirmed: true, checkedOn: '2026-11-25T10:00:00.000Z', organizerUrl: 'https://olympiad.example.org/calendar', startDate: '2026-12-05', endDate: '2026-12-15', dateParseStatus: 'range', dateSemantics: 'period' },
+          { id: 'schedule-stale', kind: 'registration', isConfirmed: true, checkedOn: '2026-08-01T10:00:00.000Z', organizerUrl: 'https://olympiad.example.org/calendar', startDate: '2026-12-01', endDate: '2026-12-10', dateParseStatus: 'range', dateSemantics: 'period' },
+          { id: 'schedule-unconfirmed', kind: 'registration', isConfirmed: false, checkedOn: '2026-11-25T10:00:00.000Z', organizerUrl: 'https://olympiad.example.org/calendar', startDate: '2026-12-01', endDate: '2026-12-10', dateParseStatus: 'range', dateSemantics: 'period' },
+          { id: 'schedule-future-check', kind: 'registration', isConfirmed: true, checkedOn: '2026-11-27T10:00:00.000Z', organizerUrl: 'https://olympiad.example.org/calendar', startDate: '2026-12-01', endDate: '2026-12-10', dateParseStatus: 'range', dateSemantics: 'period' },
+          { id: 'schedule-inferred', kind: 'registration', isConfirmed: true, checkedOn: '2026-11-25T10:00:00.000Z', organizerUrl: 'https://olympiad.example.org/calendar', startDate: '2026-12-01', endDate: '2026-12-10', dateParseStatus: 'inferred_year', dateSemantics: 'period' },
+          { id: 'schedule-deadline', kind: 'registration', isConfirmed: true, checkedOn: '2026-11-25T10:00:00.000Z', organizerUrl: 'https://olympiad.example.org/calendar', startDate: '2026-12-01', endDate: '2026-12-10', dateParseStatus: 'range', dateSemantics: 'deadline' },
+          { id: 'schedule-http', kind: 'registration', isConfirmed: true, checkedOn: '2026-11-25T10:00:00.000Z', organizerUrl: 'http://olympiad.example.org/calendar', startDate: '2026-12-01', endDate: '2026-12-10', dateParseStatus: 'range', dateSemantics: 'period' }
+        ]
+      })],
+      universities,
+      REQUEST_ID,
+      NOW
+    )
+    const tasks = draft.stages.find((stage) => stage.stableKey === 'olympiads')?.tasks
+      .filter((item) => item.taskType === 'olympiad') ?? []
+
+    assert.equal(tasks.length, 1)
+    assert.equal(tasks[0]?.startDate, '2026-12-05')
+    assert.equal(tasks[0]?.dueDate, '2026-12-15')
+  })
+
+  await t.test('не создаёт фиктивный сезон только на основании расписания', () => {
+    const draft = buildTrajectoryPlanDraft(
+      validProfile(),
+      [officialOlympiad({
+        season: undefined,
+        scheduleItems: [{ id: 'schedule-no-season', kind: 'registration', isConfirmed: true, checkedOn: '2026-11-25T10:00:00.000Z', organizerUrl: 'https://olympiad.example.org/calendar', startDate: '2026-12-05', endDate: '2026-12-15', dateParseStatus: 'range', dateSemantics: 'period' }]
+      })],
+      universities,
+      REQUEST_ID,
+      NOW
+    )
+    const tasks = draft.stages.find((stage) => stage.stableKey === 'olympiads')?.tasks
+      .filter((item) => item.taskType === 'olympiad') ?? []
+
+    assert.equal(tasks.length, 0)
+  })
+
   await t.test('включает только подтверждённые льготы выбранной программы и года, не обещая право автоматически', () => {
     const draft = buildTrajectoryPlanDraft(
       validProfile(),

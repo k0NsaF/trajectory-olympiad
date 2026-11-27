@@ -55,6 +55,17 @@ export interface TrajectoryOlympiadInput {
   website?: string
   status: 'eligible' | 'upcoming' | 'closed' | 'unknown'
   benefits?: TrajectoryOlympiadBenefitInput[]
+  scheduleItems?: Array<{
+    id: string
+    kind: 'registration' | 'stage'
+    isConfirmed: boolean
+    checkedOn?: string
+    organizerUrl?: string
+    startDate?: string
+    endDate?: string
+    dateParseStatus: 'exact' | 'range' | 'inferred_year' | 'unknown'
+    dateSemantics: 'event' | 'period' | 'deadline' | 'mixed' | 'unknown'
+  }>
   season?: {
     academicYear: string
     stages: Array<{
@@ -123,7 +134,7 @@ export function validateTrajectoryProfile(profile: TrajectoryProfileInput): asse
   region: string
   weeklyStudyHours: number
   targetAdmissionYear: number
-  targetEducationLevel: 'bachelor' | 'specialist'
+  targetEducationLevel: 'bachelor' | 'specialist' | 'basic_higher'
 } {
   if (!Number.isInteger(profile.grade) || profile.grade === undefined || profile.grade < 7 || profile.grade > 11) {
     fail('Укажи класс обучения от 7 до 11 в профиле.', 'TRAJECTORY_PROFILE_GRADE_REQUIRED')
@@ -241,6 +252,59 @@ function parseDateOnly(value: string | undefined): string | undefined {
   }
 
   return value
+}
+
+
+function includeRecentScheduleRegistrationPeriods(
+  olympiad: TrajectoryOlympiadInput,
+  now: Date
+): TrajectoryOlympiadInput {
+  if (!olympiad.season || !olympiad.scheduleItems?.length) return olympiad
+
+  const candidates = olympiad.scheduleItems.flatMap((item) => {
+    if (
+      item.kind !== 'registration' ||
+      !item.isConfirmed ||
+      !isHttpsUrl(item.organizerUrl) ||
+      (item.dateParseStatus !== 'exact' && item.dateParseStatus !== 'range') ||
+      item.dateSemantics !== 'period' ||
+      !isRecentSourceVerification(item.checkedOn, now, OLYMPIAD_SOURCE_MAX_AGE_MS)
+    ) return []
+
+    const startDate = parseDateOnly(item.startDate)
+    const endDate = parseDateOnly(item.endDate)
+    if (!startDate || !endDate || endDate < startDate) return []
+
+    return [{
+      id: item.id,
+      type: 'registration' as const,
+      startDate,
+      endDate,
+      format: 'mixed' as const
+    }]
+  })
+
+  const seenPeriods = new Set(
+    olympiad.season.stages
+      .filter((stage) => stage.type === 'registration')
+      .map((stage) => stage.startDate + ':' + stage.endDate)
+  )
+  const additionalStages = candidates.filter((stage) => {
+    const key = stage.startDate + ':' + stage.endDate
+    if (seenPeriods.has(key)) return false
+    seenPeriods.add(key)
+    return true
+  })
+
+  if (additionalStages.length === 0) return olympiad
+
+  return {
+    ...olympiad,
+    season: {
+      ...olympiad.season,
+      stages: [...olympiad.season.stages, ...additionalStages]
+    }
+  }
 }
 
 function isHttpsUrl(value: string | null | undefined): value is string {
@@ -557,7 +621,10 @@ export function buildTrajectoryPlanDraft(
 
   const today = now.toISOString().slice(0, 10)
   const academicYear = currentAcademicYear(now)
-  const suitableOlympiads = olympiads
+  const trajectoryOlympiads = olympiads.map((olympiad) =>
+    includeRecentScheduleRegistrationPeriods(olympiad, now)
+  )
+  const suitableOlympiads = trajectoryOlympiads
     .filter((item) => item.grades.includes(profile.grade as number))
     .filter((item) => item.subjects.some((subject) => profile.subjects.includes(subject)))
     .map((item) => ({
@@ -595,7 +662,7 @@ export function buildTrajectoryPlanDraft(
   })
 
   const selectedUniversityIds = new Set(selectedUniversities.map((university) => university.id))
-  const benefitEligibleOlympiads = olympiads
+  const benefitEligibleOlympiads = trajectoryOlympiads
     .filter((item) => item.grades.includes(profile.grade as number))
     .filter((item) => item.subjects.some((subject) => profile.subjects.includes(subject)))
     .filter((item) => isOfficialCurrentOlympiad(item, profile.region as string, academicYear, now))

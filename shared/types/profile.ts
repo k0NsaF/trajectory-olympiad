@@ -79,7 +79,7 @@ export interface CreateProfileInput {
   targetProgramId?: string
   weeklyStudyHours?: number
   targetAdmissionYear?: number
-  targetEducationLevel?: EducationLevel
+  targetEducationLevel?: EducationLevel | null
   subjectPreparation?: SubjectPreparation[]
   alternativeUniversityIds?: string[]
 }

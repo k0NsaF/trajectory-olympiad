@@ -146,6 +146,7 @@ function getPageContext(path: string): AIPageContext {
   const universityMatch = path.match(/^\/universities\/([0-9a-f-]{36})$/i)
   if (universityMatch) return { page: 'university', entityId: universityMatch[1] }
 
+  if (path.startsWith('/trajectory')) return { page: 'trajectory' }
   if (path.startsWith('/olympiads')) return { page: 'catalog' }
   if (path.startsWith('/calendar')) return { page: 'calendar' }
   if (path.startsWith('/universities')) return { page: 'universities' }
@@ -177,6 +178,7 @@ function getPageContextLabel(context: Pick<AIPageContext, 'page'>): string {
     universities: 'Список вузов',
     university: 'Страница вуза',
     profile: 'Профиль',
+    trajectory: 'Моя траектория',
     general: 'Общие вопросы'
   }
   return labels[context.page ?? 'general']
@@ -330,16 +332,17 @@ export function AIPage() {
     setQuestion('')
     setError(null)
 
-    const explicitNavigation = /\b(открой|открыть|перейди|перейти|покажи страницу|покажи раздел|направь|перенаправь)\b/i.test(text)
+    const explicitNavigation = /(?:^|[^а-яё])(?:открой|открыть|перейди|перейти|покажи|показать|направь|перенаправь)[а-яё]*(?=$|[^а-яё])/i.test(text)
     const navigationTargets: Array<{ route: string; pattern: RegExp; title: string }> = [
-      { route: '/universities', pattern: /\b(вуз|вузы|университет|университеты|колледж|колледжи)\b/i, title: 'Каталог университетов' },
-      { route: '/olympiads', pattern: /\b(олимпиад|конкурс|соревнован)\w*/i, title: 'Каталог олимпиад' },
-      { route: '/calendar', pattern: /\b(календар|расписан|напоминан)\w*/i, title: 'Календарь' },
-      { route: '/professions', pattern: /\bпрофесси\w*/i, title: 'Каталог профессий' },
-      { route: '/directions', pattern: /\b(направлен|специальност)\w*/i, title: 'Направления обучения' },
-      { route: '/favorites', pattern: /\b(избранн|сохраненн)\w*/i, title: 'Избранное' },
-      { route: '/universities/compare', pattern: /\b(сравнен|сравнить)\w*\b.*\b(вуз|университет)|\b(вуз|университет)\w*.*\bсравн/i, title: 'Сравнение университетов' },
-      { route: '/profile', pattern: /\b(профил|анкета)\w*/i, title: 'Профиль' }
+      { route: '/universities/compare', pattern: /(?:сравн[а-яё]*[\s\S]{0,80}(?:вуз[а-яё]*|университет[а-яё]*)|(?:вуз[а-яё]*|университет[а-яё]*)[\s\S]{0,80}сравн[а-яё]*)/i, title: 'Сравнение университетов' },
+      { route: '/trajectory', pattern: /(?:траектор[а-яё]*|план\s+поступлен[а-яё]*|персональн[а-яё]*\s+план)/i, title: 'Моя траектория' },
+      { route: '/universities', pattern: /(?:вуз[а-яё]*|университет[а-яё]*|колледж[а-яё]*)/i, title: 'Каталог университетов' },
+      { route: '/olympiads', pattern: /(?:олимпиад[а-яё]*|конкурс[а-яё]*|соревнован[а-яё]*)/i, title: 'Каталог олимпиад' },
+      { route: '/calendar', pattern: /(?:календар[а-яё]*|расписан[а-яё]*|напоминан[а-яё]*)/i, title: 'Календарь' },
+      { route: '/professions', pattern: /професси[а-яё]*/i, title: 'Каталог профессий' },
+      { route: '/directions', pattern: /(?:направлен[а-яё]*|специальност[а-яё]*)/i, title: 'Направления обучения' },
+      { route: '/favorites', pattern: /(?:избранн[а-яё]*|сохраненн[а-яё]*)/i, title: 'Избранное' },
+      { route: '/profile', pattern: /(?:профил[а-яё]*|анкета)/i, title: 'Профиль' }
     ]
     const target = explicitNavigation ? navigationTargets.find((item) => item.pattern.test(text)) : undefined
     if (target) {

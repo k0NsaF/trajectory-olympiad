@@ -68,7 +68,7 @@ type ProfileSource = {
   targetProgramId?: string
   weeklyStudyHours?: number
   targetAdmissionYear?: number
-  targetEducationLevel?: EducationLevel
+  targetEducationLevel?: EducationLevel | null
   subjectPreparation?: SubjectPreparation[]
   alternativeUniversityIds?: string[]
 }
@@ -96,9 +96,7 @@ const PREPARATION_LEVEL_OPTIONS: { value: PreparationLevel; label: string }[] = 
 const EDUCATION_LEVEL_OPTIONS: { value: EducationLevel; label: string }[] = [
   { value: 'bachelor', label: 'Бакалавриат' },
   { value: 'specialist', label: 'Специалитет' },
-  { value: 'master', label: 'Магистратура' },
-  { value: 'basic_higher', label: 'Базовое высшее образование' },
-  { value: 'specialized_higher', label: 'Специализированное высшее образование' }
+  { value: 'basic_higher', label: 'Базовое высшее образование' }
 ]
 
 const REGION_OPTIONS = [
@@ -208,7 +206,7 @@ function isPreparationLevel(value: unknown): value is PreparationLevel {
 }
 
 function isEducationLevel(value: unknown): value is EducationLevel {
-  return value === 'bachelor' || value === 'specialist' || value === 'master' || value === 'basic_higher' || value === 'specialized_higher'
+  return value === 'bachelor' || value === 'specialist' || value === 'basic_higher'
 }
 
 function toProfileInput(value: ProfileSource | ProfileSnapshot | null): CreateProfileInput | null {
@@ -251,9 +249,11 @@ function toProfileInput(value: ProfileSource | ProfileSnapshot | null): CreatePr
     ...(typeof value.targetAdmissionYear === 'number' && Number.isInteger(value.targetAdmissionYear) && value.targetAdmissionYear >= 2026 && value.targetAdmissionYear <= 2100
       ? { targetAdmissionYear: value.targetAdmissionYear }
       : {}),
-    ...(isEducationLevel(value.targetEducationLevel)
-      ? { targetEducationLevel: value.targetEducationLevel }
-      : {}),
+    ...(value.targetEducationLevel === undefined
+      ? {}
+      : isEducationLevel(value.targetEducationLevel)
+        ? { targetEducationLevel: value.targetEducationLevel }
+        : { targetEducationLevel: null }),
     subjectPreparation: validSubjects.map((subjectId) => ({
       subjectId,
       preparationLevel: preparationBySubject.get(subjectId) ?? 'medium'
@@ -281,7 +281,12 @@ function toForm(profile: CreateProfileInput | null): ProfileFormState {
     targetProgramId: profile.targetProgramId ?? '',
     weeklyStudyHours: profile.weeklyStudyHours?.toString() ?? '',
     targetAdmissionYear: profile.targetAdmissionYear?.toString() ?? '',
-    targetEducationLevel: profile.targetEducationLevel ?? '',
+    targetEducationLevel:
+      profile.targetEducationLevel === 'bachelor' ||
+      profile.targetEducationLevel === 'specialist' ||
+      profile.targetEducationLevel === 'basic_higher'
+        ? profile.targetEducationLevel
+        : '',
     subjectPreparation,
     alternativeUniversityIds: (profile.alternativeUniversityIds ?? [])
       .filter((id) => id !== profile.targetUniversityId)
@@ -532,9 +537,7 @@ export function ProfilePage() {
         : {}),
       ...(weeklyStudyHours !== undefined ? { weeklyStudyHours } : {}),
       ...(targetAdmissionYear !== undefined ? { targetAdmissionYear } : {}),
-      ...(form.targetEducationLevel
-        ? { targetEducationLevel: form.targetEducationLevel }
-        : {}),
+      targetEducationLevel: form.targetEducationLevel || null,
       subjectPreparation: form.subjects.map((subjectId) => ({
         subjectId,
         preparationLevel: form.subjectPreparation[subjectId] ?? 'medium'
