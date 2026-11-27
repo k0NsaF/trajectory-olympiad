@@ -13,6 +13,7 @@ export interface SubjectPreparation {
 export interface NotificationPreferences {
   registrationReminders: boolean
   stageDeadlines: boolean
+  personalReminders: boolean
   newsUpdates: boolean
 }
 
@@ -24,6 +25,7 @@ export interface ProfilePreferences {
 export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   registrationReminders: true,
   stageDeadlines: true,
+  personalReminders: false,
   newsUpdates: false
 }
 

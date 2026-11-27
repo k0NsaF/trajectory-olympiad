@@ -27,6 +27,7 @@ interface ProfileRow {
     registrationReminders?: boolean
     stageDeadlines?: boolean
     newsUpdates?: boolean
+    personalReminders?: boolean
   } | null
 }
 
@@ -46,6 +47,7 @@ interface ProfilePreferencesRow {
     registrationReminders?: boolean
     stageDeadlines?: boolean
     newsUpdates?: boolean
+    personalReminders?: boolean
   } | null
 }
 
@@ -54,6 +56,7 @@ export interface ProfilePreferencesResult {
   notificationPreferences: {
     registrationReminders: boolean
     stageDeadlines: boolean
+    personalReminders: boolean
     newsUpdates: boolean
   }
 }
@@ -86,6 +89,7 @@ const DEFAULT_PREFERENCES: ProfilePreferencesResult = {
   notificationPreferences: {
     registrationReminders: true,
     stageDeadlines: true,
+    personalReminders: false,
     newsUpdates: false
   }
 }
@@ -110,7 +114,10 @@ function mapPreferences(row: ProfilePreferencesRow | null): ProfilePreferencesRe
         : DEFAULT_PREFERENCES.notificationPreferences.stageDeadlines,
       newsUpdates: typeof notifications.newsUpdates === 'boolean'
         ? notifications.newsUpdates
-        : DEFAULT_PREFERENCES.notificationPreferences.newsUpdates
+        : DEFAULT_PREFERENCES.notificationPreferences.newsUpdates,
+      personalReminders: typeof notifications.personalReminders === 'boolean'
+        ? notifications.personalReminders
+        : DEFAULT_PREFERENCES.notificationPreferences.personalReminders
     }
   }
 }

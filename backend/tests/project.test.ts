@@ -234,22 +234,42 @@ test('схемы данных: корректные сценарии и огра
     assert.equal(result.success, false)
   })
 
-  await t.test('настройки принимают только известную тему и три переключателя', () => {
+  await t.test('настройки принимают личные напоминания и сохраняют обратную совместимость', () => {
     const result = saveProfilePreferencesSchema.safeParse({
       themePreference: 'system',
       notificationPreferences: {
         registrationReminders: true,
         stageDeadlines: false,
+        personalReminders: true,
         newsUpdates: true
       }
     })
 
     assert.equal(result.success, true)
+    if (result.success) {
+      assert.equal(result.data.notificationPreferences.personalReminders, true)
+    }
+
+    const legacyResult = saveProfilePreferencesSchema.safeParse({
+      themePreference: 'system',
+      notificationPreferences: {
+        registrationReminders: true,
+        stageDeadlines: true,
+        newsUpdates: false
+      }
+    })
+
+    assert.equal(legacyResult.success, true)
+    if (legacyResult.success) {
+      assert.equal(legacyResult.data.notificationPreferences.personalReminders, false)
+    }
+
     assert.equal(saveProfilePreferencesSchema.safeParse({
       themePreference: 'blue',
       notificationPreferences: {
         registrationReminders: true,
         stageDeadlines: true,
+        personalReminders: false,
         newsUpdates: true
       }
     }).success, false)

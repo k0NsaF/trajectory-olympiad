@@ -156,6 +156,9 @@ function sanitizePreferences(value: unknown): ProfilePreferences {
       stageDeadlines: typeof notifications?.stageDeadlines === 'boolean'
         ? notifications.stageDeadlines
         : DEFAULT_PROFILE_PREFERENCES.notificationPreferences.stageDeadlines,
+      personalReminders: typeof notifications?.personalReminders === 'boolean'
+        ? notifications.personalReminders
+        : DEFAULT_PROFILE_PREFERENCES.notificationPreferences.personalReminders,
       newsUpdates: typeof notifications?.newsUpdates === 'boolean'
         ? notifications.newsUpdates
         : DEFAULT_PROFILE_PREFERENCES.notificationPreferences.newsUpdates

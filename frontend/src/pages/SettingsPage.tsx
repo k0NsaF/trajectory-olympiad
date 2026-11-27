@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   BellRing,
+  CalendarClock,
   Check,
   Newspaper,
   Save,
@@ -41,6 +42,12 @@ const NOTIFICATION_OPTIONS: Array<{
     title: 'Этапы и дедлайны',
     description: 'Важные даты отборочных и заключительных этапов.',
     icon: Check
+  },
+  {
+    key: 'personalReminders',
+    title: 'Личные напоминания',
+    description: 'Письма о событиях и сроках, которые ты добавляешь сам.',
+    icon: CalendarClock
   },
   {
     key: 'newsUpdates',
@@ -179,7 +186,7 @@ export function SettingsPage() {
         </div>
 
         <p className="settings-notification-note">
-          Настройки сохраняют твои предпочтения. Автоматическая отправка push- и email-уведомлений будет подключена отдельным этапом.
+          Email-напоминания отправляются только для включённых категорий и на подтверждённый адрес аккаунта.
         </p>
       </section>
 

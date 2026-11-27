@@ -86,6 +86,7 @@ export const saveProfilePreferencesSchema = z.object({
   notificationPreferences: z.object({
     registrationReminders: z.boolean(),
     stageDeadlines: z.boolean(),
+    personalReminders: z.boolean().default(false),
     newsUpdates: z.boolean()
   }).strict()
 }).strict()
