@@ -97,6 +97,7 @@ interface RetrievedKnowledge {
   text: string
   sources: KnowledgeSource[]
   documentCount: number
+  gradeEligibilityAnswer?: string
 }
 
 const SUBJECT_LABELS: Record<string, string> = {
@@ -176,6 +177,69 @@ function scoreText(value: string, terms: string[]): number {
 
 function toSubjectLabels(subjects: string[] | null | undefined): string[] {
   return (subjects ?? []).map((subject) => SUBJECT_LABELS[subject] ?? subject)
+}
+
+export function isOlympiadGradeEligibilityConfirmed(
+  row: Pick<OlympiadRow, 'grades' | 'grade_eligibility_status' | 'grade_source_url' | 'grade_checked_at'>,
+  userGrade: number | undefined
+): boolean {
+  return (
+    typeof userGrade === 'number' &&
+    Number.isInteger(userGrade) &&
+    userGrade >= 7 &&
+    userGrade <= 11 &&
+    row.grade_eligibility_status === 'official' &&
+    row.grades.includes(userGrade) &&
+    typeof row.grade_source_url === 'string' &&
+    /^https:\/\//i.test(row.grade_source_url) &&
+    typeof row.grade_checked_at === 'string' &&
+    !Number.isNaN(Date.parse(row.grade_checked_at))
+  )
+}
+
+export function buildGradeEligibilityAnswer(
+  input: AIAskInput,
+  rows: Array<Pick<OlympiadRow, 'name' | 'subjects' | 'grades' | 'official_list_number' | 'source_status' | 'grade_eligibility_status' | 'grade_source_url' | 'grade_checked_at'>>,
+  academicYear: string
+): string | undefined {
+  const grade = input.context?.grade
+  const question = normalizeText(input.question)
+  const asksAboutEligibility = /(допуск|доступн|подходящ|можно участ|могу участ)/u.test(question)
+
+  if (!grade || !asksAboutEligibility) return undefined
+
+  const selectedSubjects = input.context?.subjects ?? []
+  const relevantRows = rows
+    .filter((row) => selectedSubjects.length === 0 || selectedSubjects.some((subject) => row.subjects.includes(subject)))
+    .sort((a, b) => (a.official_list_number ?? 999) - (b.official_list_number ?? 999))
+
+  const confirmedRows = relevantRows.filter((row) => isOlympiadGradeEligibilityConfirmed(row, grade))
+  if (confirmedRows.length > 0) {
+    const names = confirmedRows
+      .map((row) => `- ${row.name}${row.official_list_number ? ` (№ ${row.official_list_number})` : ''}`)
+      .join('\n')
+    return [
+      `По проверенным данным Trajectory за ${academicYear} допуск для ${grade} класса подтверждён только для следующих олимпиад:`,
+      names,
+      'Это подтверждает только допуск по классу. Условия этапов, профиля и возможные льготы проверяются отдельно.'
+    ].join('\n\n')
+  }
+
+  const examples = relevantRows.slice(0, 8).map((row) => {
+    const listNumber = row.official_list_number ? ` (№ ${row.official_list_number})` : ''
+    const listStatus = row.source_status === 'official'
+      ? 'включение в перечень отмечено в базе; допуск по классу не подтверждён'
+      : 'статус записи и допуск требуют проверки'
+    return `- ${row.name}${listNumber} — ${listStatus}`
+  })
+
+  return [
+    `В базе Trajectory за ${academicYear} нет записей, которые подтверждают допуск для ${grade} класса одновременно по всем обязательным признакам: точный класс в сезоне, статус проверки official, HTTPS-источник и дата проверки.`,
+    relevantRows.length > 0
+      ? `По выбранным предметам найдены совпадения, но допуск по классу для них не подтверждён:\n${examples.join('\n')}${relevantRows.length > examples.length ? `\n...и ещё ${relevantRows.length - examples.length} записей без подтверждённого допуска.` : ''}`
+      : 'В справочнике не найдено записей, совпадающих с выбранными предметами.',
+    'Это не означает, что участвовать запрещено. Это означает, что база пока не содержит проверенного подтверждения. Не считай эти олимпиады подходящими или неподходящими для класса, пока не проверен регламент на официальной странице.'
+  ].join('\n\n')
 }
 
 function safeDate(value: string | null | undefined): string {
@@ -640,10 +704,17 @@ async function retrieveKnowledge(
     documents.unshift(`КОНТЕКСТ СТРАНИЦЫ: ${input.context.page}; объект: ${pageContextLabel || 'не указан'}`)
   }
 
+  const gradeEligibilityAnswer = buildGradeEligibilityAnswer(
+    input,
+    olympiads.map(getCurrentOlympiadRow),
+    currentAcademicYear
+  )
+
   return {
     text: documents.join('\n\n'),
     sources: [...sources.values()].map(toSource).slice(0, 8),
-    documentCount: evidenceDocumentCount
+    documentCount: evidenceDocumentCount,
+    ...(gradeEligibilityAnswer ? { gradeEligibilityAnswer } : {})
   }
 }
 
@@ -771,10 +842,13 @@ export async function askAI(
     history: input.history,
     userPrompt
   })
-  const answer = generation.answer
+  const answer = knowledge.gradeEligibilityAnswer ?? generation.answer
   const knowledgeStatus = knowledge.documentCount > 0 ? 'retrieved' : 'general'
   const noticeParts = [
     externalSearchNotice,
+    knowledge.gradeEligibilityAnswer
+      ? 'Проверка допуска по классу сформирована серверным фильтром подтверждённых сезонных данных; языковая модель не определяет допуск самостоятельно.'
+      : '',
     generation.fallbackUsed
       ? 'Основной ИИ-провайдер Groq временно недоступен. Ответ подготовлен резервной моделью Cloudflare.'
       : '',

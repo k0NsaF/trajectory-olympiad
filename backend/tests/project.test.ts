@@ -6,7 +6,11 @@ import { test } from 'node:test'
 import { app } from '../src/app.js'
 import { createAchievementSchema } from '../src/modules/achievements/achievements.schema.js'
 import { aiAskSchema } from '../src/modules/ai/ai.schema.js'
-import { shouldUseExternalUniversitySearch } from '../src/modules/ai/ai.service.js'
+import {
+  buildGradeEligibilityAnswer,
+  isOlympiadGradeEligibilityConfirmed,
+  shouldUseExternalUniversitySearch
+} from '../src/modules/ai/ai.service.js'
 import { universityDiscoverySchema } from '../src/modules/universities/universities.schema.js'
 import { buildUniversitySearchQuery, parseTavilySearchResponse } from '../src/services/tavily-search.service.js'
 import {
@@ -37,6 +41,39 @@ import {
 
 const UNIVERSITY_ID = '10000000-0000-4000-8000-000000000001'
 const PROGRAM_ID = '50000000-0000-4000-8000-000000000001'
+
+test('ИИ не объявляет олимпиаду доступной без подтверждённых данных о классе', () => {
+  const input = aiAskSchema.parse({
+    question: 'Какие олимпиады доступны для 10 класса?',
+    context: { grade: 10, subjects: ['mathematics'], page: 'general' }
+  })
+  const unverified = {
+    name: 'Национальная технологическая олимпиада',
+    subjects: ['mathematics'],
+    grades: [],
+    official_list_number: 3,
+    source_status: 'official' as const,
+    grade_eligibility_status: 'unknown' as const,
+    grade_source_url: null,
+    grade_checked_at: null
+  }
+
+  const guardedAnswer = buildGradeEligibilityAnswer(input, [unverified], '2026-2027')
+  assert.ok(guardedAnswer)
+  assert.match(guardedAnswer, /допуск по классу.*не подтверждён/iu)
+  assert.doesNotMatch(guardedAnswer, /допуск подтверждён для 10 класса/iu)
+  assert.equal(isOlympiadGradeEligibilityConfirmed(unverified, 10), false)
+
+  const verified = {
+    ...unverified,
+    grades: [10],
+    grade_eligibility_status: 'official' as const,
+    grade_source_url: 'https://example.org/rules',
+    grade_checked_at: '2026-11-27T12:00:00Z'
+  }
+  assert.equal(isOlympiadGradeEligibilityConfirmed(verified, 10), true)
+  assert.match(buildGradeEligibilityAnswer(input, [verified], '2026-2027') ?? '', /допуск для 10 класса подтверждён/iu)
+})
 
 function validProfile() {
   return {
