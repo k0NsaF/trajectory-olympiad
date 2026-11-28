@@ -1,4 +1,4 @@
-
+﻿
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import {
@@ -28,6 +28,9 @@ import { useAuth } from '@/app/providers'
 import { readFavorites, subscribeToFavorites, toggleFavorite } from '@/services/favorites.store'
 import { readCalendarOlympiadIds, subscribeToCalendarSelection, toggleCalendarOlympiad } from '@/services/calendar-selection.store'
 import { olympiadService } from '@/services/olympiad.service'
+import { reminderService } from '@/services/reminder.service'
+import { readRegisteredOlympiadIds, subscribeToOlympiadRegistration, toggleOlympiadRegistration } from '@/services/olympiad-registration.store'
+import './olympiad-participation.css'
 
 type StageDateInput = {
   startDate: string
@@ -243,6 +246,14 @@ function ScheduleItemsTimeline({ items }: { items: OlympiadWithStatus['scheduleI
   )
 }
 
+const PROFILE_SOURCE_PATHS: Record<string, string> = {
+  mathematics: '/sections/maths/',
+  informatics: '/sections/informatics/',
+  biology: '/sections/biology/',
+  physics: '/sections/physics/',
+  chemistry: '/sections/chemistry/'
+}
+
 export function OlympiadDetailsPage() {
   const { id = '' } = useParams()
   const [searchParams] = useSearchParams()
@@ -257,10 +268,15 @@ export function OlympiadDetailsPage() {
       ? 'academicYear=' + encodeURIComponent(academicYear)
       : ''
   const catalogUrl = catalogQuery ? '/olympiads?' + catalogQuery : '/olympiads'
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const storageScope = user?.id ? `user:${user.id}` : 'guest'
   const [isFavorite, setIsFavorite] = useState(() => readFavorites(storageScope).some((entry) => entry.kind === 'olympiad' && entry.id === id))
   const [isInCalendar, setIsInCalendar] = useState(() => readCalendarOlympiadIds(storageScope).includes(id))
+  const [isRegistered, setIsRegistered] = useState(() => readRegisteredOlympiadIds(storageScope).includes(id))
+  const [selectedProfileId, setSelectedProfileId] = useState('')
+  const [selectedGrade, setSelectedGrade] = useState('10')
+  const [reminderBusy, setReminderBusy] = useState(false)
+  const [reminderFeedback, setReminderFeedback] = useState('')
 
   useEffect(() => {
     const sync = () => {
@@ -286,6 +302,12 @@ export function OlympiadDetailsPage() {
     setIsInCalendar(readCalendarOlympiadIds(storageScope).includes(id))
   }
 
+  useEffect(() => {
+    const syncRegistration = () => setIsRegistered(readRegisteredOlympiadIds(storageScope).includes(id))
+    syncRegistration()
+    return subscribeToOlympiadRegistration(storageScope, syncRegistration)
+  }, [id, storageScope])
+
   const loadOlympiad = useCallback(
     () => olympiadService.getById(id, { academicYear, calendarYear }),
     [id, academicYear, calendarYear]
@@ -297,6 +319,16 @@ export function OlympiadDetailsPage() {
     error,
     reload
   } = useAsyncData(loadOlympiad)
+
+  useEffect(() => {
+    const profiles = olympiad?.profiles ?? []
+    if (profiles.length === 0) {
+      setSelectedProfileId('')
+      return
+    }
+    const preferred = profiles.find((profile) => profile.subjects.includes('mathematics')) ?? profiles[0]
+    setSelectedProfileId((current) => profiles.some((profile) => profile.id === current) ? current : preferred.id)
+  }, [olympiad?.id, olympiad?.profiles])
 
   if (loading) {
     return (
@@ -356,6 +388,85 @@ export function OlympiadDetailsPage() {
       || (first.endDate ?? '').localeCompare(second.endDate ?? '')
       || first.stageName.localeCompare(second.stageName)
   })
+
+  const selectedProfile = olympiad.profiles.find((profile) => profile.id === selectedProfileId) ?? olympiad.profiles[0] ?? null
+  const gradeEvidenceVerified = Boolean(
+    selectedProfile && selectedProfile.gradeEligibilityStatus === 'official' &&
+    selectedProfile.gradeSourceUrl?.startsWith('https://') &&
+    selectedProfile.gradeCheckedAt
+  )
+  const selectedGradeIsListed = selectedProfile?.eligibleGrades.includes(Number(selectedGrade)) ?? false
+  const gradeEligibilityText = !selectedProfile
+    ? 'Предметный профиль не добавлен в справочник.'
+    : gradeEvidenceVerified
+      ? selectedGradeIsListed
+        ? `Для ${selectedGrade} класса допуск указан в проверенном источнике.`
+        : `В проверенном источнике профиль не указывает ${selectedGrade} класс. Уточни правила у организатора.`
+      : 'Допуск по выбранному профилю и классу пока не подтверждён официальным источником. Это не означает запрет на участие.'
+
+  const profileSourcePaths = selectedProfile?.subjects.map((subject) => PROFILE_SOURCE_PATHS[subject]).filter((path): path is string => Boolean(path)) ?? []
+  const now = new Date()
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const nextReminderTarget = sortedScheduleItems
+    .map((item) => {
+      const targetDate = item.dateSemantics === 'deadline' || (item.kind === 'registration' && item.dateSemantics === 'period')
+        ? item.endDate ?? item.startDate
+        : item.startDate ?? item.endDate
+      return { item, targetDate }
+    })
+    .filter(({ item, targetDate }) => Boolean(
+      item.isConfirmed &&
+      (!isRegistered || item.kind !== 'registration') &&
+      (profileSourcePaths.length === 0 || profileSourcePaths.some((path) => item.organizerUrl.includes(path)) || item.organizerUrl.includes('/stages/')) &&
+      ['exact', 'range'].includes(item.dateParseStatus) &&
+      ['event', 'period', 'deadline'].includes(item.dateSemantics) &&
+      targetDate && targetDate >= todayKey
+    ))
+    .sort((first, second) => (first.targetDate ?? '').localeCompare(second.targetDate ?? ''))[0] ?? null
+
+  const handleRegistrationToggle = () => {
+    toggleOlympiadRegistration(storageScope, id)
+    setIsRegistered(readRegisteredOlympiadIds(storageScope).includes(id))
+  }
+
+  const handleCreateScheduleReminder = async () => {
+    if (!session?.access_token) {
+      setReminderFeedback('Войди в аккаунт, чтобы сохранить напоминание в календаре.')
+      return
+    }
+    if (!nextReminderTarget?.targetDate) {
+      setReminderFeedback('Нет ближайшей подтверждённой даты, для которой можно создать напоминание.')
+      return
+    }
+
+    const dueDate = parseDate(nextReminderTarget.targetDate)
+    if (!dueDate) {
+      setReminderFeedback('Не удалось разобрать дату из расписания.')
+      return
+    }
+    dueDate.setHours(9, 0, 0, 0)
+    const notifyDate = new Date(dueDate.getTime() - 24 * 60 * 60 * 1000)
+    const item = nextReminderTarget.item
+    const reminderType = item.kind === 'registration' ? 'registration_deadline' as const : item.dateSemantics === 'deadline' ? 'stage_end' as const : 'stage_start' as const
+    const source = getSafeWebsiteUrl(item.organizerUrl)
+
+    setReminderBusy(true)
+    setReminderFeedback('')
+    try {
+      await reminderService.create({
+        title: `Всесибирская олимпиада: ${item.stageName || (item.kind === 'registration' ? 'регистрация' : 'этап')}`,
+        description: `Профиль: ${selectedProfile?.profileName ?? 'общий'}; класс: ${selectedGrade}. Дата взята из подтверждённого расписания.${source ? ` Источник: ${source}` : ''}`,
+        type: reminderType,
+        dueAt: dueDate.toISOString(),
+        ...(notifyDate.getTime() > Date.now() ? { notifyAt: notifyDate.toISOString() } : {})
+      })
+      setReminderFeedback('Напоминание сохранено в твоём календаре.')
+    } catch (error) {
+      setReminderFeedback(error instanceof Error ? error.message : 'Не удалось создать напоминание. Попробуй ещё раз.')
+    } finally {
+      setReminderBusy(false)
+    }
+  }
 
 
   return (
@@ -761,6 +872,47 @@ export function OlympiadDetailsPage() {
               </p>
             </div>
           </div>
+        </div>
+
+        <div className="olympiad-participation-controls">
+          <div className="olympiad-participation-control-grid">
+            <label>
+              <span>Предметный профиль</span>
+              <select value={selectedProfile?.id ?? ''} onChange={(event) => setSelectedProfileId(event.target.value)} disabled={olympiad.profiles.length === 0}>
+                {olympiad.profiles.length === 0 ? <option value="">Профили не добавлены</option> : olympiad.profiles.map((profile) => <option value={profile.id} key={profile.id}>{profile.profileName}</option>)}
+              </select>
+            </label>
+            <label>
+              <span>Твой класс</span>
+              <select value={selectedGrade} onChange={(event) => setSelectedGrade(event.target.value)}>
+                {[7, 8, 9, 10, 11].map((grade) => <option value={String(grade)} key={grade}>{grade} класс</option>)}
+              </select>
+            </label>
+          </div>
+          <div className={`olympiad-participation-eligibility${gradeEvidenceVerified && selectedGradeIsListed ? ' is-confirmed' : ' is-unconfirmed'}`} role="status">
+            <Info size={17} />
+            <div>
+              <strong>{gradeEligibilityText}</strong>
+              {selectedProfile?.gradeSourceUrl && getSafeWebsiteUrl(selectedProfile.gradeSourceUrl) && (
+                <a href={getSafeWebsiteUrl(selectedProfile.gradeSourceUrl) ?? undefined} target="_blank" rel="noopener noreferrer">Источник допуска по классам <ExternalLink size={13} /></a>
+              )}
+              {selectedProfile?.gradeCheckedAt && <small>Дата проверки: {formatDate(selectedProfile.gradeCheckedAt)}</small>}
+            </div>
+          </div>
+          <p className="olympiad-participation-note">Отметка регистрации сохраняется в Trajectory. Она не регистрирует тебя на сайте организатора; если олимпиада добавлена в календарь, там будет показан этот статус.</p>
+          <div className="olympiad-participation-actions">
+            <button type="button" className={isRegistered ? 'secondary-button' : 'primary-button'} onClick={handleRegistrationToggle} aria-pressed={isRegistered}>
+              {isRegistered ? 'Снять отметку о регистрации' : 'Отметить, что я зарегистрировался'}
+            </button>
+            <button type="button" className="secondary-button" onClick={() => void handleCreateScheduleReminder()} disabled={reminderBusy || !nextReminderTarget || !session?.access_token}>
+              {reminderBusy ? 'Сохраняем…' : 'Напомнить о ближайшей дате'}
+            </button>
+          </div>
+          {reminderFeedback && <p className="olympiad-participation-feedback" role="status">{reminderFeedback}</p>}
+          <p className="olympiad-participation-note">Сохранённое напоминание появится в календаре Trajectory. Фактическая отправка уведомления зависит от настроек серверного планировщика.</p>
+          {!session?.access_token && <p className="olympiad-participation-note">Для сохранения напоминания в аккаунте войди в Trajectory.</p>}
+          {nextReminderTarget?.targetDate && <p className="olympiad-participation-note">Ближайшая подтверждённая дата: {formatDate(nextReminderTarget.targetDate)} · {nextReminderTarget.item.stageName || (nextReminderTarget.item.kind === 'registration' ? 'регистрация' : 'этап')}</p>}
+          <Link className="olympiad-inline-link" to="/universities/55d657a4-a6d5-46c1-8ca6-93adf3f4da80">Открыть заполненную карточку МФТИ <ExternalLink size={14} /></Link>
         </div>
 
         {websiteUrl && (

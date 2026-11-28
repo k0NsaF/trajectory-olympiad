@@ -1,8 +1,9 @@
-import { useCallback, useState } from 'react'
+﻿import { useCallback, useState } from 'react'
 import { CalendarDays, ExternalLink, Info, ShieldCheck } from 'lucide-react'
 
 import { useAsyncData } from '@/hooks/useAsyncData'
 import { admissionsService } from '@/services/admissions.service'
+import { MIPT_DEMO_ADMISSION_PROGRAMS, MIPT_DEMO_CAMPAIGN, MIPT_DEMO_CAMPAIGN_ID, MIPT_UNIVERSITY_ID } from '@/data/mipt-demo-data'
 import type {
   AdmissionCampaign,
   AdmissionProgramsResponse,
@@ -76,7 +77,7 @@ function CampaignPrograms({
   campaign: AdmissionCampaign
 }) {
   const load = useCallback(
-    () => admissionsService.getPrograms(universityId, campaign.id),
+    () => campaign.id === MIPT_DEMO_CAMPAIGN_ID ? Promise.resolve(MIPT_DEMO_ADMISSION_PROGRAMS) : admissionsService.getPrograms(universityId, campaign.id),
     [universityId, campaign.id]
   )
   const { data, loading, error, reload } =
@@ -104,6 +105,7 @@ function CampaignPrograms({
 
   return (
     <div className="admission-program-list">
+      {campaign.id === MIPT_DEMO_CAMPAIGN_ID && <div className="admission-demo-note" role="note"><Info size={16} /><span>Демонстрационный набор Trajectory: места, баллы, стоимость, экзамены и достижения придуманы для показа интерфейса и не являются условиями приёма МФТИ.</span></div>}
       {data.programs.map((program) => (
         <article className="admission-program" key={program.id}>
           <h3>{program.name}</h3>
@@ -116,7 +118,7 @@ function CampaignPrograms({
                 <span>{label(option.educationLevel, LEVELS)}</span>
                 <span>{label(option.admissionBasis, BASIS)}</span>
                 <span>{label(option.studyForm, FORMS)}</span>
-                {option.verificationStatus === 'archived' && <span>Архивные данные</span>}
+                {option.verificationStatus === 'archived' ? <span>Архивные данные</span> : option.verificationStatus === 'needs_review' ? <span>{option.id.startsWith('demo-mipt-') ? 'ДЕМО · условные значения' : 'Требует проверки'}</span> : null}
               </div>
 
               <div className="admission-facts">
@@ -193,8 +195,9 @@ export function UniversityAdmissions({ universityId }: { universityId: string })
     () => admissionsService.getCampaigns(universityId),
     [universityId]
   )
-  const { data: campaigns, loading, error, reload } =
+  const { data: loadedCampaigns, loading, error, reload } =
     useAsyncData<AdmissionCampaign[]>(load, [])
+  const campaigns = universityId === MIPT_UNIVERSITY_ID ? [MIPT_DEMO_CAMPAIGN, ...(loadedCampaigns ?? [])] : (loadedCampaigns ?? [])
   const [selectedId, setSelectedId] = useState('')
 
   const selected = campaigns?.find((item) => item.id === selectedId)
@@ -236,7 +239,7 @@ export function UniversityAdmissions({ universityId }: { universityId: string })
               <select value={selected.id} onChange={(event) => setSelectedId(event.target.value)}>
                 {campaigns.map((item) => (
                   <option value={item.id} key={item.id}>
-                    {item.admissionYear}{item.status === 'archived' ? ' · архив' : ''}
+                    {item.admissionYear}{item.status === 'archived' ? ' · архив' : item.id === MIPT_DEMO_CAMPAIGN_ID ? ' · ДЕМО' : ''}
                   </option>
                 ))}
               </select>
@@ -246,6 +249,7 @@ export function UniversityAdmissions({ universityId }: { universityId: string })
           <div className="admission-campaign-meta">
             <ShieldCheck size={16} />
             <span>Кампания {selected.admissionYear}</span>
+            {selected.id === MIPT_DEMO_CAMPAIGN_ID && <span className="admission-demo-badge">ДЕМО · неофициальные примеры</span>}
             {selected.status === 'archived' && <span>Архив</span>}
             {selected.sourceCheckedAt && <span>Проверено: {formatDate(selected.sourceCheckedAt)}</span>}
           </div>

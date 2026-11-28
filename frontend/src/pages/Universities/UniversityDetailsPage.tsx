@@ -40,6 +40,7 @@ import {
 } from '@/utils/benefits'
 
 import { getUniversityFallbackPhoto } from '@/utils/university-fallback-photos'
+import { getMiptDemoBenefits, getMiptDemoProgramRows } from '@/data/mipt-demo-data'
 import './benefits-enhancements.css'
 
 const RIGHT_LABELS: Record<string, string> = {
@@ -148,14 +149,16 @@ function UniversityBenefits({
     reload
   } = useAsyncData<UniversityBenefit[]>(loadBenefits, [])
 
+  const allBenefits = useMemo(() => [...(benefits ?? []), ...getMiptDemoBenefits(universityId).filter((benefit) => !selectedProgramId || benefit.programId === selectedProgramId)], [benefits, universityId, selectedProgramId])
+
   const availableYears = useMemo(() => {
-    const years = (benefits ?? []).map((benefit) => benefit.validYear)
+    const years = allBenefits.map((benefit) => benefit.validYear)
     return [...new Set([targetAdmissionYear, ...years])].sort(
       (first, second) => second - first
     )
-  }, [benefits, targetAdmissionYear])
+  }, [allBenefits, targetAdmissionYear])
 
-  const yearBenefits = (benefits ?? []).filter(
+  const yearBenefits = allBenefits.filter(
     (benefit) => benefit.validYear === selectedYear
   )
 
@@ -323,6 +326,7 @@ function UniversityBenefits({
                     >
                       {getBenefitVerificationLabel(benefit)}
                     </span>
+                    {benefit.id.startsWith('demo-mipt-') && <span className="benefit-verification-status is-draft">ДЕМО · условные данные</span>}
                   </div>
 
                   <h3>
@@ -442,7 +446,8 @@ function UniversityBenefits({
 
 function UniversityProgramCard({ program }: { program: UniversityProgram }) {
   const status = program.catalogStatus ?? 'unknown'
-  const statusLabel = status === 'official'
+  const isDemoProgram = program.id.startsWith('demo-mipt-')
+  const statusLabel = isDemoProgram ? 'Демо-пример · учебные данные' : status === 'official'
     ? 'Проверено по официальному источнику'
     : status === 'needs_review'
       ? 'Требует проверки'
@@ -541,7 +546,7 @@ export function UniversityDetailsPage() {
   }
 
   const websiteUrl = getSafeUrl(university.website)
-  const programs = university.programs ?? []
+  const programs = [...(university.programs ?? []), ...getMiptDemoProgramRows(university.id)]
   const confirmedPrograms = programs.filter((program) => program.catalogStatus === 'official')
   const programsNeedingReview = programs.filter((program) => program.catalogStatus === 'needs_review')
   const currentCatalogPrograms = programs.filter((program) => program.catalogStatus !== 'archived')

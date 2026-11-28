@@ -1,0 +1,65 @@
+﻿.olympiad-participation-controls {
+  display: grid;
+  gap: 14px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-color, #e5ddd5);
+}
+.olympiad-participation-control-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.olympiad-participation-control-grid label {
+  display: grid;
+  gap: 7px;
+  color: var(--text-secondary, #716963);
+  font-size: 13px;
+}
+.olympiad-participation-control-grid select {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-color, #d9d0c8);
+  border-radius: 9px;
+  background: var(--surface, #fff);
+  color: var(--text-primary, #302b29);
+  font: inherit;
+}
+.olympiad-participation-eligibility {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color, #e5ddd5);
+  border-radius: 10px;
+  background: var(--surface-muted, #f8f5f1);
+}
+.olympiad-participation-eligibility > div {
+  display: grid;
+  gap: 5px;
+}
+.olympiad-participation-eligibility a,
+.olympiad-participation-controls .olympiad-inline-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.olympiad-participation-eligibility small,
+.olympiad-participation-note,
+.olympiad-participation-feedback {
+  color: var(--text-secondary, #716963);
+  font-size: 13px;
+}
+.olympiad-participation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.olympiad-participation-feedback {
+  margin: 0;
+}
+@media (max-width: 640px) {
+  .olympiad-participation-control-grid { grid-template-columns: 1fr; }
+  .olympiad-participation-actions { flex-direction: column; align-items: stretch; }
+}
