@@ -511,6 +511,22 @@ function task(
   }
 }
 
+function keepEarliestTaskPerOlympiad(tasks: TrajectoryTaskDraft[]): TrajectoryTaskDraft[] {
+  const ordered = [...tasks].sort((first, second) => {
+    const firstDate = first.startDate ?? first.dueDate ?? '9999-12-31'
+    const secondDate = second.startDate ?? second.dueDate ?? '9999-12-31'
+    return firstDate.localeCompare(secondDate) || first.stableKey.localeCompare(second.stableKey)
+  })
+  const seen = new Set<string>()
+  return ordered.filter((item) => {
+    const olympiadId = item.relatedOlympiadId
+    if (!olympiadId) return true
+    if (seen.has(olympiadId)) return false
+    seen.add(olympiadId)
+    return true
+  })
+}
+
 function getGradeEligibilityStatus(
   item: TrajectoryOlympiadInput,
   grade: number,
@@ -731,7 +747,7 @@ export function buildTrajectoryPlanDraft(
 
   // Add confirmed upcoming qualifying/final events even when registration has
   // already closed. Participation remains conditional on passing prior stages.
-  const scheduleStageTasks: TrajectoryTaskDraft[] = trajectoryOlympiads
+  const scheduleStageCandidates: TrajectoryTaskDraft[] = trajectoryOlympiads
     .filter((item) => item.grades.includes(profile.grade as number))
     .filter((item) => item.subjects.some((subject) => profile.subjects.includes(subject)))
     .filter((item) => isOfficialCurrentOlympiad(item, profile.region as string, academicYear, now))
@@ -774,7 +790,8 @@ export function buildTrajectoryPlanDraft(
         }
       )]
     }))
-  const datedEligibilityReviewTasks: TrajectoryTaskDraft[] = trajectoryOlympiads
+  const scheduleStageTasks = keepEarliestTaskPerOlympiad(scheduleStageCandidates)
+  const datedEligibilityReviewCandidates: TrajectoryTaskDraft[] = trajectoryOlympiads
     .filter((olympiad) => olympiad.listType === 'school_olympiad')
     .filter((olympiad) => isOfficialCurrentOlympiad(olympiad, profile.region as string, academicYear, now))
     .filter((olympiad) => olympiad.subjects.some((subject) => profile.subjects.includes(subject)))
@@ -800,9 +817,22 @@ export function buildTrajectoryPlanDraft(
           sourceLabel: 'Положение / календарь организатора'
         }
       )))
-  olympiadTasks.push(...datedEligibilityReviewTasks)
+  const datedEligibilityReviewTasks = keepEarliestTaskPerOlympiad(datedEligibilityReviewCandidates)
+  // Prefer one eligibility-check task over a duplicate stage-preparation task
+  // for the same olympiad. The calendar still retains every confirmed date.
+  const eventTasksByOlympiad = new Map<string, TrajectoryTaskDraft>()
+  for (const item of datedEligibilityReviewTasks) {
+    if (item.relatedOlympiadId && !eventTasksByOlympiad.has(item.relatedOlympiadId)) {
+      eventTasksByOlympiad.set(item.relatedOlympiadId, item)
+    }
+  }
+  for (const item of scheduleStageTasks) {
+    if (item.relatedOlympiadId && !eventTasksByOlympiad.has(item.relatedOlympiadId)) {
+      eventTasksByOlympiad.set(item.relatedOlympiadId, item)
+    }
+  }
+  olympiadTasks.push(...eventTasksByOlympiad.values())
   const selectedUniversityIds = new Set(selectedUniversities.map((university) => university.id))
-  olympiadTasks.push(...scheduleStageTasks)
 
   const benefitEligibleOlympiads = trajectoryOlympiads
     .filter((item) => item.listType === 'school_olympiad')
@@ -881,6 +911,31 @@ export function buildTrajectoryPlanDraft(
       'Сейчас в данных текущего сезона нет мероприятий, одновременно подходящих по классу и предметам и имеющих подтверждённый статус и даты регистрации. Новые даты появятся в плане только после проверки источника.'
     ))
   }
+
+  // A personal plan is an action list, not a copy of the whole reference catalog.
+  // Keep the 79 highest-priority actions and add one transparent overflow task.
+  const MAX_OLYMPIAD_STAGE_TASKS = 80
+  if (olympiadTasks.length > MAX_OLYMPIAD_STAGE_TASKS) {
+    const rankedTasks = [...olympiadTasks].sort((first, second) => {
+      const priorityRank = { high: 0, medium: 1, low: 2 } as const
+      const priorityDifference = priorityRank[first.priority] - priorityRank[second.priority]
+      if (priorityDifference !== 0) return priorityDifference
+      const firstDate = first.dueDate ?? first.startDate ?? '9999-12-31'
+      const secondDate = second.dueDate ?? second.startDate ?? '9999-12-31'
+      return firstDate.localeCompare(secondDate) || first.stableKey.localeCompare(second.stableKey)
+    })
+    const omittedCount = rankedTasks.length - (MAX_OLYMPIAD_STAGE_TASKS - 1)
+    const visibleTasks = rankedTasks.slice(0, MAX_OLYMPIAD_STAGE_TASKS - 1)
+    visibleTasks.push(task(
+      `olympiads:review-additional:${profileFingerprint(profile)}`,
+      'Посмотреть дополнительные олимпиады в каталоге',
+      'review',
+      'low',
+      `Ещё ${omittedCount} задач не включены в краткий персональный план, чтобы не перегружать его. Все подтверждённые даты по-прежнему доступны в календаре, а остальные олимпиады — в каталоге. Приоритетные задачи оставлены в этом плане.`
+    ))
+    olympiadTasks.splice(0, olympiadTasks.length, ...visibleTasks)
+  }
+
   stages.push({
     stableKey: 'olympiads',
     stageType: 'olympiads',

@@ -352,6 +352,25 @@ test('генератор персональной траектории', async (
     assert.equal(tasks[0]?.dueDate, '2026-12-13')
     assert.equal(tasks[0]?.sourceUrl, 'https://olympiad.example.org/')
   })
+  await t.test('не размножает задачи по нескольким будущим этапам одной олимпиады', () => {
+    const draft = buildTrajectoryPlanDraft(
+      validProfile(),
+      [officialOlympiad({
+        scheduleItems: [
+          { id: 'stage-next', kind: 'stage', stageName: 'Отборочный этап', isConfirmed: true, checkedOn: '2026-11-25T10:00:00.000Z', organizerUrl: 'https://olympiad.example.org/calendar', startDate: '2026-12-12', endDate: '2026-12-13', dateParseStatus: 'range', dateSemantics: 'period' },
+          { id: 'stage-later', kind: 'stage', stageName: 'Заключительный этап', isConfirmed: true, checkedOn: '2026-11-25T10:00:00.000Z', organizerUrl: 'https://olympiad.example.org/calendar', startDate: '2027-02-12', endDate: '2027-02-13', dateParseStatus: 'range', dateSemantics: 'period' }
+        ]
+      })],
+      universities,
+      REQUEST_ID,
+      NOW
+    )
+    const stageTasks = draft.stages.find((stage) => stage.stableKey === 'olympiads')?.tasks
+      .filter((item) => item.stableKey.startsWith(`olympiad:${OLYMPIAD_ID}:schedule:`)) ?? []
+    assert.equal(stageTasks.length, 1)
+    assert.equal(stageTasks[0]?.startDate, '2026-12-12')
+  })
+
   await t.test('не создаёт фиктивный сезон только на основании расписания', () => {
     const draft = buildTrajectoryPlanDraft(
       validProfile(),
@@ -522,14 +541,22 @@ test('генератор персональной траектории', async (
   })
 
 
-  await t.test('отклоняет слишком большой этап до попытки сохранения в БД', () => {
+  await t.test('ограничивает слишком большой список задач без отказа от генерации', () => {
     const benefits = Array.from({ length: 101 }, (_, index) => officialBenefit({
       id: `70000000-0000-4000-8000-${String(index + 100).padStart(12, '0')}`
     }))
-    assert.throws(
-      () => buildTrajectoryPlanDraft(validProfile(), [officialOlympiad({ benefits })], universities, REQUEST_ID, NOW),
-      /слишком много задач/u
+    const draft = buildTrajectoryPlanDraft(
+      validProfile(),
+      [officialOlympiad({ benefits })],
+      universities,
+      REQUEST_ID,
+      NOW
     )
+    const olympiadStage = draft.stages.find((stage) => stage.stableKey === 'olympiads')
+    assert.ok(olympiadStage)
+    assert.equal(olympiadStage.tasks.length, 80)
+    assert.ok(olympiadStage.tasks.some((item) => item.stableKey.startsWith('olympiads:review-additional:')))
+    assert.ok(draft.stages.every((stage) => stage.tasks.length <= 100))
   })
 
   await t.test('сохраняет устойчивые ключи этапов и задач и снимок настроек профиля', () => {
